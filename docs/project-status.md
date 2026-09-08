@@ -2,7 +2,7 @@
 
 ## Current state
 
-The repository started from an Astro portfolio starter with:
+Execution Plan 001 is complete as of 2026-09-08. The Astro starter now has:
 
 - homepage
 - DATA page
@@ -14,24 +14,51 @@ The repository started from an Astro portfolio starter with:
 - category cards
 - project cards
 - global CSS
+- a validated project content collection in `src/content.config.ts`
+- three Markdown project entries in `src/content/projects/`
+- shared project ordering, URL and status helpers
+- homepage featured projects and category listings driven by the same entries
+- a reusable project layout and static `/projects/<slug>/` routes
+- optional preview images, publication/update dates, source links and repository links
+
+The Pulse of Adelaide, Adelaide in Motion and Powering South Australia are public LAB ideas, displayed as PLANNED. Each has a placeholder detail page explaining the concept and pending data research. DATA and MAPS remain empty until projects are ready for promotion. No real visualisation or dataset was added.
+
+The existing visual direction, navigation and card artwork are preserved. A small mobile heading adjustment fixes pre-existing horizontal overflow on About. No dependencies or client-side scripts were added.
+
+## Validation
+
+- `npm run build` passes: eight static pages, no build warnings.
+- All five main routes and all three project routes inspected using `npm run dev`.
+- All eight routes checked at 360 px for horizontal overflow; the About heading issue was corrected and rechecked. Representative layouts visually inspected at 390, 768, 1280 and 1600 px too.
+- Project cards support Tab focus with a visible outline and Enter navigation.
+- A temporary metadata change verified promotion into DATA/MAPS, removal from LAB, unchanged project URLs/canonical links, and homepage removal with `featured: false`. Original LAB metadata was restored and the final site rebuilt.
+- `git diff --check` passes.
+- APIs verified against locally installed Astro 7.3.1. The build ran with available Node 24.20.0; `.nvmrc` remains 22.20.0. Both meet this Astro version's supported Node range, but the pinned Node version was not separately tested.
+- No standalone type-check or test command is configured in `package.json`.
+
+No unresolved foundation issues. Optional image/source/date rendering has no real project content yet. Research and visualisation work remains in Plan 002.
+
+## Deployment context
 
 The user confirms an existing Cloudflare Worker deployment. The repository builds static Astro output into `dist/` with no adapter, Wrangler configuration, Worker source or D1/R2/KV bindings. Earlier Pages assumptions have been corrected; externally managed deployment commands and triggers remain unverified. See [deployment workflow](deployment-workflow.md).
 
 The domain `marklee.au` is being moved to Cloudflare DNS while email remains hosted by VentraIP.
 
+## Current priority
+
+The reusable project system and Plan 003 data foundation are ready. Continue with data-source research for The Pulse of Adelaide before building its visualisation. No suitable fuel source or reuse terms have been established; see [the source note](../data/sources/pulse-of-adelaide.md).
+
 ## Data foundation (Plan 003)
 
 Implemented 2026-09-08: durable data rules merged into root `AGENTS.md`; separate raw, processed, provenance, browser output and script directories; raw/intermediate ignore defaults; source and metadata conventions; contract and release checklist; Pulse V1 aligned to an explicitly prepared static snapshot. No source data, pipeline, schema validator, dependency or Cloudflare resource was added. Existing application code and deployment configuration were preserved.
 
-See [Plan 003](exec-plans/active/003-data-foundation.md) for the completion and validation record. Fuel source research remains unresolved; see [the source note](../data/sources/pulse-of-adelaide.md).
-
-## Current priority
-
-Do not redesign the homepage again before building the reusable project system.
+See [Plan 003](exec-plans/active/003-data-foundation.md) for the completion and validation record. The earlier visual checks above belong to Plan 001; this documentation and directory task does not change routes, cards or layouts.
 
 Next technical task:
 
-`docs/exec-plans/active/001-foundation-project-system.md`
+`docs/exec-plans/active/002-pulse-of-adelaide.md`
+
+For adding future project entries, see `docs/project-template.md`. Keep project slugs unchanged during category promotion.
 
 ## First real project
 

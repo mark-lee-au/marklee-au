@@ -1,6 +1,7 @@
 ---
 import SiteHeader from '../components/SiteHeader.astro';
 import SiteFooter from '../components/SiteFooter.astro';
+import ProjectListing from '../components/ProjectListing.astro';
 import '../styles/global.css';
 ---
 <!doctype html>
@@ -22,10 +23,7 @@ import '../styles/global.css';
         <p class="page-copy">Experiments, prototypes and ideas in progress.</p>
       </section>
       <section class="section">
-        <div class="empty-state">
-          <h2>Projects will appear here.</h2>
-          <p class="page-copy">Add project pages under <code>src/pages/projects/</code>, then link them from this collection.</p>
-        </div>
+        <ProjectListing category="lab" />
       </section>
     </main>
     <SiteFooter />

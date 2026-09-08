@@ -27,7 +27,7 @@ A project that needs regularly refreshed public data may later use a scheduled d
 
 ## Intended repository structure
 
-The starter repository currently contains `src/pages`, `src/components`, and `src/styles`.
+The repository contains the project content system described below and the data foundation directories. Visualisation and project-specific asset directories are added when needed.
 
 As the site grows, prefer the following structure:
 
@@ -65,14 +65,13 @@ The data foundation directories contain short READMEs. Other proposed directorie
 
 ## Project metadata
 
-Once the portfolio has several projects, project metadata should use an Astro content collection or another single structured source rather than hard-coded duplicate lists on DATA, MAPS, LAB, and the homepage.
+Project metadata lives in Markdown frontmatter under `src/content/projects/`, validated by `src/content.config.ts`. The collection uses Astro's Content Layer `glob()` loader. This implementation was verified against installed Astro 7.3.1, including its local content types, slug handling and `render()` API.
 
-Suggested fields:
+Implemented fields:
 
 ```text
 slug
 title
-shortTitle
 summary
 question
 category
@@ -81,10 +80,10 @@ featured
 publishedDate
 updatedDate
 tags
-heroType
-heroAsset
-sourceNames
-sourceUrls
+sortOrder
+previewImage
+previewAlt
+sources
 repositoryUrl
 ```
 
@@ -96,7 +95,7 @@ maps
 lab
 ```
 
-Suggested status values:
+Status values:
 
 ```text
 idea
@@ -106,6 +105,12 @@ archived
 ```
 
 A project can move from category `lab` to `data` or `maps` without changing its URL unless there is a strong reason.
+
+`src/lib/projects.ts` provides collection types, status labels, stable URLs and deterministic ordering (`sortOrder` ascending, then slug). `idea` displays as PLANNED. All entries are public, including ideas and archived projects; status describes maturity, not draft visibility. Keep private or unpublished ideas in `docs/backlog.md` instead. Only entries with `featured: true` appear on the homepage.
+
+`ProjectListing.astro` filters the shared collection by category, while `ProjectCard.astro` takes a complete collection entry. The three starter concepts are LAB ideas. DATA and MAPS remain empty until work is ready for promotion.
+
+Dates, preview images and source information are optional. Planned concepts omit publication dates and source citations until those are established. `sources` pairs each name with an HTTP(S) URL. `previewImage` uses Astro's local image schema and `Image` component; cards retain the starter orbit artwork when it is absent.
 
 ## Routing
 
@@ -119,6 +124,10 @@ Prefer stable project URLs such as:
 Do not put the category in the canonical project URL. This allows promotion from LAB to MAPS or DATA without breaking links.
 
 Category pages filter project metadata rather than owning separate copies of project content.
+
+`src/pages/projects/[slug].astro` builds every project from its frontmatter `slug` and renders its Markdown with `render(entry)`. `ProjectLayout.astro` supplies the page shell, canonical link, title/question, optional preview, content and optional source/date metadata. A named `visual` slot allows future project components to sit above the supporting text. Keep slugs unique and unchanged when changing category, status, title or filename.
+
+See [`project-template.md`](project-template.md) for authoring instructions. No extra dependency or client-side JavaScript is needed for this foundation.
 
 ## Visualisation boundaries
 

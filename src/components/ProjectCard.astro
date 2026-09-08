@@ -1,25 +1,50 @@
 ---
+import { Image } from 'astro:assets';
+import { projectStatusLabels, projectUrl, type Project } from '../lib/projects';
+
 interface Props {
-  title: string;
-  category: string;
-  description: string;
-  status?: string;
-  href?: string;
+  project: Project;
+  headingLevel?: 'h2' | 'h3';
 }
 
-const { title, category, description, status = 'PLANNED', href } = Astro.props;
-const Tag = href ? 'a' : 'article';
+const { project, headingLevel: Heading = 'h3' } = Astro.props;
+const { title, category, summary, status, previewImage, previewAlt } = project.data;
 ---
-<Tag class="project-card" href={href}>
-  <div class="project-card__visual" aria-hidden="true">
-    <div class="orbit orbit-a"></div>
-    <div class="orbit orbit-b"></div>
-    <div class="orbit orbit-c"></div>
-  </div>
+<a class="project-card" href={projectUrl(project)}>
+  {previewImage ? (
+    <Image class="project-card__image" src={previewImage} alt={previewAlt} loading="lazy" />
+  ) : (
+    <div class="project-card__visual" aria-hidden="true">
+      <div class="orbit orbit-a"></div>
+      <div class="orbit orbit-b"></div>
+      <div class="orbit orbit-c"></div>
+    </div>
+  )}
   <div class="project-card__meta">
-    <span>{category}</span>
-    <span>{status}</span>
+    <span>{category.toUpperCase()}</span>
+    <span>{projectStatusLabels[status]}</span>
   </div>
-  <h3>{title}</h3>
-  <p>{description}</p>
-</Tag>
+  <Heading>{title}</Heading>
+  <p>{summary}</p>
+</a>
+
+<style>
+  .project-card h2 {
+    margin: 0 0 10px;
+    font-size: 1.55rem;
+    letter-spacing: -0.03em;
+  }
+
+  .project-card__image {
+    display: block;
+    width: 100%;
+    height: 280px;
+    object-fit: cover;
+    margin-bottom: 18px;
+    border: 1px solid var(--line);
+  }
+
+  @media (max-width: 620px) {
+    .project-card__image { height: 220px; }
+  }
+</style>

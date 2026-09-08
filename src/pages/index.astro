@@ -3,7 +3,10 @@ import SiteHeader from '../components/SiteHeader.astro';
 import SiteFooter from '../components/SiteFooter.astro';
 import CategoryCard from '../components/CategoryCard.astro';
 import ProjectCard from '../components/ProjectCard.astro';
+import { getProjects } from '../lib/projects';
 import '../styles/global.css';
+
+const featuredProjects = (await getProjects()).filter((project) => project.data.featured);
 ---
 <!doctype html>
 <html lang="en">
@@ -49,12 +52,10 @@ import '../styles/global.css';
       <section class="section">
         <div class="section-heading">
           <h2>First experiments.</h2>
-          <p>These are starter concepts. Replace them with live project links as each piece is built.</p>
+          <p>These are planned experiments. Explore the ideas as each piece takes shape.</p>
         </div>
         <div class="project-grid">
-          <ProjectCard category="LAB / MAPS" title="The Pulse of Adelaide" description="An animated view of Adelaide's fuel price cycle across the city." />
-          <ProjectCard category="LAB / MAPS" title="Adelaide in Motion" description="A time-based view of public transport moving through the metropolitan network." />
-          <ProjectCard category="LAB / DATA" title="Powering South Australia" description="A visual timeline of generation, demand and energy flow across South Australia." />
+          {featuredProjects.map((project) => <ProjectCard project={project} />)}
         </div>
       </section>
     </main>

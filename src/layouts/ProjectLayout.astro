@@ -1,0 +1,78 @@
+---
+import { Image } from 'astro:assets';
+import SiteHeader from '../components/SiteHeader.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import { projectStatusLabels, projectUrl, type Project } from '../lib/projects';
+import '../styles/global.css';
+
+interface Props {
+  project: Project;
+}
+
+const { project } = Astro.props;
+const { title, summary, question, category, status, publishedDate, updatedDate,
+  previewImage, previewAlt, tags, sources, repositoryUrl } = project.data;
+const formatDate = (date: Date) => new Intl.DateTimeFormat('en-AU', {
+  dateStyle: 'long', timeZone: 'UTC',
+}).format(date);
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="description" content={summary} />
+    <meta name="theme-color" content="#080908" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="canonical" href={new URL(projectUrl(project), Astro.site)} />
+    <title>{title} · Mark Lee</title>
+  </head>
+  <body>
+    <SiteHeader />
+    <main class="site-shell project-page">
+      <article>
+        <header class="page-hero">
+          <span class="kicker"><a href={`/${category}`}>{category.toUpperCase()}</a> / {projectStatusLabels[status]}</span>
+          <h1>{title}</h1>
+          <p class="page-copy">{question}</p>
+        </header>
+        <slot name="visual">
+          {previewImage && <Image class="project-preview" src={previewImage} alt={previewAlt} />}
+        </slot>
+        <div class="section project-content">
+          <slot />
+        </div>
+        {(sources.length > 0 || repositoryUrl || publishedDate || updatedDate || tags.length > 0) && (
+          <footer class="section project-details">
+            {sources.length > 0 && (
+              <section aria-labelledby="project-sources">
+                <h2 id="project-sources">Sources</h2>
+                <ul>{sources.map((source) => <li><a href={source.url}>{source.name}</a></li>)}</ul>
+              </section>
+            )}
+            {repositoryUrl && <p><a href={repositoryUrl}>Project source code</a></p>}
+            {publishedDate && <p>Published <time datetime={publishedDate.toISOString()}>{formatDate(publishedDate)}</time></p>}
+            {updatedDate && <p>Last updated <time datetime={updatedDate.toISOString()}>{formatDate(updatedDate)}</time></p>}
+            {tags.length > 0 && <p>Topics: {tags.join(' · ')}</p>}
+          </footer>
+        )}
+      </article>
+    </main>
+    <SiteFooter />
+  </body>
+</html>
+
+<style>
+  .project-page { overflow-wrap: anywhere; }
+  .project-page .page-hero h1 { font-size: clamp(2.75rem, 7vw, 6rem); line-height: 1; }
+  .project-preview { display: block; max-width: 100%; height: auto; margin-bottom: 40px; }
+  .project-content { padding: 44px 0; }
+  .project-content :global(h2) { margin: 36px 0 16px; font-size: 1.55rem; letter-spacing: -0.03em; }
+  .project-content :global(h2:first-child) { margin-top: 0; }
+  .project-content :global(p), .project-content :global(ul), .project-content :global(ol) { max-width: 720px; color: var(--muted); }
+  .project-content :global(img) { max-width: 100%; height: auto; }
+  .project-content :global(pre) { overflow-x: auto; }
+  .project-page :global(a) { text-decoration: underline; text-underline-offset: 0.2em; }
+  .project-details { padding: 36px 0; color: var(--muted); }
+  .project-details h2 { color: var(--text); }
+</style>

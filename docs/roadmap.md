@@ -16,6 +16,8 @@ Status: mostly complete or in progress
 
 ## Phase 1: Reusable project system
 
+Status: complete (2026-09-08)
+
 Goal: make future projects easy to add.
 
 - project content model

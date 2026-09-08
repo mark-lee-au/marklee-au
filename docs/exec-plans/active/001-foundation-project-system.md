@@ -1,6 +1,8 @@
 # Execution Plan 001: Foundation Project System
 
-Status: active
+Status: complete (2026-09-08)
+
+Implemented the validated Astro project collection, three LAB concept entries, shared cards/listings, reusable project layout and stable project routes. See `docs/project-status.md` for validation and next steps. This plan remains at its original path to preserve existing documentation links.
 
 ## Objective
 

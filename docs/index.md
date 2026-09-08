@@ -27,7 +27,7 @@ This directory is the project knowledge base for `marklee.au`.
 
 ## Execution plans
 
-- [`exec-plans/active/001-foundation-project-system.md`](exec-plans/active/001-foundation-project-system.md): reusable project content and routing foundation
+- [`exec-plans/active/001-foundation-project-system.md`](exec-plans/active/001-foundation-project-system.md): completed reusable project content and routing foundation
 - [`exec-plans/active/002-pulse-of-adelaide.md`](exec-plans/active/002-pulse-of-adelaide.md): first major LAB project plan
 - [`exec-plans/active/003-data-foundation.md`](exec-plans/active/003-data-foundation.md): completed static-first data foundation and validation record
 

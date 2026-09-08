@@ -1,0 +1,28 @@
+---
+import ProjectCard from './ProjectCard.astro';
+import { getProjects, type ProjectCategory } from '../lib/projects';
+
+interface Props {
+  category: ProjectCategory;
+}
+
+const { category } = Astro.props;
+const projects = (await getProjects()).filter((project) => project.data.category === category);
+---
+{projects.length > 0 ? (
+  <div class="project-grid">
+    {projects.map((project) => <ProjectCard project={project} headingLevel="h2" />)}
+  </div>
+) : (
+  <div class="empty-state">
+    <h2>Projects will appear here.</h2>
+    <p class="page-copy">
+      New work is taking shape.
+      {category !== 'lab' && <> Explore the experiments in <a href="/lab">LAB</a>.</>}
+    </p>
+  </div>
+)}
+
+<style>
+  .empty-state a { text-decoration: underline; text-underline-offset: 0.2em; }
+</style>
