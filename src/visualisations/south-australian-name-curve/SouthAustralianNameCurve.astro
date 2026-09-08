@@ -1,0 +1,85 @@
+---
+import './name-curve.css';
+---
+
+<section class="name-curve" data-name-curve aria-label="Interactive South Australian baby-name history">
+  <div class="name-curve__intro">
+    <p>Search a registered name, trace its curve through 82 years, then add up to two comparisons.</p>
+    <p class="name-curve__coverage"><span aria-hidden="true">◐</span> Full published lists to 2017 · top 100 only from 2018</p>
+  </div>
+
+  <div class="name-curve__frame">
+    <div class="name-curve__controls" hidden data-controls>
+      <div class="name-search">
+        <label for="name-curve-search">Find a name</label>
+        <div class="name-search__field">
+          <input
+            id="name-curve-search"
+            data-search
+            type="search"
+            role="combobox"
+            aria-autocomplete="list"
+            aria-expanded="false"
+            aria-controls="name-curve-results"
+            aria-activedescendant=""
+            autocomplete="off"
+            placeholder="Try Mark, Jennifer or Oliver"
+          />
+          <span class="name-search__hint">↵ ADD</span>
+        </div>
+        <ul id="name-curve-results" class="name-search__results" data-results role="listbox" hidden></ul>
+      </div>
+
+      <div class="name-curve__actions">
+        <div class="name-curve__mode" aria-label="Vertical scale">
+          <button type="button" data-mode="count" aria-pressed="true">Registrations</button>
+          <button type="button" data-mode="rank" aria-pressed="false">Rank</button>
+        </div>
+        <button class="name-curve__surprise" type="button" data-surprise>Surprise me <span aria-hidden="true">↗</span></button>
+      </div>
+    </div>
+
+    <div class="name-curve__selection" data-selection aria-label="Compared names"></div>
+
+    <div class="name-curve__loading" data-loading role="status">
+      <span class="name-curve__loading-mark" aria-hidden="true"></span>
+      Preparing the name field…
+    </div>
+
+    <div class="name-curve__error" data-error hidden role="alert">
+      <p>The name archive could not be loaded. The source and methodology below are still available.</p>
+      <button type="button" data-retry>Try again</button>
+    </div>
+
+    <figure class="name-curve__figure" hidden data-figure>
+      <div class="name-curve__plot-wrap">
+        <svg data-chart role="img" aria-labelledby="name-curve-chart-title name-curve-chart-desc"></svg>
+        <div class="name-curve__year-card" data-year-card aria-live="polite"></div>
+      </div>
+      <div class="name-curve__year-details" data-year-details aria-live="polite"></div>
+      <figcaption>
+        <span id="name-curve-chart-title">Annual South Australian baby-name registrations</span>
+        <span id="name-curve-chart-desc">Selected names are drawn over names that peaked in a similar era. Missing years are gaps, not zeroes.</span>
+      </figcaption>
+    </figure>
+
+    <div class="name-curve__scrubber" hidden data-scrubber-wrap>
+      <label for="name-curve-year">Explore year <output data-year-output for="name-curve-year">1963</output></label>
+      <input id="name-curve-year" data-year type="range" min="1944" max="2025" step="1" value="1963" />
+      <div class="name-curve__era-labels" aria-hidden="true"><span>1944</span><span>2018: top 100 begins</span><span>2025</span></div>
+    </div>
+
+    <div class="name-curve__summaries" data-summaries aria-live="polite"></div>
+    <p class="name-curve__status" data-status role="status" aria-live="polite"></p>
+    <p class="name-curve__sr-summary" data-sr-summary aria-live="polite"></p>
+  </div>
+
+  <p class="name-curve__fallback" data-fallback>
+    The default story is Mark: 499 registrations in 1963, its eligible peak and rank 2 that year. Its last record at this project’s five-registration display threshold is 2014. Missing later points must not be read as zero.
+  </p>
+  <noscript><p>This visual needs JavaScript for search and comparison. The findings, source and method remain below.</p></noscript>
+</section>
+
+<script>
+  import './name-curve.ts';
+</script>

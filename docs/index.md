@@ -30,11 +30,13 @@ This directory is the project knowledge base for `marklee.au`.
 - [`exec-plans/active/001-foundation-project-system.md`](exec-plans/active/001-foundation-project-system.md): completed reusable project content and routing foundation
 - [`exec-plans/active/002-pulse-of-adelaide.md`](exec-plans/active/002-pulse-of-adelaide.md): first major LAB project plan
 - [`exec-plans/active/003-data-foundation.md`](exec-plans/active/003-data-foundation.md): completed static-first data foundation and validation record
+- [`exec-plans/active/004-south-australian-name-curve.md`](exec-plans/active/004-south-australian-name-curve.md): South Australian baby-name curve LAB implementation and release plan
 
 ## Data references and templates
 
 - [`../data/sources/README.md`](../data/sources/README.md): committed source-note convention
 - [`../data/sources/pulse-of-adelaide.md`](../data/sources/pulse-of-adelaide.md): unresolved fuel-source research
+- [`../data/sources/south-australian-name-curve.md`](../data/sources/south-australian-name-curve.md): verified baby-name source, privacy threshold and transformation notes
 - [`templates/dataset-metadata.template.json`](templates/dataset-metadata.template.json): drafting template for public provenance; replace placeholders before release
 - [`pulse-of-adelaide-data-addendum.md`](pulse-of-adelaide-data-addendum.md): imported file overview; authoritative V1 contract is now in Plan 002
 

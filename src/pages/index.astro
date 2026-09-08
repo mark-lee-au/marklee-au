@@ -51,8 +51,8 @@ const featuredProjects = (await getProjects()).filter((project) => project.data.
 
       <section class="section">
         <div class="section-heading">
-          <h2>First experiments.</h2>
-          <p>These are planned experiments. Explore the ideas as each piece takes shape.</p>
+          <h2>Selected experiments.</h2>
+          <p>Published studies and new ideas from the LAB, with the visual work brought forward.</p>
         </div>
         <div class="project-grid">
           {featuredProjects.map((project) => <ProjectCard project={project} />)}

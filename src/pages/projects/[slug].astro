@@ -3,6 +3,7 @@ import { render } from 'astro:content';
 import type { GetStaticPaths, InferGetStaticPropsType } from 'astro';
 import ProjectLayout from '../../layouts/ProjectLayout.astro';
 import { getProjects } from '../../lib/projects';
+import SouthAustralianNameCurve from '../../visualisations/south-australian-name-curve/SouthAustralianNameCurve.astro';
 
 export const getStaticPaths = (async () => {
   const projects = await getProjects();
@@ -17,5 +18,8 @@ const { project } = Astro.props;
 const { Content } = await render(project);
 ---
 <ProjectLayout project={project}>
+  {project.data.slug === 'south-australian-name-curve' && (
+    <SouthAustralianNameCurve slot="visual" />
+  )}
   <Content />
 </ProjectLayout>

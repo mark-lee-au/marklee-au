@@ -15,19 +15,19 @@ Execution Plan 001 is complete as of 2026-09-08. The Astro starter now has:
 - project cards
 - global CSS
 - a validated project content collection in `src/content.config.ts`
-- three Markdown project entries in `src/content/projects/`
+- four Markdown project entries in `src/content/projects/`
 - shared project ordering, URL and status helpers
 - homepage featured projects and category listings driven by the same entries
-- a reusable project layout and static `/projects/<slug>/` routes
+- a reusable project layout and nine static routes, including `/projects/<slug>/`
 - optional preview images, publication/update dates, source links and repository links
 
-The Pulse of Adelaide, Adelaide in Motion and Powering South Australia are public LAB ideas, displayed as PLANNED. Each has a placeholder detail page explaining the concept and pending data research. DATA and MAPS remain empty until projects are ready for promotion. No real visualisation or dataset was added.
+South Australian Name Curve is a completed local LAB release candidate with a prepared public dataset and dedicated interactive visual. The Pulse of Adelaide, Adelaide in Motion and Powering South Australia remain public LAB ideas displayed as PLANNED. DATA and MAPS remain empty until projects are ready for promotion.
 
 The existing visual direction, navigation and card artwork are preserved. A small mobile heading adjustment fixes pre-existing horizontal overflow on About. No dependencies or client-side scripts were added.
 
 ## Validation
 
-- `npm run build` passes: eight static pages, no build warnings.
+- The latest `npm run build` passes: nine static pages, no build warnings.
 - All five main routes and all three project routes inspected using `npm run dev`.
 - All eight routes checked at 360 px for horizontal overflow; the About heading issue was corrected and rechecked. Representative layouts visually inspected at 390, 768, 1280 and 1600 px too.
 - Project cards support Tab focus with a visible outline and Enter navigation.
@@ -46,7 +46,7 @@ The domain `marklee.au` is being moved to Cloudflare DNS while email remains hos
 
 ## Current priority
 
-The reusable project system and Plan 003 data foundation are ready. Continue with data-source research for The Pulse of Adelaide before building its visualisation. No suitable fuel source or reuse terms have been established; see [the source note](../data/sources/pulse-of-adelaide.md).
+Review the completed local South Australian Name Curve release candidate. Commit, push and live Cloudflare verification remain explicitly pending user approval. The Pulse of Adelaide stays blocked on a suitable public fuel source with confirmed reuse terms; see [the source note](../data/sources/pulse-of-adelaide.md).
 
 ## Data foundation (Plan 003)
 
@@ -62,13 +62,7 @@ For adding future project entries, see `docs/project-template.md`. Keep project 
 
 ## First real project
 
-The planned first major LAB project is:
-
-The Pulse of Adelaide
-
-Plan:
-
-`docs/exec-plans/active/002-pulse-of-adelaide.md`
+South Australian Name Curve is the first implemented interactive LAB project. Its local release candidate is documented in [Plan 004](exec-plans/active/004-south-australian-name-curve.md). The earlier Pulse of Adelaide concept remains planned in [Plan 002](exec-plans/active/002-pulse-of-adelaide.md).
 
 ## Update rule
 
