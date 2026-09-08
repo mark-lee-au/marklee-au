@@ -1,0 +1,33 @@
+---
+import SiteHeader from '../components/SiteHeader.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import '../styles/global.css';
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="description" content="Geography, movement, history and spatial data." />
+    <meta name="theme-color" content="#080908" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>MAPS · Mark Lee</title>
+  </head>
+  <body>
+    <SiteHeader />
+    <main class="site-shell">
+      <section class="page-hero">
+        <span class="kicker">COLLECTION</span>
+        <h1>MAPS</h1>
+        <p class="page-copy">Geography, movement, history and spatial data.</p>
+      </section>
+      <section class="section">
+        <div class="empty-state">
+          <h2>Projects will appear here.</h2>
+          <p class="page-copy">Add project pages under <code>src/pages/projects/</code>, then link them from this collection.</p>
+        </div>
+      </section>
+    </main>
+    <SiteFooter />
+  </body>
+</html>

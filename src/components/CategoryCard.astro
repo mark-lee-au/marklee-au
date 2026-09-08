@@ -1,0 +1,22 @@
+---
+interface Props {
+  href: string;
+  eyebrow: string;
+  title: string;
+  text: string;
+  glyph: string;
+}
+
+const { href, eyebrow, title, text, glyph } = Astro.props;
+---
+<a class="category-card" href={href}>
+  <div class="category-card__top">
+    <span class="eyebrow">{eyebrow}</span>
+    <span class="category-card__glyph" aria-hidden="true">{glyph}</span>
+  </div>
+  <div>
+    <h3>{title}</h3>
+    <p>{text}</p>
+  </div>
+  <span class="category-card__arrow" aria-hidden="true">↗</span>
+</a>

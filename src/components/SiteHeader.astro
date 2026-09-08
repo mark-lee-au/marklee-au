@@ -1,0 +1,17 @@
+---
+const path = Astro.url.pathname;
+const links = [
+  { href: '/data', label: 'DATA' },
+  { href: '/maps', label: 'MAPS' },
+  { href: '/lab', label: 'LAB' },
+  { href: '/about', label: 'ABOUT' }
+];
+---
+<header class="site-header">
+  <a class="brand" href="/" aria-label="Mark Lee home">MARK LEE</a>
+  <nav aria-label="Primary navigation">
+    {links.map((link) => (
+      <a href={link.href} aria-current={path === link.href ? 'page' : undefined}>{link.label}</a>
+    ))}
+  </nav>
+</header>

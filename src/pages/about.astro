@@ -1,0 +1,27 @@
+---
+import SiteHeader from '../components/SiteHeader.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import '../styles/global.css';
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="description" content="About Mark Lee and this data portfolio." />
+    <meta name="theme-color" content="#080908" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>About · Mark Lee</title>
+  </head>
+  <body>
+    <SiteHeader />
+    <main class="site-shell">
+      <section class="page-hero">
+        <span class="kicker">ABOUT</span>
+        <h1>I LIKE DATA THAT DOES SOMETHING.</h1>
+        <p class="page-copy">This site is a personal collection of data visualisation, mapping and small experiments. It is designed to grow one project at a time.</p>
+      </section>
+    </main>
+    <SiteFooter />
+  </body>
+</html>

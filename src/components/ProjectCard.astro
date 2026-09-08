@@ -1,0 +1,25 @@
+---
+interface Props {
+  title: string;
+  category: string;
+  description: string;
+  status?: string;
+  href?: string;
+}
+
+const { title, category, description, status = 'PLANNED', href } = Astro.props;
+const Tag = href ? 'a' : 'article';
+---
+<Tag class="project-card" href={href}>
+  <div class="project-card__visual" aria-hidden="true">
+    <div class="orbit orbit-a"></div>
+    <div class="orbit orbit-b"></div>
+    <div class="orbit orbit-c"></div>
+  </div>
+  <div class="project-card__meta">
+    <span>{category}</span>
+    <span>{status}</span>
+  </div>
+  <h3>{title}</h3>
+  <p>{description}</p>
+</Tag>

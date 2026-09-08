@@ -1,0 +1,63 @@
+---
+import SiteHeader from '../components/SiteHeader.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import CategoryCard from '../components/CategoryCard.astro';
+import ProjectCard from '../components/ProjectCard.astro';
+import '../styles/global.css';
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="description" content="Mark Lee's data portfolio: data stories, maps and experiments." />
+    <meta name="theme-color" content="#080908" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>Mark Lee · Data / Maps / Lab</title>
+  </head>
+  <body>
+    <SiteHeader />
+    <main class="site-shell">
+      <section class="hero">
+        <div class="hero-copy">
+          <span class="kicker">DATA / MAPS / EXPERIMENTS</span>
+          <h1>DATA, MAPPED. MEASURED. MOVING.</h1>
+          <p>A growing collection of visual data stories about places, patterns, history and everyday life.</p>
+          <div class="hero-meta">
+            <span>ADELAIDE, AUSTRALIA</span>
+            <span>MARKLEE.AU</span>
+          </div>
+        </div>
+        <div class="data-field" aria-label="Abstract animated data field">
+          <span class="data-node"></span><span class="data-node"></span><span class="data-node"></span>
+          <span class="data-node"></span><span class="data-node"></span><span class="data-node"></span>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-heading">
+          <h2>Browse the collection.</h2>
+          <p>Finished work lives in DATA and MAPS. Smaller ideas and work in progress begin in LAB.</p>
+        </div>
+        <div class="category-grid">
+          <CategoryCard href="/data" eyebrow="01" title="DATA" text="Finished visual stories built around a question, dataset or pattern." glyph="▥" />
+          <CategoryCard href="/maps" eyebrow="02" title="MAPS" text="Geography, movement, place, history and spatial data." glyph="⌖" />
+          <CategoryCard href="/lab" eyebrow="03" title="LAB" text="Small experiments, prototypes and ideas still taking shape." glyph="◌" />
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-heading">
+          <h2>First experiments.</h2>
+          <p>These are starter concepts. Replace them with live project links as each piece is built.</p>
+        </div>
+        <div class="project-grid">
+          <ProjectCard category="LAB / MAPS" title="The Pulse of Adelaide" description="An animated view of Adelaide's fuel price cycle across the city." />
+          <ProjectCard category="LAB / MAPS" title="Adelaide in Motion" description="A time-based view of public transport moving through the metropolitan network." />
+          <ProjectCard category="LAB / DATA" title="Powering South Australia" description="A visual timeline of generation, demand and energy flow across South Australia." />
+        </div>
+      </section>
+    </main>
+    <SiteFooter />
+  </body>
+</html>
