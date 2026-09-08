@@ -1,0 +1,31 @@
+{
+  "project": "PROJECT_SLUG",
+  "datasetVersion": null,
+  "generatedAt": null,
+  "sources": [
+    {
+      "name": null,
+      "publisher": null,
+      "url": null,
+      "licence": null,
+      "retrievedAt": null
+    }
+  ],
+  "coverage": {
+    "start": null,
+    "end": null,
+    "geography": null
+  },
+  "processing": {
+    "script": null,
+    "method": null
+  },
+  "files": [
+    {
+      "path": "BROWSER_FILENAME",
+      "recordCount": null,
+      "bytes": null
+    }
+  ],
+  "notes": []
+}

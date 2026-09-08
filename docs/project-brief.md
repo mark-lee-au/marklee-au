@@ -79,7 +79,7 @@ The visual is the centrepiece. Supporting text should explain the question, what
 
 - Astro static site
 - responsive on desktop, tablet, and mobile
-- Cloudflare Pages deployment
+- existing Cloudflare Worker hosting of the static build (see [deployment workflow](deployment-workflow.md))
 - GitHub source control
 - no database initially
 - no CMS initially

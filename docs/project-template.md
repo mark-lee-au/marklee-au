@@ -55,6 +55,8 @@ Example:
 
 ## Data
 
+Complete the [data project contract](data-project-contract.md) in the execution plan, keep provenance in `data/sources/<project-slug>.md`, and use [the data release checklist](checklists/data-release.md) before publishing. Default to approved static files and metadata under `public/data/<project-slug>/`. Project frontmatter source links complement the full dataset provenance; they do not replace it.
+
 Include:
 
 - source name

@@ -6,7 +6,7 @@
 Browser
   |
   v
-Cloudflare Pages
+Existing Cloudflare Worker hosting
   |
   v
 Static Astro site
@@ -17,13 +17,13 @@ Static Astro site
   +-- static processed datasets
 ```
 
-GitHub is the source repository. Pushes to `main` trigger the production Cloudflare Pages build.
+GitHub is the source repository, with `main` as the production branch. Astro builds static output into `dist/`; there is no Cloudflare adapter, Wrangler configuration, Worker source or storage binding in this checkout. The user confirms a working Worker deployment. Earlier Pages assumptions and unverified deployment triggers are clarified in [deployment workflow](deployment-workflow.md); preserve the externally configured deployment.
 
 ## Architectural direction
 
 Keep the base site static. Add dynamic infrastructure only when a specific project needs it.
 
-A project that needs regularly refreshed public data may later use a small scheduled data pipeline or Cloudflare Worker, but that should be introduced per requirement.
+A project that needs regularly refreshed public data may later use a scheduled data pipeline or server-side Worker logic, but only after its requirements and source terms are established.
 
 ## Intended repository structure
 
@@ -38,12 +38,17 @@ marklee-au/
 |-- astro.config.mjs
 |-- package.json
 |-- tsconfig.json
+|-- data/
+|   |-- raw/          # ignored local downloads, except README.md
+|   |-- processed/    # ignored intermediate outputs, except README.md
+|   `-- sources/      # committed provenance notes
 |-- public/
 |   |-- data/
 |   |-- images/
 |   `-- project-assets/
 |-- scripts/
-|   `-- <project-name>/
+|   `-- data/
+|       `-- <project-slug>/  # add with the first pipeline
 |-- src/
 |   |-- components/
 |   |-- content/
@@ -56,7 +61,7 @@ marklee-au/
 `-- docs/
 ```
 
-Do not create empty directories only to match this diagram. Add them as required.
+The data foundation directories contain short READMEs. Other proposed directories should be added only as required. Every file in `public/` is a public website asset.
 
 ## Project metadata
 
@@ -136,19 +141,21 @@ Small projects may use fewer files.
 Prefer:
 
 ```text
-raw external data
+permitted source -> data/raw/<project-slug>/
       |
       v
-Python or Node preprocessing
+scripts/data/<project-slug>/ -> data/processed/<project-slug>/
       |
       v
-compact derived dataset
+public/data/<project-slug>/ (compact exports and metadata)
       |
       v
 browser visualisation
 ```
 
 Do not send large raw source datasets to every visitor if the browser only needs a small derived result.
+
+Record provenance in `data/sources/<project-slug>.md`. Static exports are the default; D1, R2 and KV require a measured need and a documented decision first. See [data architecture](data-architecture.md), [governance](data-governance.md), [project contract](data-project-contract.md) and [data release checklist](checklists/data-release.md).
 
 ## Secrets
 

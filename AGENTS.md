@@ -24,7 +24,7 @@ If the task conflicts with these documents, follow the user's latest explicit in
 - TypeScript where scripting is needed
 - Plain CSS for the site shell
 - Static output by default
-- Cloudflare Pages hosting
+- Existing Cloudflare Worker hosting with static Astro output; see `docs/deployment-workflow.md`
 - GitHub repository with production branch `main`
 - Node version is defined by `.nvmrc`
 
@@ -69,6 +69,18 @@ Do not add React, Vue, a database, a CMS, or server-side infrastructure unless a
 - Support keyboard access for interactive controls.
 - Do not rely on hover as the only way to reveal information.
 
+## Data and visualisation rules
+
+- Read `docs/data-architecture.md`, `docs/data-governance.md`, and `docs/data-project-contract.md` before changing pipelines, browser datasets, or Cloudflare storage.
+- Default to preprocessed public static datasets. Add D1, R2, or KV only after measuring a project requirement and documenting the decision in its execution plan.
+- Every file under `public/` is publicly accessible. Never put secrets, credentials, private or employer data, commercially sensitive data, or personal information there.
+- Never use, infer, reconstruct, or approximate private employer fuel data. Fuel projects must use public or explicitly licensed sources with suitable reuse terms.
+- Separate local raw data (`data/raw/`), intermediate outputs (`data/processed/`), provenance (`data/sources/`), and browser exports (`public/data/<project-slug>/`). Gitignore is not a security boundary.
+- Prefer deterministic processing scripts in `scripts/data/`. Export only fields needed by the visual and measure browser payloads before adding infrastructure.
+- Record source, licence, retrieval time, transformation method, date range, geography, and known limitations. Use `docs/checklists/data-release.md` for dataset releases.
+- Local development must not mutate production D1, R2, or KV. Remote bindings require an explicit task requirement and user approval.
+- Run documented validation and build commands after data code or browser dataset changes.
+
 ## Styling rules
 
 - Default site shell is dark, minimal, and typography-led.
@@ -112,7 +124,7 @@ Do not turn `AGENTS.md` into a long project encyclopedia. Put detailed informati
 
 ## Git behaviour
 
-Do not push to GitHub unless the user explicitly asks.
+Do not commit or push unless the user explicitly asks.
 
 At the end of a task, report:
 

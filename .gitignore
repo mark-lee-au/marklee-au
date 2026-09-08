@@ -5,3 +5,16 @@ dist/
 .env
 .env.*
 !.env.example
+
+# Local source downloads; keep only the directory guidance by default
+/data/raw/*
+!/data/raw/README.md
+
+# Reproducible intermediate outputs
+/data/processed/*
+!/data/processed/README.md
+
+# Local Cloudflare state and development secrets (if tooling is introduced)
+.wrangler/
+.dev.vars
+.dev.vars.*

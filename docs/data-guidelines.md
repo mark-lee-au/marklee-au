@@ -1,5 +1,7 @@
 # Data Guidelines
 
+Use [data architecture](data-architecture.md) for storage and directories, [governance](data-governance.md) for provenance, [the project contract](data-project-contract.md) before implementation, and [the data release checklist](checklists/data-release.md) before publishing or updating data.
+
 ## Source rules
 
 Prefer data from:
@@ -17,7 +19,7 @@ Use community datasets carefully and document their origin.
 
 Do not use confidential, internal, proprietary, or personally identifying employer data.
 
-Industry knowledge may guide the questions asked, but published datasets must be public, licensed, synthetic, or personally owned and safe to publish.
+Industry knowledge may guide questions, but fuel projects must use public or explicitly licensed sources with suitable reuse terms. Never use, infer, reconstruct or approximate private employer data, including from memory or private work outputs. Independently created synthetic fixtures for other projects must be clearly labelled and cannot stand in for observed findings.
 
 ## Attribution
 
@@ -41,6 +43,8 @@ A future reader should be able to understand:
 
 Do not automatically commit large raw datasets.
 
+This repository ignores `data/raw/` and `data/processed/` contents except their READMEs. Keep provenance in committed `data/sources/<project-slug>.md` notes and scripts under `scripts/data/`. Ignoring a file does not make it safe to store confidential data.
+
 For each source, decide among:
 
 - download at build or preparation time
@@ -51,6 +55,8 @@ For each source, decide among:
 ## Processed data
 
 Browser-facing data should contain only what the visual needs.
+
+Publish approved static exports and metadata under `public/data/<project-slug>/`. Every file under `public/` is internet-accessible. Add D1, R2 or KV only after a measured requirement and documented decision, with local development isolated from production resources.
 
 Use compact formats appropriate to the project:
 

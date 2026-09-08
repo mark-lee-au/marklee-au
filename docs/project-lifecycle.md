@@ -19,6 +19,8 @@ Store the idea in `docs/backlog.md` or a new project plan if active work is star
 
 Build the smallest version that tests the idea.
 
+Use the [data project contract](data-project-contract.md) and record provenance in `data/sources/<project-slug>.md`. Unverified source or reuse terms remain a research blocker; prototype status does not permit publication of unapproved data.
+
 A LAB prototype should answer:
 
 - Is the data usable?
@@ -40,6 +42,8 @@ A published LAB item should have:
 - mobile support
 
 It does not need a long narrative.
+
+Complete the [data release checklist](checklists/data-release.md) before publishing any dataset, including LAB work. Default to validated static exports with public metadata.
 
 ## Stage 4: Promotion candidate
 

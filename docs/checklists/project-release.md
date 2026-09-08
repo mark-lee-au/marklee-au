@@ -46,6 +46,8 @@
 
 ## Build
 
+- [ ] [Data release checklist](data-release.md) completed for new or materially changed datasets, including LAB prototypes
+
 - [ ] `npm run build` succeeds
 - [ ] Main project URL loads locally
 - [ ] DATA, MAPS, or LAB listing shows the project correctly
@@ -56,6 +58,6 @@
 - [ ] Git diff reviewed
 - [ ] Documentation updated
 - [ ] Commit message is specific
-- [ ] Cloudflare Pages deployment succeeds
+- [ ] Existing Cloudflare Worker deployment succeeds when release is authorised (see [deployment workflow](../deployment-workflow.md))
 - [ ] Production URL tested on desktop
 - [ ] Production URL tested on phone

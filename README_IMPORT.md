@@ -2,6 +2,8 @@
 
 This ZIP is designed to be copied into the root of the existing `marklee-au` repository.
 
+Data Foundation integration completed on 2026-09-08. Root `AGENTS.md` now contains the durable data rules; see `docs/exec-plans/active/003-data-foundation.md` and `docs/index.md` for the implemented repository guidance.
+
 ## Resulting structure
 
 After copying, the repository should contain:

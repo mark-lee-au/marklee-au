@@ -11,7 +11,7 @@ Status: mostly complete or in progress
 - LAB page
 - ABOUT page
 - GitHub repository
-- Cloudflare Pages deployment
+- existing Cloudflare Worker deployment (externally configured; see `docs/deployment-workflow.md`)
 - `marklee.au` domain connection
 
 ## Phase 1: Reusable project system
@@ -33,6 +33,10 @@ Execution plan:
 
 ## Phase 2: First major LAB project
 
+Data foundation prerequisite: complete (2026-09-08), see [Plan 003](exec-plans/active/003-data-foundation.md). Raw inputs, intermediates, source notes and public exports now have separate homes, with a static-first project contract and release checklist.
+
+Project status: source research unresolved. No suitable fuel source or reuse terms have been established. Resolve that gate before implementing the pipeline or visualisation.
+
 Working project:
 
 The Pulse of Adelaide
@@ -47,6 +51,7 @@ Initial scope:
 - concise city-level summary statistics
 - mobile version
 - public data only
+- explicitly prepared static snapshot, reproducible processing and public metadata for V1
 
 Execution plan:
 
