@@ -1,0 +1,29 @@
+---
+import type { AdaptationId } from './config';
+
+interface Props {
+  kind: AdaptationId;
+}
+
+const { kind } = Astro.props;
+---
+<svg class="adaptation-icon" viewBox="0 0 32 32" shape-rendering="crispEdges" aria-hidden="true">
+  {kind === 'membrane' && (
+    <>
+      <path d="M9 4h14v2h4v4h2v12h-2v4h-4v2H9v-2H5v-4H3V10h2V6h4z" />
+      <path d="M10 8h12v2h3v3h2v7h-2v3h-3v2H10v-2H7v-3H5v-7h2v-3h3z" />
+    </>
+  )}
+  {kind === 'mitochondria' && (
+    <>
+      <path d="M7 8h18v3h3v10h-3v3H7v-3H4V11h3z" />
+      <path d="M8 16h4l2-4 4 8 2-4h5" />
+    </>
+  )}
+  {kind === 'replication' && (
+    <>
+      <path d="M5 7h8v2h3v3h2v9h-2v3h-3v2H5v-2H2v-3H1v-9h1V9h3z" />
+      <path d="M19 7h8v2h3v3h1v9h-1v3h-3v2h-8v-2h-3v-3h-2v-9h2V9h3z" />
+    </>
+  )}
+</svg>

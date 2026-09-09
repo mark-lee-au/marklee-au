@@ -5,6 +5,7 @@ import ProjectLayout from '../../layouts/ProjectLayout.astro';
 import { getProjects } from '../../lib/projects';
 import SouthAustralianNameCurve from '../../visualisations/south-australian-name-curve/SouthAustralianNameCurve.astro';
 import FormulaDaily from '../../visualisations/formula-daily/FormulaDaily.astro';
+import Ascend from '../../visualisations/ascend/Ascend.astro';
 
 export const getStaticPaths = (async () => {
   const projects = await getProjects();
@@ -24,6 +25,9 @@ const { Content } = await render(project);
   )}
   {project.data.slug === 'formula-daily' && (
     <FormulaDaily slot="visual" />
+  )}
+  {project.data.slug === 'ascend' && (
+    <Ascend slot="visual" />
   )}
   <Content />
 </ProjectLayout>

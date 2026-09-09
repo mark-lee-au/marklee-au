@@ -1,0 +1,79 @@
+---
+import AdaptationIcon from './AdaptationIcon.astro';
+import CellArtwork from './CellArtwork.astro';
+import { ASCEND_CONFIG, type AdaptationId } from './config';
+import './ascend.css';
+
+const adaptationIds = Object.keys(ASCEND_CONFIG.adaptations) as AdaptationId[];
+---
+<section class="ascend" data-ascend data-organism-stage="void" aria-labelledby="ascend-heading">
+  <h2 class="sr-only" id="ascend-heading">Ascend Genesis prototype</h2>
+
+  <div class="ascend__energy" data-energy-display hidden>
+    <span>ENERGY</span>
+    <strong data-energy-value>0</strong>
+  </div>
+
+  <div class="ascend__stage">
+    <p class="ascend__instruction" data-instruction>TAP</p>
+    <button class="ascend__cell-button" type="button" data-cell-button aria-label="Create a primordial cell">
+      <span class="ascend__origin" aria-hidden="true"></span>
+      <CellArtwork />
+      <span class="ascend__tap-flash" aria-hidden="true"></span>
+    </button>
+
+    <div class="ascend__burst" data-mutation-burst aria-hidden="true">
+      <span class="ascend__burst-ring"></span>
+      <span class="ascend__fragment ascend__fragment--a"></span>
+      <span class="ascend__fragment ascend__fragment--b"></span>
+      <span class="ascend__fragment ascend__fragment--c"></span>
+      <span class="ascend__fragment ascend__fragment--d"></span>
+    </div>
+
+    <span class="ascend__bonus" data-bonus aria-hidden="true">+5</span>
+  </div>
+
+  <section class="ascend__adaptations" data-adaptations aria-labelledby="adaptation-heading" hidden>
+    <header>
+      <span>FIRST ADAPTATION</span>
+      <h2 id="adaptation-heading">Choose a mutation.</h2>
+    </header>
+    <div class="ascend__adaptation-list">
+      {adaptationIds.map((id) => {
+        const adaptation = ASCEND_CONFIG.adaptations[id];
+        return (
+          <button type="button" class="ascend__adaptation" data-adaptation={id}>
+            <AdaptationIcon kind={id} />
+            <span class="ascend__adaptation-copy">
+              <strong>{adaptation.name}</strong>
+              <span>{adaptation.effect}</span>
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  </section>
+
+  <p class="ascend__active-adaptation" data-active-adaptation hidden></p>
+  <p class="ascend__milestone" data-genesis-message hidden>GENESIS HAS BEGUN</p>
+
+  <form class="ascend__reset" data-reset-form>
+    <label for="ascend-reset-energy">Reset Energy</label>
+    <input
+      id="ascend-reset-energy"
+      data-reset-energy
+      type="number"
+      inputmode="numeric"
+      min="0"
+      max={ASCEND_CONFIG.maxPrototypeResetEnergy}
+      step="1"
+      value="0"
+    />
+    <button type="submit" data-reset-button>Reset to 0</button>
+  </form>
+  <p class="sr-only" role="status" aria-live="polite" data-status></p>
+</section>
+
+<script>
+  import './ascend.ts';
+</script>
