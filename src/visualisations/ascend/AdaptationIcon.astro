@@ -1,8 +1,8 @@
 ---
-import type { AdaptationId } from './config';
+import type { AdaptationId, SpecialisationId } from './config';
 
 interface Props {
-  kind: AdaptationId;
+  kind: AdaptationId | SpecialisationId;
 }
 
 const { kind } = Astro.props;
@@ -24,6 +24,24 @@ const { kind } = Astro.props;
     <>
       <path d="M5 7h8v2h3v3h2v9h-2v3h-3v2H5v-2H2v-3H1v-9h1V9h3z" />
       <path d="M19 7h8v2h3v3h1v9h-1v3h-3v2h-8v-2h-3v-3h-2v-9h2V9h3z" />
+    </>
+  )}
+  {kind === 'contractile' && (
+    <>
+      <path d="M7 7h13v3h4v4h2v7h-2v4h-4v2H7v-2H4V10h3z" />
+      <path d="M24 19h5v4h-3v4h-4v3h-6" />
+    </>
+  )}
+  {kind === 'photosynthesis' && (
+    <>
+      <path d="M6 6h20v20H6z" />
+      <path d="M10 10h5v5h-5zm7 0h5v5h-5zm-7 7h5v5h-5zm7 0h5v5h-5z" />
+    </>
+  )}
+  {kind === 'sensory' && (
+    <>
+      <path d="M8 8h16v3h3v13h-3v3H8v-3H5V11h3z" />
+      <path d="M8 8 4 3m12 5V1m8 7 4-5M5 16H0m27 0h5M8 27l-4 4m12-4v5m8-5 4 4" />
     </>
   )}
 </svg>

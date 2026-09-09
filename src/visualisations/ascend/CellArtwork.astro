@@ -1,19 +1,81 @@
 <svg
   class="cell-artwork"
-  viewBox="0 0 64 64"
+  viewBox="0 0 80 80"
   shape-rendering="crispEdges"
   aria-hidden="true"
 >
-  <g class="cell-artwork__form cell-artwork__form--primordial">
-    <path class="cell-artwork__membrane" d="M20 9h24v4h7v7h4v24h-4v7h-7v4H20v-4h-7v-7H9V20h4v-7h7z" />
-    <path class="cell-artwork__nucleus" d="M25 23h14v3h4v13h-4v4H25v-4h-4V26h4z" />
-    <path class="cell-artwork__organelle" d="M16 29h5v4h-5zm29 7h4v6h-4z" />
+  <g class="cell-artwork__form cell-artwork__form--primordial" data-cell-form="primordial">
+    <g class="cell-artwork__rotator">
+      <path class="cell-artwork__membrane" data-membrane="angular" d="M25 13h30v4h8v8h4v30h-4v8h-8v4H25v-4h-8v-8h-4V25h4v-8h8z" />
+      <path class="cell-artwork__membrane" data-membrane="lobed" d="M29 10h22v4h10v7h6v10h4v18h-4v10h-6v7H51v4H29v-4H19v-7h-6V49H9V31h4V21h6v-7h10z" />
+      <path class="cell-artwork__membrane" data-membrane="asymmetric" d="M20 14h29v4h13v8h5v23h-3v12h-9v5H31v4H18v-7h-7V48H8V29h6V19h6z" />
+      <path class="cell-artwork__membrane" data-membrane="diamond" d="M36 8h8v6h8v5h7v7h6v9h6v10h-6v9h-6v7h-7v5h-8v6h-8v-6h-8v-5h-7v-7h-6v-9H9V35h6v-9h6v-7h7v-5h8z" />
+
+      <path class="cell-artwork__nucleus" data-nucleus="central" d="M32 30h16v4h4v16h-4v4H32v-4h-4V34h4z" />
+      <path class="cell-artwork__nucleus" data-nucleus="offset" d="M25 26h15v3h4v15h-4v4H25v-4h-4V29h4z" />
+      <path class="cell-artwork__nucleus" data-nucleus="divided" d="M27 31h10v3h3v15h-3v3H27v-3h-3V34h3zm17-4h8v3h3v13h-3v3h-8v-3h-3V30h3z" />
+
+      <path class="cell-artwork__interior" data-interior="sparse" d="M20 36h5v5h-5zm36 5h5v7h-5z" />
+      <path class="cell-artwork__interior" data-interior="banded" d="M20 25h19v4H20zm25 28h16v4H45zM18 49h8v3h-8z" />
+      <path class="cell-artwork__interior" data-interior="clustered" d="M18 31h5v5h-5zm5-8h6v5h-6zm34 8h5v6h-5zm-3 20h7v5h-7z" />
+
+      <path class="cell-artwork__appendage" data-appendage="flagellum" d="M64 43h8v4h4v9h-4v6h-7" />
+      <path class="cell-artwork__appendage" data-appendage="cilia" d="M19 17l-5-6m18 3-2-8m25 12 6-6M14 34 6 31m8 22-7 4m20 8-3 8m31-9 5 7m6-22 8 2" />
+      <path class="cell-artwork__appendage" data-appendage="spines" d="m20 20-8-8m28 2V4m20 18 8-8m-2 27h10M58 61l8 8m-26-3v10M20 60l-8 8M14 40H4" />
+    </g>
   </g>
-  <g class="cell-artwork__form cell-artwork__form--adapted">
-    <path class="cell-artwork__membrane cell-artwork__membrane--outer" d="M19 6h26v3h7v5h5v9h3v19h-3v8h-5v5h-8v3H20v-3h-8v-5H7v-8H4V23h3v-9h5V9h7z" />
-    <path class="cell-artwork__membrane cell-artwork__membrane--inner" d="M20 12h24v3h7v7h3v21h-3v7h-8v3H21v-3h-8v-7h-3V22h3v-7h7z" />
-    <path class="cell-artwork__nucleus" d="M24 21h16v4h4v14h-4v4H24v-4h-4V25h4z" />
-    <path class="cell-artwork__organelle" d="M14 28h6v4h-6zm31-1h5v4h-5zM17 41h5v5h-5zm29-2h4v6h-4z" />
-    <path class="cell-artwork__signal" d="M29 16h6v4h-6zm0 27h6v5h-6z" />
+
+  <g class="cell-artwork__form cell-artwork__form--adapted" data-cell-form="adapted">
+    <g class="cell-artwork__rotator">
+      <path class="cell-artwork__membrane" data-membrane="angular" d="M23 9h34v4h9v7h5v13h4v20h-4v10h-7v7H53v4H27v-4H16v-7H9V53H5V33h4V20h5v-7h9z" />
+      <path class="cell-artwork__membrane" data-membrane="lobed" d="M29 6h22v4h12v7h7v11h5v24h-5v11h-7v7H51v4H29v-4H17v-7h-7V52H5V28h5V17h7v-7h12z" />
+      <path class="cell-artwork__membrane" data-membrane="asymmetric" d="M17 10h34v4h15v9h6v24h-4v16h-9v6H34v5H18v-8H9V50H5V28h7V16h5z" />
+      <path class="cell-artwork__membrane" data-membrane="diamond" d="M36 3h8v6h10v6h8v8h7v10h6v14h-6v10h-7v8h-8v6H44v6h-8v-6H26v-6h-8v-8h-7V47H5V33h6V23h7v-8h8V9h10z" />
+      <path class="cell-artwork__inner-wall" d="M27 18h26v4h8v8h4v22h-4v8h-8v4H27v-4h-8v-8h-4V30h4v-8h8z" />
+
+      <path class="cell-artwork__nucleus" data-nucleus="central" d="M31 28h18v4h5v18h-5v5H31v-5h-5V32h5z" />
+      <path class="cell-artwork__nucleus" data-nucleus="offset" d="M23 23h18v4h5v18h-5v5H23v-5h-5V27h5z" />
+      <path class="cell-artwork__nucleus" data-nucleus="divided" d="M23 30h13v4h4v17h-4v4H23v-4h-4V34h4zm23-7h11v4h4v15h-4v4H46v-4h-4V27h4z" />
+
+      <path class="cell-artwork__interior" data-interior="sparse" d="M15 35h7v6h-7zm44 7h7v8h-7zM35 16h8v5h-8z" />
+      <path class="cell-artwork__interior" data-interior="banded" d="M16 24h24v5H16zm29 31h20v5H45zM13 51h11v4H13z" />
+      <path class="cell-artwork__interior" data-interior="clustered" d="M14 30h7v7h-7zm8-12h8v6h-8zm40 12h7v8h-7zm-5 26h9v6h-9zM31 62h7v6h-7z" />
+
+      <path class="cell-artwork__appendage" data-appendage="flagellum" d="M69 38h7v5h-4v7h5v11h-5v8h-9" />
+      <path class="cell-artwork__appendage" data-appendage="cilia" d="M17 15 9 6m23 6-3-10m29 15 8-8M10 33 1 29m10 25-9 5m24 10-4 10m37-12 7 10m5-29 9 3" />
+      <path class="cell-artwork__appendage" data-appendage="spines" d="M16 17 5 6m34 4V0m25 18L75 7m-5 33h10M62 64l11 11m-33-5v10M17 62 6 73M9 40H0" />
+
+      <g class="cell-artwork__complex" data-complex-mutation="buds">
+        <path d="M16 23h-7v4H5v8m59-12h7v4h4v8M20 61h-6v5h-3m49-5h6v5h3" />
+        <path d="M7 35h4v4H7zm62 0h4v4h-4zM11 66h4v4h-4zm54 0h4v4h-4z" />
+      </g>
+      <g class="cell-artwork__complex" data-complex-mutation="ridges">
+        <path d="M16 31h10m-12 8h12m-10 8h10m28-16h10m-10 8h12m-12 8h10" />
+      </g>
+      <g class="cell-artwork__complex" data-complex-mutation="nodes">
+        <path d="M13 24h5v5h-5zm49 0h5v5h-5zM13 53h5v5h-5zm49 0h5v5h-5zM37 10h6v6h-6zm0 54h6v6h-6z" />
+      </g>
+    </g>
+  </g>
+
+  <g class="cell-artwork__upgrade" data-upgrade-visual="membrane">
+    <path d="M28 20h24v3h8v8h3v18h-3v8h-8v3H28v-3h-8v-8h-3V31h3v-8h8z" />
+  </g>
+  <g class="cell-artwork__upgrade" data-upgrade-visual="mitochondria">
+    <path d="M24 47h12v3h3v8h-3v3H24v-3h-3v-8h3z" />
+    <path d="m24 54 3-3 3 6 3-4 3 2" />
+  </g>
+  <g class="cell-artwork__upgrade" data-upgrade-visual="replication">
+    <path d="M39 17v46M34 21h10m-10 38h10" />
+  </g>
+
+  <g class="cell-artwork__specialisation" data-specialisation-visual="contractile">
+    <path d="M67 44h8v5h-4v7h5v11h-5v7h-10" />
+  </g>
+  <g class="cell-artwork__specialisation" data-specialisation-visual="photosynthesis">
+    <path d="M19 29h8v7h-8zm34 0h8v7h-8zM19 45h8v7h-8zm34 0h8v7h-8z" />
+  </g>
+  <g class="cell-artwork__specialisation" data-specialisation-visual="sensory">
+    <path d="M18 17 10 8m21 5-2-10m29 14 9-9M11 34 2 30m9 23-9 5m24 10-4 10m37-11 8 10m4-29 9 3" />
   </g>
 </svg>

@@ -1,29 +1,36 @@
 # Codex Start Here
 
-Use this file when first opening the repository in Codex.
+Use this file when opening or resuming the repository in Codex.
 
-## First session
+## Start every Codex task
 
-1. Place this documentation package into the root of the `marklee-au` repository.
-2. Confirm `AGENTS.md` is at the repository root.
-3. Open the repository in Codex.
-4. Ask Codex to read `AGENTS.md` and `docs/index.md` before changing code.
-5. Start with the active foundation plan in `docs/exec-plans/active/001-foundation-project-system.md`.
-6. Review Codex's proposed changes before applying large structural changes.
-7. Run `npm run build` after each completed task.
-8. Commit completed work to Git in small logical commits.
+1. Open the real repository working directory, not an extracted source snapshot.
+2. Read `AGENTS.md`, `docs/current-handoff.md` and `docs/index.md`.
+3. Read the active execution plan related to the task.
+4. Run `git status --short --branch` and `git log -1 --oneline`.
+5. If network access is available, run `git fetch origin` and compare the working branch with its upstream.
+6. Report the branch, base commit, existing dirty state and intended file paths before editing.
 
-## Recommended first prompt
+Do not discard uncommitted files applied from ChatGPT, created by the user or left by another Codex task. Stop if the requested work overlaps them and the intended merge is unclear.
 
-Open `docs/prompts/first-codex-session.md` and paste its contents into Codex.
+## Recommended prompt
 
-## After the foundation task
+Use `docs/prompts/first-codex-session.md` for a new Codex chat. Add the exact task and its scope after the supplied text.
 
-Use this order:
+## Local review
 
-1. Complete the reusable project system.
-2. Confirm DATA, MAPS, and LAB pages work from project metadata rather than duplicated hard-coded cards where practical.
-3. Create the first real LAB project.
-4. Use `docs/exec-plans/active/002-pulse-of-adelaide.md` as the planning document for that project.
-5. Keep future project plans in `docs/exec-plans/active/` while in progress.
-6. Move completed plans to a future `docs/exec-plans/completed/` directory.
+For application changes:
+
+```bash
+npm run dev
+```
+
+Use the affected local route for focused review. Run `npm run build` before handing over a normal code change. Larger release checks begin only after the user asks for a release candidate.
+
+## ChatGPT Project updates
+
+Files extracted from a ChatGPT update ZIP are user changes. Inspect them with Git and preserve them. See `PROJECT_SETUP.md` and `docs/change-package-workflow.md`.
+
+## Commit and publication
+
+Do not commit or push without an explicit request. A local prototype approval does not authorise publication. When the user asks to publish, stage only approved files and follow `docs/deployment-workflow.md`.

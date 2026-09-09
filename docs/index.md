@@ -4,6 +4,9 @@ This directory is the project knowledge base for `marklee.au`.
 
 ## Core documents
 
+- [`current-handoff.md`](current-handoff.md): concise current branch, implementation state, latest decisions and next action
+- [`repository-map.md`](repository-map.md): code, data, documentation and generated-path ownership
+- [`change-package-workflow.md`](change-package-workflow.md): root-ready ZIP delivery, application and concurrent-work rules
 - [`project-brief.md`](project-brief.md): purpose, audience, scope, success criteria
 - [`product-principles.md`](product-principles.md): rules that guide product and visual decisions
 - [`architecture.md`](architecture.md): technical architecture and intended repository structure
@@ -45,7 +48,7 @@ This directory is the project knowledge base for `marklee.au`.
 
 ## Prompts
 
-- [`prompts/first-codex-session.md`](prompts/first-codex-session.md): initial repository handoff prompt
+- [`prompts/first-codex-session.md`](prompts/first-codex-session.md): reusable prompt for starting or resuming a Codex session
 - [`prompts/new-project.md`](prompts/new-project.md): reusable prompt for starting a new visual project
 - [`prompts/align-data-foundation.md`](prompts/align-data-foundation.md): original data-foundation alignment prompt, implemented by Plan 003
 

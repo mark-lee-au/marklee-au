@@ -1,6 +1,6 @@
 # Execution Plan 006: Ascend
 
-Status: Genesis prototype published as a prototype on 2026-09-09; later Genesis expansion has not started.
+Status: Genesis expansion is ready for local review on `codex/ascend-random-mutations`; unpublished.
 
 ## Objective
 
@@ -291,3 +291,60 @@ Review should focus on the opening pacing, whether the cell and mutation burst f
 - The existing externally managed Cloudflare deployment served `/games/` with the Ascend prototype card and `/projects/ascend/` with HTTP 200 after the normal deployment delay.
 - The live project response contained the Ascend title, canonical URL and configurable reset control. No Cloudflare, DNS or email configuration was changed.
 - Ascend remains labelled `prototype`. Later Genesis mechanics, later eras and further review iterations require separate approval.
+
+### Stage 3 review iteration — seeded procedural phenotypes
+
+- Added a seeded procedural phenotype layer for the current Primordial and Adapted Cell forms. Each run varies restrained colour palette, membrane geometry, nucleus layout, internal structures, orientation, mirroring and optional appendages.
+- A run stores one small random seed rather than generated SVG or many visual fields. The same seed deterministically recreates both phenotypes after refresh; resetting the prototype creates a new seed and therefore a different play-through appearance.
+- Adapted phenotypes derive from their run's Primordial Cell rather than generating an unrelated replacement. They retain the palette, membrane family, orientation and mirroring; if the primordial form has no appendage, adaptation adds one, otherwise it changes only the nucleus or internal structure. Current upgrade choices render as a separate forced visual overlay: doubled membrane, Mitochondria organelle or replication axis.
+- This separation is the intended future contract: random mutation changes the base phenotype, while player-chosen body parts, weapons, defences or other upgrades can add or force specific visual anatomy without replacing procedural variation.
+- The save envelope advances to version 2. Existing version 1 saves retain gameplay progress and receive a new phenotype seed on first load; subsequent saves persist it.
+- The implementation remains project-scoped SVG, CSS and TypeScript. It adds no dependency, bitmap asset, generic creature engine or later-era gameplay.
+- Validation: `npm run build` completed successfully with 12 static pages. Focused browser checks confirmed phenotype persistence across refresh, a different phenotype after reset, a distinct Adapted Cell, the Mitochondria forced overlay and an empty browser error log.
+- Starting usage: rolling five-hour 35% used; weekly 46% used.
+- Ending usage: rolling five-hour 51% used; weekly 48% used.
+- Measured review change: +16 percentage points rolling five-hour; +2 percentage points weekly, below both repository stage ceilings.
+- Branch: `codex/ascend-random-mutations`; this revision is local and uncommitted.
+
+### Stage 3 review iteration — lineage-preserving evolution morph
+
+- Review feedback identified that independently styled forms made evolution read as replacement rather than development of the same organism.
+- The Adapted Cell now inherits the current Primordial Cell's defining visual traits and applies one restrained procedural mutation. Its larger outline, inner wall and selected adaptation remain additions to that recognisable base.
+- The two related SVG forms use aligned geometry and a smooth 680 ms crossfade/scale transition so the change reads as a morph. Direct path interpolation was not added because the procedural membrane families do not share compatible path topology; the lineage-preserving transition achieves continuity without introducing an animation dependency or constraining future shapes.
+- Reduced-motion behaviour remains in place, animations do not intercept input, and the saved run seed continues to reproduce the same lineage after refresh.
+- Validation: `npm run build` completed successfully with 12 static pages. A focused same-seed browser check confirmed that the adapted organism retained its primordial silhouette and palette, added its restrained mutation and Mitochondria overlay, and produced no browser warnings or errors.
+- Starting usage: rolling five-hour 54% used; weekly 49% used.
+- Ending usage: rolling five-hour 59% used; weekly 49% used.
+- Measured review change: +5 percentage points rolling five-hour; no measured weekly change, below both repository stage ceilings.
+- Branch: `codex/ascend-random-mutations`; this review revision is local, uncommitted and unpublished.
+
+## Stage 5 Genesis expansion record
+
+The user approved a compact expansion beyond the 30-Energy Adapted Cell milestone, with a release candidate deferred until this stage passes review. The expansion remains inside Genesis and deliberately introduces no later era, second resource, combat, offline earnings or generic progression system.
+
+- At configurable 60 lifetime Energy, an Adapted Cell reveals one second choice: Contractile Tail adds 2 Energy per manual tap, Photosynthetic Folds add 0.5 Energy per second, or Sensory Cilia add an 8-Energy burst every eighth manual tap.
+- Each specialisation has a forced visual feature, while the subsequent random evolution remains separately seeded. This preserves the contract between player-directed anatomy and replay-specific mutations.
+- At configurable 120 lifetime Energy, the selected lineage develops into a Complex Cell. The existing Adapted Cell SVG remains the base and gains one seeded detail family—buds, ridges or nodes—rather than being replaced by an unrelated drawing.
+- The original adaptation remains active and stacks with the new specialisation. Manual tapping remains available for all combinations, and passive generation continues to use visible elapsed runtime only.
+- Reset still reconstructs the entire run. A target at or above a locked milestone presents the required choices in order rather than silently assigning upgrades. The save envelope advances to version 3 and accepts version 1 and 2 saves without awarding offline progress.
+- Semantic buttons, stable accessible labels, infrequent milestone announcements and reduced-motion behaviour continue through the new choice and Complex Cell state.
+- Project copy now describes the two-adaptation Genesis arc. No dependency, route, shared Games system or backend was added.
+- Validation: `npm run build` completed successfully with 12 static pages and `git diff --check` found no whitespace errors (line-ending notices only). A focused browser pass used the reset control to enter at 60 Energy, confirmed the ordered first and second choices, selected Reinforced Membrane and Contractile Tail, rapidly advanced to the 120-Energy Complex Cell, and confirmed the completed lineage persisted after reload. The review also caught and corrected spacing between the first milestone and second-choice heading.
+- Starting usage: rolling five-hour 61% used; weekly 50% used.
+- Ending usage: rolling five-hour 77% used; weekly 52% used.
+- Measured Stage 5 change: +16 percentage points rolling five-hour; +2 percentage points weekly, below both repository stage ceilings.
+- Branch: `codex/ascend-random-mutations`; this expansion is local, uncommitted and unpublished.
+
+### Stage 5 review iteration — evolution history and anatomy nodes
+
+- Permanent milestone labels were replaced with a queued visual notice stream. Each update remains readable for approximately three seconds and then fades out over 900 ms; consecutive events no longer overwrite one another.
+- A restrained down-arrow control reveals the ordered evolution history after a one-second pointer hover. Clicking pins the drawer open, keyboard focus opens it immediately, and Escape closes it. The panel is independently scrollable with a thin dark custom scrollbar.
+- The history is stored in the version 4 save envelope and cleared with the rest of the run. Older version 1–3 saves migrate their completed milestone history from existing progress.
+- Optional anatomy nodes identify the visible procedural membrane, nucleus, internal organelles and appendage, plus selected adaptations and the Complex Cell mutation. Node positions are calculated from each rendered SVG segment so they remain attached through random shape, rotation and mirroring changes.
+- Each node is a semantic button with a descriptive accessible name. Its small label fades in after a one-second hover or immediately on keyboard focus, then fades out when the pointer or focus leaves.
+- A compact `NODES` switch in the upper-right removes the overlays from view and keyboard navigation without changing gameplay.
+- Validation: `npm run build` completed successfully with 12 static pages. Focused browser review confirmed queued notices, ordered saved history, click-to-pin drawer behaviour, the node switch and dynamically positioned node labels; the history panel background was made fully opaque after visual review.
+- Starting usage: rolling five-hour 79% used; weekly 53% used.
+- Ending usage: rolling five-hour 96% used; weekly 55% used.
+- Measured review change: +17 percentage points rolling five-hour; +2 percentage points weekly, below both repository stage ceilings.
+- Branch: `codex/ascend-random-mutations`; this revision is local, uncommitted and unpublished.

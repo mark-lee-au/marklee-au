@@ -1,5 +1,19 @@
 # Git Workflow
 
+## Source of truth
+
+GitHub is authoritative for committed work. The current working tree is authoritative for reviewed but uncommitted work. Uploaded source archives are time-stamped snapshots.
+
+Start each implementation task with:
+
+```bash
+git status --short --branch
+git log -1 --oneline
+git fetch origin
+```
+
+Compare the working branch with its upstream before editing. Do not pull, switch, rebase or apply a ZIP across unrelated uncommitted changes. See [change package workflow](change-package-workflow.md) for ChatGPT Project updates.
+
 ## Branch
 
 Production uses:
@@ -75,3 +89,5 @@ For each task, Codex should state:
 - suggested commit message
 
 Codex should not push unless explicitly asked.
+
+For material work, also update `docs/current-handoff.md`. Record the branch, base commit, files changed, validation and next decision so later Codex and ChatGPT Project sessions can start from repository facts rather than chat memory.

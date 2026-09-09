@@ -20,6 +20,10 @@ Keep review work local by default:
 
 Commits on a feature branch can provide useful checkpoints, but still require the user's explicit permission. Uncommitted user changes must remain untouched.
 
+Codex and ChatGPT Project sessions may operate during the same period, but they must not silently edit the same files. Each task records its base commit and intended paths. Use separate branches or worktrees for overlapping implementation, or finish one task and refresh the other session's context before it starts. See [change package workflow](change-package-workflow.md).
+
+Update [current handoff](current-handoff.md) after material stages and review iterations. Keep it short; detailed history stays in the relevant execution plan.
+
 ## Stage 1: Brief and direction
 
 Agree on:

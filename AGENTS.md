@@ -11,12 +11,52 @@ The site must feel like a gallery of data work, not a dashboard product.
 Before making changes, read:
 
 1. `docs/index.md`
-2. `docs/project-brief.md`
-3. `docs/product-principles.md`
-4. The relevant active plan in `docs/exec-plans/active/`
-5. Any topic-specific document linked from `docs/index.md`
+2. `docs/current-handoff.md`
+3. `docs/project-brief.md`
+4. `docs/product-principles.md`
+5. The relevant active plan in `docs/exec-plans/active/`
+6. Any topic-specific document linked from `docs/index.md`
 
 If the task conflicts with these documents, follow the user's latest explicit instruction and update the documentation if the change is durable.
+
+## Source of truth and session start
+
+GitHub is the source of truth for committed work. The current working tree is the source of truth for reviewed but uncommitted work. Chat transcripts and uploaded ZIP files are snapshots, not authoritative copies.
+
+At the start of every implementation task:
+
+1. Run `git status --short --branch` and `git log -1 --oneline`.
+2. Read `docs/current-handoff.md` and the relevant execution plan.
+3. Report the branch, base commit, dirty state and intended files before editing.
+4. If remote access is available, run `git fetch origin` and compare the current branch with its upstream.
+5. Do not pull, switch branches, rebase, merge, apply an update ZIP or overwrite files while unrelated uncommitted changes exist. Stop and ask the user how to proceed.
+
+Never treat a ChatGPT Project file upload as automatically current. If its recorded commit differs from the repository or its handoff conflicts with the working tree, request a fresh context export or use the repository state supplied by the user.
+
+Do not edit or include `.git/`, `node_modules/`, `.astro/`, `dist/`, `.wrangler/`, environment files or local raw data in a handoff package.
+
+## Concurrent work
+
+Only one writer may change a given file set at a time. Codex and a ChatGPT Project can work during the same period only when they use separate branches or clearly disjoint file sets based on the same recorded commit.
+
+Before editing, state the intended file paths. If another active task may touch them, stop and let the user choose which task proceeds first. Never resolve concurrent changes by silently replacing the newer file.
+
+After material work, update `docs/current-handoff.md` with the branch, base commit, state, files changed, validation and next decision. Keep the relevant execution plan as the detailed history.
+
+## ChatGPT Project file delivery
+
+When work occurs in a ChatGPT Project or another chat that cannot write directly to the repository, every response that creates or changes repository files must provide one root-ready ZIP archive.
+
+- The archive must contain only new or replacement files at their repository-relative paths.
+- The archive root must be the repository root. Do not add an enclosing `marklee-au/` directory.
+- Include `docs/current-handoff.md` when the change materially alters implementation state or decisions.
+- List deletions separately in the handoff because extracting a ZIP cannot delete old files.
+- Do not include unchanged files merely for completeness.
+- State the base branch and full base commit used to prepare the archive.
+- State the files included, files to delete, validation run and any unresolved issue.
+- Do not claim that the ZIP was applied, committed, pushed or published.
+
+Pure advice, research or review that changes no repository files does not need an empty ZIP.
 
 ## Collaborative staged delivery
 

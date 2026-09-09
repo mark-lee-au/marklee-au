@@ -1,23 +1,15 @@
-# First Codex Session Prompt
+# Codex Session Prompt
 
-Copy the text below into Codex after these documentation files are in the repository.
+Paste this into a new Codex chat, then add the specific task below it.
 
 ```text
-Read the repository root AGENTS.md first, then read docs/index.md, docs/project-brief.md, docs/product-principles.md, docs/architecture.md, docs/project-status.md, and docs/exec-plans/active/001-foundation-project-system.md.
+Read AGENTS.md, docs/current-handoff.md and docs/index.md before changing files. Read the active execution plan and any topic-specific documents linked from the index that apply to this task.
 
-Inspect the existing Astro starter before making changes.
+Inspect the repository itself. Run git status --short --branch and git log -1 --oneline. If remote access is available, fetch origin and compare the current branch with its upstream. Report the branch, base commit, existing dirty state and exact paths you intend to change before editing.
 
-Your task is to implement Execution Plan 001: Foundation Project System.
+Treat all existing uncommitted files as user work. Do not discard, reset, replace or reformat unrelated changes. Stop and ask if this task overlaps unclear work from another session.
 
-Do not materially redesign the current site. Preserve the existing visual direction while replacing duplicated hard-coded project metadata with a reusable structured project system. Use current Astro APIs and verify any implementation assumptions against the installed Astro version and its local package types or current official documentation if web access is available.
+Keep the task to the requested stage or revision set. Update docs/current-handoff.md after a material implementation or decision change. Run focused checks during review work and npm run build before handing over normal application changes.
 
-Before editing, give me a concise implementation plan and list the files you expect to add or change. Then carry out the work.
-
-At the end:
-1. run npm run build
-2. report all changed files
-3. report any warnings or unresolved issues
-4. update docs/project-status.md
-5. give me a suggested Git commit message
-6. do not push to GitHub unless I explicitly ask
+At the end, report changed files, checks run, checks not run, unresolved issues and a suggested commit message. Do not commit, push, merge, deploy or change Cloudflare, DNS or email settings unless I explicitly request that exact action.
 ```

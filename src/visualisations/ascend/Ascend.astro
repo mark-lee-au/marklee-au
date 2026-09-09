@@ -1,13 +1,20 @@
 ---
 import AdaptationIcon from './AdaptationIcon.astro';
 import CellArtwork from './CellArtwork.astro';
-import { ASCEND_CONFIG, type AdaptationId } from './config';
+import { ASCEND_CONFIG, type AdaptationId, type SpecialisationId } from './config';
 import './ascend.css';
 
 const adaptationIds = Object.keys(ASCEND_CONFIG.adaptations) as AdaptationId[];
+const specialisationIds = Object.keys(ASCEND_CONFIG.specialisations) as SpecialisationId[];
 ---
-<section class="ascend" data-ascend data-organism-stage="void" aria-labelledby="ascend-heading">
+<section class="ascend" data-ascend data-organism-stage="void" data-nodes-visible="true" aria-labelledby="ascend-heading">
   <h2 class="sr-only" id="ascend-heading">Ascend Genesis prototype</h2>
+
+  <label class="ascend__node-toggle">
+    <span>NODES</span>
+    <input type="checkbox" role="switch" data-node-toggle checked />
+    <i aria-hidden="true"></i>
+  </label>
 
   <div class="ascend__energy" data-energy-display hidden>
     <span>ENERGY</span>
@@ -22,6 +29,16 @@ const adaptationIds = Object.keys(ASCEND_CONFIG.adaptations) as AdaptationId[];
       <span class="ascend__tap-flash" aria-hidden="true"></span>
     </button>
 
+    <div class="ascend__anatomy-nodes" data-anatomy-nodes aria-label="Organism anatomy">
+      <button type="button" aria-label="Inspect membrane" class="ascend__anatomy-node ascend__anatomy-node--membrane" data-anatomy-node="membrane"><span></span></button>
+      <button type="button" aria-label="Inspect nucleus" class="ascend__anatomy-node ascend__anatomy-node--nucleus" data-anatomy-node="nucleus"><span></span></button>
+      <button type="button" aria-label="Inspect organelles" class="ascend__anatomy-node ascend__anatomy-node--interior" data-anatomy-node="interior"><span></span></button>
+      <button type="button" aria-label="Inspect appendage" class="ascend__anatomy-node ascend__anatomy-node--appendage" data-anatomy-node="appendage"><span></span></button>
+      <button type="button" aria-label="Inspect first adaptation" class="ascend__anatomy-node ascend__anatomy-node--adaptation" data-anatomy-node="adaptation"><span></span></button>
+      <button type="button" aria-label="Inspect second adaptation" class="ascend__anatomy-node ascend__anatomy-node--specialisation" data-anatomy-node="specialisation"><span></span></button>
+      <button type="button" aria-label="Inspect complex mutation" class="ascend__anatomy-node ascend__anatomy-node--complex" data-anatomy-node="complex"><span></span></button>
+    </div>
+
     <div class="ascend__burst" data-mutation-burst aria-hidden="true">
       <span class="ascend__burst-ring"></span>
       <span class="ascend__fragment ascend__fragment--a"></span>
@@ -31,6 +48,19 @@ const adaptationIds = Object.keys(ASCEND_CONFIG.adaptations) as AdaptationId[];
     </div>
 
     <span class="ascend__bonus" data-bonus aria-hidden="true">+5</span>
+  </div>
+
+  <p class="ascend__update" data-current-update aria-hidden="true"></p>
+
+  <div class="ascend__history" data-update-history-control>
+    <button class="ascend__history-toggle" type="button" data-update-history-toggle aria-expanded="false" aria-controls="ascend-update-history">
+      <span class="sr-only">Show evolution history</span>
+      <span aria-hidden="true">⌄</span>
+    </button>
+    <div class="ascend__history-panel" id="ascend-update-history" data-update-history-panel tabindex="-1" aria-hidden="true">
+      <span>EVOLUTION HISTORY</span>
+      <ol data-update-history></ol>
+    </div>
   </div>
 
   <section class="ascend__adaptations" data-adaptations aria-labelledby="adaptation-heading" hidden>
@@ -54,8 +84,26 @@ const adaptationIds = Object.keys(ASCEND_CONFIG.adaptations) as AdaptationId[];
     </div>
   </section>
 
-  <p class="ascend__active-adaptation" data-active-adaptation hidden></p>
-  <p class="ascend__milestone" data-genesis-message hidden>GENESIS HAS BEGUN</p>
+  <section class="ascend__adaptations" data-specialisations aria-labelledby="specialisation-heading" hidden>
+    <header>
+      <span>SECOND ADAPTATION</span>
+      <h2 id="specialisation-heading">Choose a specialisation.</h2>
+    </header>
+    <div class="ascend__adaptation-list">
+      {specialisationIds.map((id) => {
+        const specialisation = ASCEND_CONFIG.specialisations[id];
+        return (
+          <button type="button" class="ascend__adaptation" data-specialisation={id}>
+            <AdaptationIcon kind={id} />
+            <span class="ascend__adaptation-copy">
+              <strong>{specialisation.name}</strong>
+              <span>{specialisation.effect}</span>
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  </section>
 
   <form class="ascend__reset" data-reset-form>
     <label for="ascend-reset-energy">Reset Energy</label>

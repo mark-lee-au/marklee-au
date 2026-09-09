@@ -18,3 +18,10 @@ dist/
 .wrangler/
 .dev.vars
 .dev.vars.*
+
+# Local project archives
+*.zip
+*.7z
+*.rar
+*.tar
+*.gz

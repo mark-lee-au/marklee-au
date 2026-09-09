@@ -62,6 +62,15 @@ npm run dev
 
 and inspect the affected routes locally.
 
+Before the build and push, also run:
+
+```bash
+git status --short --branch
+git fetch origin
+```
+
+Confirm that the approved changes are based on the current remote branch and that no unrelated files will be staged. An update ZIP being applied locally does not itself authorise a commit, push or deployment.
+
 ## Cloudflare configuration
 
 The site should remain deployable as a static Astro build unless a later project explicitly requires server functionality.

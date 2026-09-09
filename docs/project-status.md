@@ -47,7 +47,9 @@ The domain `marklee.au` is being moved to Cloudflare DNS while email remains hos
 
 ## Current priority
 
-Formula Daily is the current staged project; see [Plan 005](exec-plans/active/005-formula-daily.md). The Pulse of Adelaide stays blocked on a suitable public fuel source with confirmed reuse terms; see [the source note](../data/sources/pulse-of-adelaide.md).
+Ascend's Genesis expansion is ready for local review on `codex/ascend-random-mutations`; see [Plan 006](exec-plans/active/006-ascend.md). The supplied working tree includes later procedural phenotype, specialisation, Complex Cell, history and anatomy-node work that has not been committed or published. Preserve it when applying documentation updates.
+
+Formula Daily remains a published GAMES prototype. The Pulse of Adelaide stays blocked on a suitable public fuel source with confirmed reuse terms; see [the source note](../data/sources/pulse-of-adelaide.md).
 
 ## Data foundation (Plan 003)
 
