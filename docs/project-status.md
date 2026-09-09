@@ -24,11 +24,11 @@ Execution Plan 001 is complete as of 2026-09-08. The Astro starter now has:
 
 South Australian Name Curve is a published LAB project with a prepared public dataset and dedicated interactive visual. It was released from commit `5890e1c` and verified on the live Cloudflare site on 2026-09-08. The Pulse of Adelaide, Adelaide in Motion and Powering South Australia remain public LAB ideas displayed as PLANNED. DATA and MAPS remain empty until projects are ready for promotion.
 
-The existing visual direction, navigation and card system are preserved. GAMES is now a separate collection for interactive games; LAB remains for data projects and visualisations in progress. Formula Daily is an unpublished local prototype. Project-specific TypeScript and CSS are loaded only on their routes.
+The existing visual direction, navigation and card system are preserved. GAMES is now a separate collection for interactive games; LAB remains for data projects and visualisations in progress. Formula Daily is a published prototype with a spreadsheet-cell formula canvas and mixed draggable or selectable chalk pieces; formula evaluation remains deferred. Project-specific TypeScript and CSS are loaded only on their routes.
 
 ## Validation
 
-- The latest `npm run build` passes: nine static pages, no build warnings.
+- The latest `npm run build` passes: eleven static pages, no build warnings.
 - All five main routes and all four project routes inspected using `npm run dev`.
 - All nine routes checked at 360 px for horizontal overflow; the About heading issue was corrected and rechecked. Representative layouts, including the interactive project, were visually inspected at 390, 768, 1280 and 1600 px too.
 - Project cards support Tab focus with a visible outline and Enter navigation.

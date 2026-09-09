@@ -1,6 +1,6 @@
 # Execution Plan 005: Formula Daily
 
-Status: Stage 2 structural and interaction prototype in progress on 2026-09-08; local review only.
+Status: Stage 2 interaction prototype published as a prototype on 2026-09-09; Stage 3 has not started.
 
 ## Objective
 
@@ -191,3 +191,11 @@ Stage 2 authorises the local GAMES structure and non-validating Formula Daily in
 - Ending usage: rolling five-hour 17% used; weekly 12% used.
 - Measured review change: +4 percentage points rolling five-hour; +1 percentage point weekly, below both stage ceilings.
 - Validation: `npm run build` completed successfully with 11 static pages; the Formula Daily local route returned HTTP 200; `git diff --check` found no whitespace errors (line-ending notices only).
+
+## Prototype publication record
+
+- The user reviewed the local prototype and explicitly approved saving and publishing it on 2026-09-09.
+- Commit `60aeae3` was fast-forwarded to `main` and pushed to GitHub.
+- The existing externally managed Cloudflare deployment served `/games/` and `/projects/formula-daily/` successfully; no Cloudflare, DNS, or email configuration was changed.
+- The project remains labelled `prototype`. Formula evaluation, a complete five-question loop, persistence, and daily behaviour remain future stages requiring separate approval.
+- Publication-stage usage: rolling five-hour 34% to 39%; weekly 14% to 15%, below both stage ceilings.
