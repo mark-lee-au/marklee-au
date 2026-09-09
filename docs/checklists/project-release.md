@@ -1,5 +1,16 @@
 # Project Release Checklist
 
+Use this checklist only after the user has finished local review iterations and asked for a release candidate. Passing it does not authorise publication; commit and push still require explicit approval.
+
+## Collaborative gate
+
+- [ ] Brief and direction were reviewed
+- [ ] Source and data feasibility were reviewed
+- [ ] Local prototype was reviewed
+- [ ] Requested iteration rounds are complete
+- [ ] User explicitly asked for a release candidate
+- [ ] Usage was checked at substantial stage boundaries when available
+
 ## Content
 
 - [ ] Project title is clear
@@ -50,11 +61,12 @@
 
 - [ ] `npm run build` succeeds
 - [ ] Main project URL loads locally
-- [ ] DATA, MAPS, or LAB listing shows the project correctly
+- [ ] DATA, MAPS, GAMES, or LAB listing shows the project correctly
 - [ ] Homepage feature state is correct
 
 ## Release
 
+- [ ] User explicitly approved this release candidate for publication
 - [ ] Git diff reviewed
 - [ ] Documentation updated
 - [ ] Commit message is specific

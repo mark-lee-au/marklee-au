@@ -1,0 +1,31 @@
+---
+import SiteHeader from '../components/SiteHeader.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import ProjectListing from '../components/ProjectListing.astro';
+import '../styles/global.css';
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="description" content="Interactive games built from data, logic and playful systems." />
+    <meta name="theme-color" content="#080908" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>GAMES · Mark Lee</title>
+  </head>
+  <body>
+    <SiteHeader />
+    <main class="site-shell">
+      <section class="page-hero">
+        <span class="kicker">COLLECTION</span>
+        <h1>GAMES</h1>
+        <p class="page-copy">Interactive games built from data, logic and playful systems.</p>
+      </section>
+      <section class="section">
+        <ProjectListing category="games" />
+      </section>
+    </main>
+    <SiteFooter />
+  </body>
+</html>

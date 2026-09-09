@@ -1,70 +1,40 @@
-# Import These Docs Into marklee.au
+# Import this data foundation into marklee-au
 
-This ZIP is designed to be copied into the root of the existing `marklee-au` repository.
+This pack adds durable data architecture guidance for Codex without replacing the existing project documentation.
 
-Data Foundation integration completed on 2026-09-08. Root `AGENTS.md` now contains the durable data rules; see `docs/exec-plans/active/003-data-foundation.md` and `docs/index.md` for the implemented repository guidance.
+Integration completed on 2026-09-08 in [Plan 003](docs/exec-plans/active/003-data-foundation.md). Root `AGENTS.md` now includes the durable rules. The following instructions are retained as import history; use [the documentation index](docs/index.md) for the current repository guidance.
 
-## Resulting structure
+## Copy into the repository
 
-After copying, the repository should contain:
+Copy these items into the root of `C:\Users\Rush\Documents\GitHub\marklee-au`:
+
+- `AGENTS_DATA_SECTION.md`
+- `docs/`
+
+Do not replace the existing root `AGENTS.md` with `AGENTS_DATA_SECTION.md`. Codex will merge the section into the existing `AGENTS.md` as part of the alignment task.
+
+## Start Codex
+
+Open the `marklee-au` repository in Codex and paste the contents of:
+
+`docs/prompts/align-data-foundation.md`
+
+Codex should first inspect the repository, then merge these rules into the existing project structure.
+
+## Expected result
+
+After the alignment task, the repo should have a data structure similar to:
 
 ```text
-marklee-au/
-|-- AGENTS.md
-|-- CODEX_START_HERE.md
-|-- README_IMPORT.md
-|-- docs/
-|   |-- index.md
-|   |-- project-brief.md
-|   |-- product-principles.md
-|   |-- architecture.md
-|   |-- design-system.md
-|   |-- project-lifecycle.md
-|   |-- project-template.md
-|   |-- data-guidelines.md
-|   |-- accessibility-performance.md
-|   |-- deployment-workflow.md
-|   |-- git-workflow.md
-|   |-- roadmap.md
-|   |-- backlog.md
-|   |-- project-status.md
-|   |-- decisions/
-|   |-- exec-plans/
-|   |-- prompts/
-|   `-- checklists/
-|-- src/
-|-- public/
-|-- package.json
-`-- ...
+data/
+  raw/
+  processed/
+  sources/
+public/
+  data/
+    <project-slug>/
+scripts/
+  data/
 ```
 
-## Copy steps
-
-1. Download and extract this ZIP.
-2. Open the extracted folder.
-3. Copy `AGENTS.md`, `CODEX_START_HERE.md`, `README_IMPORT.md`, and the entire `docs` folder.
-4. Paste them into the root of your local `marklee-au` repository.
-5. If Windows asks to merge folders, allow it.
-6. Open the repository in VS Code.
-7. Run:
-
-```powershell
-git status
-```
-
-8. Confirm the new documentation files are listed.
-9. Open `CODEX_START_HERE.md`.
-10. Open the project in Codex.
-11. Paste the prompt from `docs/prompts/first-codex-session.md` into Codex.
-
-## Optional first documentation commit
-
-After reviewing the files:
-
-```powershell
-git add AGENTS.md CODEX_START_HERE.md README_IMPORT.md docs/
-git commit -m "Add Codex project documentation"
-git push origin main
-```
-
-Do not run the push while DNS propagation is pending unless you are comfortable with Cloudflare automatically deploying the documentation-only repository change. The Markdown files do not affect the public Astro site unless imported by site code.
+The exact structure may differ if Codex finds an existing equivalent that is cleaner.

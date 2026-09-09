@@ -8,6 +8,7 @@ Status: mostly complete or in progress
 - homepage
 - DATA page
 - MAPS page
+- GAMES page
 - LAB page
 - ABOUT page
 - GitHub repository
@@ -34,6 +35,14 @@ Execution plan:
 `docs/exec-plans/active/001-foundation-project-system.md`
 
 ## Phase 2: First major LAB project
+
+Status: complete (2026-09-08)
+
+South Australian Name Curve is the first published interactive LAB project. It established the static snapshot, project-scoped visualisation and release-validation pattern in [Plan 004](exec-plans/active/004-south-australian-name-curve.md).
+
+Future projects now follow the [collaborative project workflow](collaboration-workflow.md): direction, data feasibility, local prototype, review iterations, release candidate and separately approved publication.
+
+## Phase 2A: Next major LAB project
 
 Data foundation prerequisite: complete (2026-09-08), see [Plan 003](exec-plans/active/003-data-foundation.md). Raw inputs, intermediates, source notes and public exports now have separate homes, with a static-first project contract and release checklist.
 

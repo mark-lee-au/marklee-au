@@ -92,6 +92,7 @@ Category values:
 ```text
 data
 maps
+games
 lab
 ```
 
@@ -104,11 +105,11 @@ published
 archived
 ```
 
-A project can move from category `lab` to `data` or `maps` without changing its URL unless there is a strong reason.
+A data or visualisation project can move from category `lab` to `data` or `maps` without changing its URL unless there is a strong reason. Interactive games use `games` at every maturity level.
 
 `src/lib/projects.ts` provides collection types, status labels, stable URLs and deterministic ordering (`sortOrder` ascending, then slug). `idea` displays as PLANNED. All entries are public, including ideas and archived projects; status describes maturity, not draft visibility. Keep private or unpublished ideas in `docs/backlog.md` instead. Only entries with `featured: true` appear on the homepage.
 
-`ProjectListing.astro` filters the shared collection by category, while `ProjectCard.astro` takes a complete collection entry. The three starter concepts are LAB ideas. DATA and MAPS remain empty until work is ready for promotion.
+`ProjectListing.astro` filters the shared collection by category, while `ProjectCard.astro` takes a complete collection entry. DATA, MAPS, GAMES, and LAB have dedicated listing routes. Project status, rather than LAB placement, communicates whether a game is a prototype.
 
 Dates, preview images and source information are optional. Planned concepts omit publication dates and source citations until those are established. `sources` pairs each name with an HTTP(S) URL. `previewImage` uses Astro's local image schema and `Image` component; cards retain the starter orbit artwork when it is absent.
 

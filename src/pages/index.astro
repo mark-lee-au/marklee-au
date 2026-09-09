@@ -13,17 +13,17 @@ const featuredProjects = (await getProjects()).filter((project) => project.data.
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width" />
-    <meta name="description" content="Mark Lee's data portfolio: data stories, maps and experiments." />
+    <meta name="description" content="Mark Lee's portfolio: data stories, maps, games and experiments." />
     <meta name="theme-color" content="#080908" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <title>Mark Lee · Data / Maps / Lab</title>
+    <title>Mark Lee · Data / Maps / Games / Lab</title>
   </head>
   <body>
     <SiteHeader />
     <main class="site-shell">
       <section class="hero">
         <div class="hero-copy">
-          <span class="kicker">DATA / MAPS / EXPERIMENTS</span>
+          <span class="kicker">DATA / MAPS / GAMES / EXPERIMENTS</span>
           <h1>DATA, MAPPED. MEASURED. MOVING.</h1>
           <p>A growing collection of visual data stories about places, patterns, history and everyday life.</p>
           <div class="hero-meta">
@@ -40,12 +40,13 @@ const featuredProjects = (await getProjects()).filter((project) => project.data.
       <section class="section">
         <div class="section-heading">
           <h2>Browse the collection.</h2>
-          <p>Finished work lives in DATA and MAPS. Smaller ideas and work in progress begin in LAB.</p>
+          <p>Finished visual work lives in DATA and MAPS, interactive play in GAMES, and work in progress in LAB.</p>
         </div>
         <div class="category-grid">
           <CategoryCard href="/data" eyebrow="01" title="DATA" text="Finished visual stories built around a question, dataset or pattern." glyph="▥" />
           <CategoryCard href="/maps" eyebrow="02" title="MAPS" text="Geography, movement, place, history and spatial data." glyph="⌖" />
-          <CategoryCard href="/lab" eyebrow="03" title="LAB" text="Small experiments, prototypes and ideas still taking shape." glyph="◌" />
+          <CategoryCard href="/games" eyebrow="03" title="GAMES" text="Small interactive games built from data, logic and playful systems." glyph="⌗" />
+          <CategoryCard href="/lab" eyebrow="04" title="LAB" text="Data projects, visualisations and experiments still taking shape." glyph="◌" />
         </div>
       </section>
 

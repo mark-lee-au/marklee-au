@@ -2,6 +2,8 @@
 
 Use before publishing a new dataset or materially changing an existing one.
 
+During research and prototype stages, use the relevant source, privacy and processing sections as focused review gates. Complete the entire checklist only when the user asks for a release candidate. Completion does not authorise publication.
+
 ## Source
 
 - [ ] Source is public or explicitly licensed for the intended use.

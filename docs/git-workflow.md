@@ -10,7 +10,9 @@ main
 
 For small changes, direct work on `main` is acceptable when the user is working locally and reviewing changes.
 
-For larger or risky changes, use a feature branch if requested.
+For substantial new projects, redesigns or risky changes, create `codex/<project-slug>` before implementation unless the user requests another branch. Local review and iteration happen there so unfinished work cannot trigger the production deployment.
+
+Do not merge or push to `main` until the user has reviewed a local release candidate and explicitly approved publication. Feature-branch commits and pushes also require explicit approval.
 
 ## Commits
 
@@ -43,6 +45,8 @@ npm run build
 ```
 
 Review the changed files.
+
+For a project release, also confirm that the user has approved the release candidate. Prototype approval and release approval are separate decisions.
 
 ## Staging
 

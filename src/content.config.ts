@@ -9,7 +9,7 @@ const projects = defineCollection({
     slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
     summary: z.string().trim().min(1),
     question: z.string().trim().min(1),
-    category: z.enum(['data', 'maps', 'lab']),
+    category: z.enum(['data', 'maps', 'games', 'lab']),
     status: z.enum(['idea', 'prototype', 'published', 'archived']),
     featured: z.boolean().default(false),
     sortOrder: z.number().int().nonnegative().default(100),

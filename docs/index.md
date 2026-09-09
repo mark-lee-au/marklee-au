@@ -9,6 +9,7 @@ This directory is the project knowledge base for `marklee.au`.
 - [`architecture.md`](architecture.md): technical architecture and intended repository structure
 - [`design-system.md`](design-system.md): site shell, typography, spacing, interaction, and responsive rules
 - [`project-lifecycle.md`](project-lifecycle.md): how LAB projects become DATA or MAPS projects
+- [`collaboration-workflow.md`](collaboration-workflow.md): staged local development, review loops, usage checkpoints, and publication approval
 - [`project-template.md`](project-template.md): standard content structure for a project page
 - [`data-guidelines.md`](data-guidelines.md): sourcing, processing, attribution, privacy, and storage rules
 - [`data-architecture.md`](data-architecture.md): static-first data flow, directory boundaries, measured storage decisions and local isolation
@@ -31,6 +32,7 @@ This directory is the project knowledge base for `marklee.au`.
 - [`exec-plans/active/002-pulse-of-adelaide.md`](exec-plans/active/002-pulse-of-adelaide.md): first major LAB project plan
 - [`exec-plans/active/003-data-foundation.md`](exec-plans/active/003-data-foundation.md): completed static-first data foundation and validation record
 - [`exec-plans/active/004-south-australian-name-curve.md`](exec-plans/active/004-south-australian-name-curve.md): South Australian baby-name curve LAB implementation and release plan
+- [`exec-plans/active/005-formula-daily.md`](exec-plans/active/005-formula-daily.md): Formula Daily Stage 1 brief and proposed delivery plan
 
 ## Data references and templates
 

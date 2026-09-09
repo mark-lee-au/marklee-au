@@ -1,0 +1,285 @@
+.formula-daily {
+  --board: #101714;
+  --board-deep: #0a100e;
+  --chalk: #f2ecd8;
+  --chalk-muted: #aaa99c;
+  --chalk-green: #9be28f;
+  --chalk-red: #ff8f83;
+  --chalk-blue: #82cfff;
+  --chalk-line: rgba(235, 235, 215, .2);
+  max-width: 1000px;
+  margin: 0 auto 34px;
+  padding: clamp(18px, 3vw, 34px);
+  border: 1px solid #2c3933;
+  background:
+    radial-gradient(circle at 15% 18%, rgba(255,255,255,.032), transparent 22%),
+    radial-gradient(circle at 78% 66%, rgba(255,255,255,.025), transparent 26%),
+    repeating-linear-gradient(2deg, rgba(255,255,255,.009) 0 1px, transparent 1px 7px),
+    var(--board);
+  color: var(--chalk);
+  box-shadow: inset 0 0 80px rgba(0,0,0,.28), 0 24px 70px rgba(0,0,0,.24);
+}
+
+.formula-daily button { font: inherit; }
+
+.formula-daily__topline {
+  max-width: 760px;
+  margin: 0 auto 22px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+}
+.formula-daily__topline h2 {
+  max-width: 610px;
+  margin: 0;
+  font: 700 clamp(1.15rem, 2.5vw, 1.65rem)/1.15 "Segoe Print", "Comic Sans MS", cursive;
+  letter-spacing: -.025em;
+}
+.formula-daily__topline p {
+  flex: 0 0 auto;
+  margin: 0;
+  color: var(--chalk-muted);
+  font: 700 .82rem/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.formula-daily__topline strong { color: var(--chalk); }
+
+.formula-daily__sheet-scroll {
+  max-width: 760px;
+  margin: 0 auto;
+  overflow-x: auto;
+  outline-offset: 5px;
+}
+.formula-sheet {
+  width: 100%;
+  min-width: 690px;
+  border-collapse: collapse;
+  table-layout: fixed;
+  background: rgba(2, 8, 5, .26);
+  font-size: .9rem;
+}
+.formula-sheet caption {
+  padding: 0 0 10px;
+  color: var(--chalk-muted);
+  font: 600 .82rem/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-align: left;
+}
+.formula-sheet caption strong { color: var(--chalk); }
+.formula-sheet th,
+.formula-sheet td {
+  height: 48px;
+  padding: 7px 11px;
+  border: 1px solid rgba(223, 235, 225, .22);
+  text-align: right;
+}
+.formula-sheet thead th,
+.formula-sheet tbody th {
+  width: 38px;
+  background: rgba(215, 231, 220, .07);
+  color: var(--chalk-muted);
+  font: 600 .72rem ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-align: center;
+}
+.formula-sheet td { background: rgba(255,255,255,.012); font-variant-numeric: tabular-nums; }
+.formula-sheet td:first-of-type { text-align: left; }
+.formula-sheet tbody tr:first-child td {
+  background: rgba(221, 236, 226, .075);
+  color: var(--chalk);
+  font-weight: 700;
+  text-align: left;
+}
+.formula-sheet th:nth-child(2), .formula-sheet td:nth-child(2) { width: 112px; }
+.formula-sheet th:nth-child(3), .formula-sheet td:nth-child(3),
+.formula-sheet th:nth-child(4), .formula-sheet td:nth-child(4) { width: 76px; }
+.formula-sheet th:nth-child(5), .formula-sheet td:nth-child(5) { width: 350px; }
+.formula-sheet__input {
+  position: relative;
+  height: 66px !important;
+  min-height: 66px;
+  padding: 6px 9px !important;
+  background: rgba(255,255,255,.025) !important;
+  cursor: pointer;
+  text-align: left !important;
+  vertical-align: middle;
+}
+.formula-sheet__input[data-selected="true"] { box-shadow: inset 0 0 0 2px var(--chalk-green); }
+.formula-sheet__input[data-selected="true"]::after {
+  content: '';
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  width: 7px;
+  height: 7px;
+  background: var(--chalk-green);
+}
+.formula-sheet__placeholder {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  z-index: 0;
+  transform: translateY(-50%);
+  color: rgba(242, 236, 216, .36);
+  font: 600 .78rem "Segoe Print", "Comic Sans MS", cursive;
+  pointer-events: none;
+}
+.formula-sheet__formula {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 52px;
+  min-height: 52px;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.formula-token {
+  position: relative;
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 3px 18px 3px 7px;
+  border-width: 2px;
+  border-style: solid;
+  border-radius: 7px 10px 6px 9px;
+  background: transparent;
+  cursor: pointer;
+  font: 700 .76rem/1 "Segoe Print", "Comic Sans MS", cursive !important;
+}
+.formula-token::before {
+  content: '−';
+  position: absolute;
+  top: 1px;
+  right: 4px;
+  font: 800 .72rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  opacity: .7;
+}
+.formula-token:hover::before,
+.formula-token:focus-visible::before { opacity: 1; }
+.formula-token--preview {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 3px 8px;
+  border: 2px dashed rgba(215, 220, 215, .55);
+  border-radius: 8px 10px 7px 9px;
+  color: rgba(215, 220, 215, .62);
+  font: 700 .76rem/1 "Segoe Print", "Comic Sans MS", cursive;
+  opacity: .8;
+}
+.formula-token--preview::before { content: none; }
+
+.formula-cluster {
+  position: relative;
+  max-width: 880px;
+  height: clamp(310px, 38vw, 390px);
+  margin: 18px auto 4px;
+  overflow: visible;
+}
+.formula-cluster__field,
+.formula-cluster__strings { position: absolute; inset: 0; width: 100%; height: 100%; }
+.formula-cluster__field { z-index: 1; touch-action: none; }
+.formula-cluster__strings { z-index: 0; overflow: visible; pointer-events: none; }
+.formula-cluster__strings line {
+  stroke: rgba(242, 236, 216, .16);
+  stroke-width: 1.4;
+  stroke-dasharray: 4 7;
+  vector-effect: non-scaling-stroke;
+}
+.chalk-piece {
+  position: absolute;
+  left: 0;
+  top: 0;
+  min-height: 42px;
+  padding: 6px 22px 6px 12px;
+  border-width: 2px;
+  border-style: solid;
+  border-radius: 10px 13px 8px 12px;
+  background: rgba(11, 17, 14, .9);
+  box-shadow: 0 3px 0 rgba(0,0,0,.3), inset 0 0 8px rgba(255,255,255,.025);
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  will-change: transform;
+  font: 700 clamp(.8rem, 1.5vw, 1rem)/1 "Segoe Print", "Comic Sans MS", cursive !important;
+  letter-spacing: .015em;
+  text-shadow: 0 0 1px currentColor, 1px 0 0 rgba(255,255,255,.1);
+}
+.chalk-piece::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border: 1px dashed currentColor;
+  border-radius: inherit;
+  opacity: .22;
+  pointer-events: none;
+}
+.chalk-piece::before {
+  content: '+';
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  font: 800 .72rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  opacity: 0;
+  transform: scale(.7);
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+.chalk-piece:hover,
+.chalk-piece:focus-visible,
+.chalk-piece[data-preview="true"] {
+  z-index: 8;
+  filter: brightness(1.16) drop-shadow(0 0 7px currentColor);
+}
+.chalk-piece:hover::before,
+.chalk-piece:focus-visible::before,
+.chalk-piece[data-preview="true"]::before {
+  opacity: 1;
+  transform: scale(1);
+}
+.chalk-piece[data-dragging="true"] { z-index: 20; pointer-events: none; cursor: grabbing; box-shadow: 0 12px 24px rgba(0,0,0,.45); }
+.chalk-piece--function { border-color: var(--chalk-green); color: var(--chalk-green); }
+.chalk-piece--range { border-color: var(--chalk-red); color: var(--chalk-red); }
+.chalk-piece--value { border-color: var(--chalk-blue); color: var(--chalk-blue); }
+.chalk-piece--syntax { border-color: var(--chalk); color: var(--chalk); }
+
+.formula-daily__actions {
+  max-width: 760px;
+  margin: 2px auto 0;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 16px;
+}
+.formula-daily__actions p {
+  margin: 0;
+  color: var(--chalk-muted);
+  font: 600 .78rem/1.35 "Segoe Print", "Comic Sans MS", cursive;
+  text-align: center;
+}
+.formula-daily__clear,
+.formula-daily__submit {
+  min-height: 46px;
+  padding: 0 18px;
+  border-radius: 8px 11px 7px 10px;
+  cursor: pointer;
+  font: 750 .85rem "Segoe Print", "Comic Sans MS", cursive !important;
+}
+.formula-daily__clear { border: 1px solid var(--chalk-line); background: transparent; color: var(--chalk-muted); }
+.formula-daily__submit { border: 2px solid var(--chalk-green); background: transparent; color: var(--chalk-green); box-shadow: inset 0 0 0 1px rgba(155,226,143,.15); }
+.formula-daily__submit:disabled { cursor: not-allowed; opacity: .42; }
+
+.formula-daily :is(button, [tabindex="0"]):focus-visible { outline: 2px solid var(--chalk-blue); outline-offset: 4px; }
+
+@media (max-width: 720px) {
+  .formula-daily { padding-inline: 12px; }
+  .formula-daily__topline { align-items: flex-start; flex-direction: column; gap: 8px; }
+  .formula-cluster { height: 430px; }
+  .formula-daily__actions { grid-template-columns: 1fr 1fr; }
+  .formula-daily__actions p { grid-column: 1 / -1; grid-row: 1; min-height: 2.2em; }
+  .formula-daily__clear, .formula-daily__submit { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .formula-cluster__strings { display: none; }
+  .chalk-piece { will-change: auto; }
+  .chalk-piece::before { transition: none; }
+}

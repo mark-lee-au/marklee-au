@@ -1,0 +1,100 @@
+---
+import './formula-daily.css';
+
+const rows = [
+  ['Region', 'Units', 'Rate', 'East total'],
+  ['East', '12', '4', null],
+  ['West', '8', '6', ''],
+  ['East', '30', '5', ''],
+  ['North', '16', '3', ''],
+];
+
+const pieces = [
+  { id: 'countif', value: 'COUNTIF(', kind: 'function' },
+  { id: 'b-range', value: 'B2:B5', kind: 'range' },
+  { id: 'comma-1', value: ',', kind: 'syntax' },
+  { id: 'east', value: '"East"', kind: 'value' },
+  { id: 'sumif', value: 'SUMIF(', kind: 'function' },
+  { id: 'close-1', value: ')', kind: 'syntax' },
+  { id: 'a-range', value: 'A2:A5', kind: 'range' },
+  { id: 'west', value: '"West"', kind: 'value' },
+  { id: 'sum', value: 'SUM(', kind: 'function' },
+  { id: 'comma-2', value: ',', kind: 'syntax' },
+  { id: 'average', value: 'AVERAGE(', kind: 'function' },
+  { id: 'equals', value: '=', kind: 'syntax' },
+  { id: 'c-range', value: 'C2:C5', kind: 'range' },
+  { id: 'open-1', value: '(', kind: 'syntax' },
+  { id: 'north', value: '"North"', kind: 'value' },
+  { id: 'count', value: 'COUNT(', kind: 'function' },
+  { id: 'close-2', value: ')', kind: 'syntax' },
+  { id: 'a2', value: 'A2', kind: 'range' },
+  { id: 'comma-3', value: ',', kind: 'syntax' },
+  { id: 'b2', value: 'B2', kind: 'range' },
+  { id: 'open-2', value: '(', kind: 'syntax' },
+  { id: 'close-3', value: ')', kind: 'syntax' },
+  { id: 'multiply', value: '*', kind: 'syntax' },
+  { id: 'twelve', value: '12', kind: 'value' },
+];
+---
+
+<section class="formula-daily" data-formula-daily aria-labelledby="formula-question">
+  <header class="formula-daily__topline">
+    <h2 id="formula-question">Make D2 show the total units sold in East.</h2>
+    <p>Attempt <strong data-attempt-count>0</strong> / 5</p>
+  </header>
+
+  <div class="formula-daily__sheet-scroll" tabindex="0" aria-label="Sample spreadsheet. Scroll horizontally if needed.">
+    <table class="formula-sheet">
+      <caption>Target result: <strong>42</strong></caption>
+      <thead>
+        <tr><th aria-hidden="true"></th>{['A', 'B', 'C', 'D'].map((column) => <th scope="col">{column}</th>)}</tr>
+      </thead>
+      <tbody>
+        {rows.map((row, rowIndex) => (
+          <tr>
+            <th scope="row">{rowIndex + 1}</th>
+            {row.map((cell, columnIndex) => rowIndex === 1 && columnIndex === 3 ? (
+              <td
+                class="formula-sheet__input"
+                data-input-cell
+                data-selected="true"
+                tabindex="0"
+                aria-label="Cell D2, formula input selected"
+              >
+                <span class="formula-sheet__placeholder" data-placeholder>Drop formula here</span>
+                <span class="formula-sheet__formula" data-formula-output aria-live="polite"></span>
+              </td>
+            ) : <td>{cell}</td>)}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="formula-cluster" data-cluster>
+    <svg class="formula-cluster__strings" data-strings aria-hidden="true"></svg>
+    <div class="formula-cluster__field" data-cluster-field aria-label="Formula pieces. Click a piece or drag it into cell D2.">
+      {pieces.map((piece, index) => (
+        <button
+          class={`chalk-piece chalk-piece--${piece.kind}`}
+          type="button"
+          data-piece-id={piece.id}
+          data-piece-value={piece.value}
+          data-piece-kind={piece.kind}
+          style={`--piece-index:${index}`}
+          aria-label={`Add ${piece.value}`}
+        >{piece.value}</button>
+      ))}
+    </div>
+  </div>
+
+  <footer class="formula-daily__actions">
+    <button class="formula-daily__clear" type="button" data-clear>Clear</button>
+    <p data-status role="status" aria-live="polite">D2 is selected. Pick pieces in formula order.</p>
+    <button class="formula-daily__submit" type="button" data-submit>Submit</button>
+  </footer>
+</section>
+
+<script>
+  import './formula-daily.ts';
+</script>

@@ -2,7 +2,9 @@
 
 ## Goal
 
-Allow ideas to start small in LAB and mature without requiring a complete redesign.
+Allow projects to start small and mature without requiring a complete redesign. Data and visualisation work in progress starts in LAB; games remain in GAMES and use status to show maturity.
+
+Projects move through these stages collaboratively. Follow the [collaborative project workflow](collaboration-workflow.md): stop for local review after direction, data feasibility and prototype work; use the review-and-iteration loop until the user asks for a release candidate; publish only after a separate explicit approval.
 
 ## Stage 1: Idea
 
@@ -15,13 +17,13 @@ Capture:
 
 Store the idea in `docs/backlog.md` or a new project plan if active work is starting.
 
-## Stage 2: LAB prototype
+## Stage 2: LAB or GAMES prototype
 
 Build the smallest version that tests the idea.
 
 Use the [data project contract](data-project-contract.md) and record provenance in `data/sources/<project-slug>.md`. Unverified source or reuse terms remain a research blocker; prototype status does not permit publication of unapproved data.
 
-A LAB prototype should answer:
+A prototype should answer:
 
 - Is the data usable?
 - Does the visual representation work?
@@ -29,6 +31,8 @@ A LAB prototype should answer:
 - Does it work on mobile?
 
 It can be published even if it remains small.
+
+During local review, keep it at `status: prototype`. Use `category: lab` for data and visualisation experiments and `category: games` for games. A prototype being usable locally does not itself authorise a commit, merge, push or public release.
 
 ## Stage 3: Published LAB
 
@@ -44,6 +48,10 @@ A published LAB item should have:
 It does not need a long narrative.
 
 Complete the [data release checklist](checklists/data-release.md) before publishing any dataset, including LAB work. Default to validated static exports with public metadata.
+
+Move into this stage only after the user has reviewed the local release candidate and explicitly approved publication.
+
+Published games follow the same release requirements but remain in GAMES rather than being promoted through LAB.
 
 ## Stage 4: Promotion candidate
 

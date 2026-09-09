@@ -6,7 +6,7 @@ marklee.au Data Portfolio
 
 ## Purpose
 
-Build a public web-based portfolio that turns interesting datasets into visual stories, maps, animations, interactive experiments, and concise analytical pieces.
+Build a public web-based portfolio that turns interesting datasets and logical systems into visual stories, maps, animations, interactive games, experiments, and concise analytical pieces.
 
 The site serves two purposes:
 
@@ -52,22 +52,28 @@ Examples:
 - infrastructure networks
 - geographic patterns
 
+### GAMES
+
+Interactive games and playful systems built around data, programming, logic, or exploratory interaction.
+
+Games have their own collection rather than using LAB, including while they are prototypes. Their project status communicates maturity.
+
 ### LAB
 
-Experiments and smaller ideas.
+Data experiments, visualisation prototypes, and smaller analytical ideas in progress.
 
 LAB exists so the site can publish interesting work quickly without forcing every idea into a polished long-form project.
 
 Examples:
 
 - one-question visualisations
-- prototypes
+- data visualisation prototypes
 - animation tests
 - unusual map projections
 - small historical datasets
 - visual experiments
 
-A successful LAB project can later be expanded and promoted into DATA or MAPS.
+A successful LAB project can later be expanded and promoted into DATA or MAPS. Games remain in GAMES as they mature.
 
 ## Experience goal
 

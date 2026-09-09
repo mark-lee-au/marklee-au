@@ -1,6 +1,6 @@
 # Execution Plan 004: South Australian Name Curve
 
-Status: local release candidate complete (2026-09-08); commit, push and live verification await user approval.
+Status: published 2026-09-08 from commit `5890e1c`; live Cloudflare route and browser data verified.
 
 ## Objective
 
@@ -131,4 +131,4 @@ Data-release checks passed: the source and CC BY 4.0 terms are recorded; every p
 
 Project-release checks passed locally: `npm run build`; direct route and query-state refresh; LAB listing and homepage feature placement; generated preview artwork; loading, empty-search and forced data-failure/retry states; count/rank switching; two- and three-name comparison; mouse, keyboard, pointer/tap and year-slider operation; accessible combobox semantics; visible focus and non-colour stroke/marker distinctions; screen-reader and no-script summaries; deliberate reduced-motion code paths; no horizontal overflow; and no console warnings or errors in a clean session. The page was visually inspected and iterated at 360, 390, 768, 1280 and 1600 CSS pixels.
 
-The remaining release-only checks are intentionally pending: commit, push, externally managed Cloudflare Worker deployment status and the public `marklee.au` URL. Those require the user's explicit approval. No production service, DNS record or deployment configuration was changed.
+The user approved release. Commit `5890e1c` was pushed to `main`; the externally managed Cloudflare deployment subsequently served the project route, homepage, LAB listing, metadata and browser dataset with HTTP 200. The live interactive loaded the requested URL state without console warnings or errors. No production service configuration, DNS record or email setting was changed.

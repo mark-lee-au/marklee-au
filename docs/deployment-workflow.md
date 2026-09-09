@@ -20,7 +20,13 @@ Earlier repository documents assumed Cloudflare Pages. The user identifies the w
 ## Standard deployment
 
 ```text
-local development
+feature branch and local prototype
+      |
+      v
+user review and revision loop
+      |
+      v
+local release candidate and explicit approval
       |
       v
 authorised commit and push
@@ -37,6 +43,8 @@ static dist/ assets served by Cloudflare Worker
       v
 marklee.au
 ```
+
+Follow the [collaborative project workflow](collaboration-workflow.md). Approval to prototype, iterate, or prepare a release candidate does not authorise a push to `main`. Publication requires a separate explicit user instruction after local release-candidate review.
 
 ## Before pushing
 

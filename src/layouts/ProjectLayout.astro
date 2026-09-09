@@ -29,7 +29,7 @@ const formatDate = (date: Date) => new Intl.DateTimeFormat('en-AU', {
   </head>
   <body>
     <SiteHeader />
-    <main class="site-shell project-page">
+    <main class:list={['site-shell', 'project-page', { 'project-page--game': category === 'games' }]}>
       <article>
         <header class="page-hero">
           <span class="kicker"><a href={`/${category}`}>{category.toUpperCase()}</a> / {projectStatusLabels[status]}</span>
@@ -65,6 +65,8 @@ const formatDate = (date: Date) => new Intl.DateTimeFormat('en-AU', {
 <style>
   .project-page { overflow-wrap: anywhere; }
   .project-page .page-hero h1 { font-size: clamp(2.75rem, 7vw, 6rem); line-height: 1; }
+  .project-page--game .page-hero { padding: 44px 0 30px; }
+  .project-page--game .page-hero h1 { margin-block: 10px 12px; font-size: clamp(2.5rem, 6vw, 5rem); }
   .project-preview { display: block; max-width: 100%; height: auto; margin-bottom: 40px; }
   .project-content { padding: 44px 0; }
   .project-content :global(h2) { margin: 36px 0 16px; font-size: 1.55rem; letter-spacing: -0.03em; }

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This repository is a personal data portfolio for Mark Lee. It presents data as visual stories, maps, animations, interactive experiments, and small exploratory pieces.
+This repository is a personal portfolio for Mark Lee. It presents data as visual stories, maps, animations, interactive games, experiments, and small exploratory pieces.
 
 The site must feel like a gallery of data work, not a dashboard product.
 
@@ -17,6 +17,30 @@ Before making changes, read:
 5. Any topic-specific document linked from `docs/index.md`
 
 If the task conflicts with these documents, follow the user's latest explicit instruction and update the documentation if the change is durable.
+
+## Collaborative staged delivery
+
+Substantial new projects and redesigns must follow `docs/collaboration-workflow.md`. The default is collaborative local development, not autonomous end-to-end publication.
+
+- Work in stages: brief, source/data feasibility, visual prototype, review iterations, release candidate, then publication.
+- At the end of each stage, stop at a usable local state, summarize decisions and open questions, and wait for the user's approval before entering the next stage.
+- Treat review as an iteration loop. Keep the local project easy to run while the user makes suggestions; implement scoped changes and show the revised result without prematurely running the entire release process.
+- For substantial work, use a non-production `codex/<project-slug>` branch unless the user requests another branch. Do not merge or push to `main` until the user explicitly approves the release candidate for publication.
+- Do not mark content `published`, add a publication date, or present it as live before release approval. Use `idea` or `prototype` while it is under review.
+- A request to start or continue a project authorizes only the current agreed stage. It does not implicitly authorize later stages, committing, pushing, merging, or deployment.
+
+Small, low-risk fixes do not require every stage, but still require explicit approval before commit or publication.
+
+## Usage management
+
+Keep Codex usage proportionate and visible.
+
+- For a substantial stage, check current Codex usage at the start and end when usage information is available. Report the measured change in the stage handoff.
+- Use 15 percentage points of the weekly allowance or 40 percentage points of the rolling five-hour allowance as the default ceiling for one stage. Because usage is nonlinear, stop at the next safe handoff if the measured increase approaches or reaches either ceiling; ask before continuing.
+- Recommend an economical model before substantial work. Prefer GPT-5.6 Terra for normal implementation and GPT-5.6 Luna for routine, mechanical, or high-volume work when available. Reserve more expensive reasoning models for genuinely difficult methodology, architecture, or final review, and explain the reason before using them.
+- Batch related file reads, searches and checks. Keep command output focused. Avoid repeating full builds, full data processing, or multi-breakpoint browser QA after minor edits.
+- During prototype and review stages, validate only what is needed for useful feedback. Run the complete data and project release checklists once the user asks for a release candidate.
+- If the requested stage is likely to exceed its budget, narrow the scope or propose a separate follow-up stage before proceeding.
 
 ## Current stack
 
@@ -45,7 +69,8 @@ Do not add React, Vue, a database, a CMS, or server-side infrastructure unless a
 
 - DATA contains finished data stories that are not primarily geographic.
 - MAPS contains finished work where geography is central.
-- LAB contains experiments, prototypes, small ideas, and work in progress.
+- GAMES contains interactive games and playful systems, whether or not data is their primary subject.
+- LAB contains data projects, visualisations, experiments, prototypes, small ideas, and work in progress; games do not belong in LAB.
 - A LAB project may later be promoted into DATA or MAPS.
 - Projects should lead with the visual and the question, not a long explanation.
 - Avoid generic analytics-dashboard layouts.

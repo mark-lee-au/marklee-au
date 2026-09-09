@@ -1,13 +1,15 @@
 # Project Template
 
-Use this structure as a default, then simplify when a small LAB project does not need every section.
+Use this structure as a default, then simplify when a small LAB or GAMES project does not need every section.
 
 ## Adding a project
 
+Follow the [collaborative project workflow](collaboration-workflow.md). Substantial projects begin with a reviewed plan and data-feasibility stage, then a local prototype and as many review iterations as needed before release QA.
+
 1. Add a Markdown file under `src/content/projects/` with the frontmatter below and the relevant body sections.
 2. Use a unique lowercase, hyphenated `slug`. It defines `/projects/<slug>/` independently of category and filename.
-3. Start concepts in `category: lab` with `status: idea` (shown as PLANNED) or `prototype`. Set `featured: true` to show the card on the homepage.
-4. Run `npm run build` and check the project and collection pages with `npm run dev`.
+3. Start data and visualisation concepts in `category: lab`; start games in `category: games`. Use `status: idea` (shown as PLANNED) or `prototype`. Keep work under local review unpublished and normally unfeatured. Set `featured: true`, `status: published`, and publication dates only during the approved release stage.
+4. During review, run focused checks and use `npm run dev` for local feedback. Run the full build, listings and release checks when the user asks for a release candidate.
 
 No manual route or card entry is required. All collection entries are publicly generated, including ideas and archived work. Keep unpublished notes in `docs/`.
 
@@ -37,7 +39,7 @@ sortOrder: 100
 # repositoryUrl: https://github.com/owner/repository
 ```
 
-The schema is in `src/content.config.ts`. Category values are `data`, `maps`, and `lab`; statuses are `idea`, `prototype`, `published`, and `archived`. `featured` defaults to false, `sortOrder` to 100, and tags/sources to empty lists. Ordering is ascending `sortOrder`, then slug.
+The schema is in `src/content.config.ts`. Category values are `data`, `maps`, `games`, and `lab`; statuses are `idea`, `prototype`, `published`, and `archived`. `featured` defaults to false, `sortOrder` to 100, and tags/sources to empty lists. Ordering is ascending `sortOrder`, then slug.
 
 Dates are optional: omit them for ideas without a publication or update date. Provided dates appear on the detail page using Australian date formatting. Provide real attribution only after confirming the source; explain pending data research in the body for planned work.
 
