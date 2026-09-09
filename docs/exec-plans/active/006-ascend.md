@@ -1,6 +1,6 @@
 # Execution Plan 006: Ascend
 
-Status: Genesis prototype release candidate approved for publication; publication in progress.
+Status: Genesis prototype published as a prototype on 2026-09-09; later Genesis expansion has not started.
 
 ## Objective
 
@@ -284,3 +284,10 @@ Review should focus on the opening pacing, whether the cell and mutation burst f
 - Focused browser review covered mouse/touch-sized interaction, keyboard controls, persistence, reduced-motion code paths, and layouts at 360px, 410px, 768px, 1280px and 1600px. No browser errors were reported.
 - No dataset, source attribution, backend, large image or external project library is part of this release. Data-specific checklist items are not applicable.
 - Publication is limited to the existing GitHub `main` workflow and externally managed Cloudflare Worker deployment. No Cloudflare, DNS or email configuration change is authorised.
+
+## Genesis prototype publication record
+
+- Release commit `5962005` (`Build Ascend Genesis prototype`) was fast-forwarded to `main` and pushed to GitHub on 2026-09-09.
+- The existing externally managed Cloudflare deployment served `/games/` with the Ascend prototype card and `/projects/ascend/` with HTTP 200 after the normal deployment delay.
+- The live project response contained the Ascend title, canonical URL and configurable reset control. No Cloudflare, DNS or email configuration was changed.
+- Ascend remains labelled `prototype`. Later Genesis mechanics, later eras and further review iterations require separate approval.
