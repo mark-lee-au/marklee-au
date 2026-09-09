@@ -15,8 +15,30 @@ type PieceState = {
   used: boolean;
 };
 
+type ClusterPointer = {
+  state: PieceState;
+  id: number;
+  moved: boolean;
+  startX: number;
+  startY: number;
+};
+
+type PlacedPointer = {
+  state: PieceState;
+  token: HTMLButtonElement;
+  ghost: HTMLButtonElement;
+  id: number;
+  moved: boolean;
+  startX: number;
+  startY: number;
+  originalIndex: number;
+  reorderIndex: number | null;
+  reorderPreview: HTMLSpanElement;
+};
+
 document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) => {
   const field = root.querySelector<HTMLElement>('[data-cluster-field]');
+  const cluster = root.querySelector<HTMLElement>('[data-cluster]');
   const inputCell = root.querySelector<HTMLElement>('[data-input-cell]');
   const formulaOutput = root.querySelector<HTMLElement>('[data-formula-output]');
   const placeholder = root.querySelector<HTMLElement>('[data-placeholder]');
@@ -26,7 +48,7 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
   const clearButton = root.querySelector<HTMLButtonElement>('[data-clear]');
   const submitButton = root.querySelector<HTMLButtonElement>('[data-submit]');
 
-  if (!field || !inputCell || !formulaOutput || !placeholder || !strings || !attemptCount || !status || !clearButton || !submitButton) return;
+  if (!field || !cluster || !inputCell || !formulaOutput || !placeholder || !strings || !attemptCount || !status || !clearButton || !submitButton) return;
 
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const placedIds: string[] = [];
@@ -48,13 +70,55 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
   let attempts = 0;
   let selectedCell = true;
   let previewId: string | null = null;
+  let previewIndex: number | null = null;
   let visible = true;
   let frame = 0;
   let animationFrame = 0;
-  let activePointer: { state: PieceState; id: number; moved: boolean; startX: number; startY: number } | null = null;
+  let activePointer: ClusterPointer | null = null;
+  let activePlacedPointer: PlacedPointer | null = null;
   let suppressClickId: string | null = null;
+  let suppressPlacedClickId: string | null = null;
+  let clusterOffset = 0;
+  let clearanceFrame = 0;
 
   const announce = (message: string) => { status.textContent = message; };
+
+  const syncClusterClearance = () => {
+    const answerBounds = inputCell.getBoundingClientRect();
+    const fieldBounds = field.getBoundingClientRect();
+    const available = states.filter((state) => !state.used);
+    const topPieceInset = available.length
+      ? Math.max(0, Math.min(...available.map((state) => state.y)))
+      : 0;
+    const unshiftedPieceTop = fieldBounds.top - clusterOffset + topPieceInset;
+    const nextOffset = Math.max(0, Math.ceil(answerBounds.bottom + 12 - unshiftedPieceTop));
+    if (Math.abs(nextOffset - clusterOffset) < 2) return;
+    clusterOffset = nextOffset;
+    cluster.style.transform = `translateY(${clusterOffset}px)`;
+    cluster.style.marginBottom = `${clusterOffset + 4}px`;
+  };
+
+  const scheduleClusterClearance = () => {
+    if (clearanceFrame) cancelAnimationFrame(clearanceFrame);
+    clearanceFrame = requestAnimationFrame(() => {
+      clearanceFrame = 0;
+      syncClusterClearance();
+    });
+  };
+
+  const setPieceContent = (element: HTMLElement, state: PieceState) => {
+    if (state.kind !== 'function' || !state.value.endsWith('(')) {
+      element.textContent = state.value;
+      return;
+    }
+    const name = document.createElement('span');
+    name.className = 'piece-part piece-part--function';
+    name.textContent = state.value.slice(0, -1);
+    const opening = document.createElement('span');
+    opening.className = 'piece-part piece-part--syntax';
+    opening.textContent = '(';
+    element.append(name, opening);
+  };
 
   const setPosition = (state: PieceState) => {
     const tilt = ((states.indexOf(state) * 7) % 11) - 5;
@@ -77,6 +141,12 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
       state.y = Math.max(0, Math.min(bounds.height - state.height, state.y));
       setPosition(state);
     });
+    scheduleClusterClearance();
+  };
+
+  const syncInputHeight = () => {
+    const nextHeight = Math.max(66, Math.ceil(formulaOutput.scrollHeight + 14));
+    inputCell.style.height = `${nextHeight}px`;
   };
 
   const renderFormula = () => {
@@ -88,7 +158,7 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
       token.type = 'button';
       token.className = `formula-token chalk-piece--${state.kind}`;
       token.dataset.placedId = state.id;
-      token.textContent = state.value;
+      setPieceContent(token, state);
       token.setAttribute('aria-label', `Remove ${state.value}`);
       formulaOutput.append(token);
     });
@@ -96,26 +166,31 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
     if (preview) {
       const ghost = document.createElement('span');
       ghost.className = 'formula-token formula-token--preview';
-      ghost.textContent = preview.value;
+      setPieceContent(ghost, preview);
       ghost.setAttribute('aria-hidden', 'true');
-      formulaOutput.append(ghost);
+      const insertionPoint = Math.max(0, Math.min(previewIndex ?? placedIds.length, placedIds.length));
+      formulaOutput.insertBefore(ghost, formulaOutput.children[insertionPoint] ?? null);
     }
     placeholder.hidden = placedIds.length > 0 || Boolean(preview);
-    inputCell.setAttribute('aria-label', `Cell D2, formula input selected. ${placedIds.length ? placedIds.map((id) => states.find((piece) => piece.id === id)?.value).join('') : 'Empty'}`);
+    inputCell.setAttribute('aria-label', `Formula answer for total units sold in East, selected. ${placedIds.length ? placedIds.map((id) => states.find((piece) => piece.id === id)?.value).join('') : 'Empty'}`);
+    syncInputHeight();
+    scheduleClusterClearance();
   };
 
-  const placePiece = (state: PieceState) => {
+  const placePiece = (state: PieceState, index = placedIds.length) => {
     if (!selectedCell || state.used) return;
     previewId = null;
+    previewIndex = null;
     state.used = true;
     state.element.hidden = true;
-    placedIds.push(state.id);
+    placedIds.splice(Math.max(0, Math.min(index, placedIds.length)), 0, state.id);
     renderFormula();
-    announce(`${state.value} added to D2.`);
+    announce(`${state.value} added to the answer.`);
   };
 
-  const previewPiece = (state: PieceState | null) => {
+  const previewPiece = (state: PieceState | null, index = placedIds.length) => {
     previewId = state && !state.used ? state.id : null;
+    previewIndex = previewId ? Math.max(0, Math.min(index, placedIds.length)) : null;
     states.forEach((piece) => {
       piece.element.dataset.preview = String(piece.id === previewId);
     });
@@ -134,6 +209,42 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
     renderFormula();
     announce(`${state.value} returned to the cluster.`);
     requestTick();
+  };
+
+  const pointInside = (x: number, y: number, bounds: DOMRect, margin = 0) => (
+    x >= bounds.left - margin
+    && x <= bounds.right + margin
+    && y >= bounds.top - margin
+    && y <= bounds.bottom + margin
+  );
+
+  const findReorderIndex = (x: number, y: number, draggedId: string) => {
+    const tokens = Array.from(formulaOutput.querySelectorAll<HTMLButtonElement>('[data-placed-id]'))
+      .filter((token) => token.dataset.placedId !== draggedId && !token.hidden);
+    for (let index = 0; index < tokens.length; index += 1) {
+      const bounds = tokens[index].getBoundingClientRect();
+      if (y < bounds.top - 5) return index;
+      const withinRow = y <= bounds.bottom + 5;
+      if (withinRow && x < bounds.left + bounds.width / 2) return index;
+    }
+    return tokens.length;
+  };
+
+  const showReorderPreview = (pointer: PlacedPointer, index: number) => {
+    if (pointer.reorderIndex === index && pointer.reorderPreview.isConnected) return;
+    pointer.reorderIndex = index;
+    pointer.token.hidden = true;
+    const remaining = Array.from(formulaOutput.querySelectorAll<HTMLButtonElement>('[data-placed-id]'))
+      .filter((token) => token.dataset.placedId !== pointer.state.id && !token.hidden);
+    formulaOutput.insertBefore(pointer.reorderPreview, remaining[index] ?? null);
+    syncInputHeight();
+  };
+
+  const hideReorderPreview = (pointer: PlacedPointer) => {
+    pointer.reorderIndex = null;
+    pointer.reorderPreview.remove();
+    pointer.token.hidden = false;
+    syncInputHeight();
   };
 
   const updateStrings = () => {
@@ -230,7 +341,7 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
   });
 
   field.addEventListener('pointerover', (event) => {
-    if (activePointer) return;
+    if (activePointer || activePlacedPointer) return;
     const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-piece-id]');
     const state = states.find((piece) => piece.id === button?.dataset.pieceId);
     if (state) previewPiece(state);
@@ -258,22 +369,49 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
     if (!button) return;
     const state = states.find((piece) => piece.id === button.dataset.pieceId);
     if (!state) return;
-    previewPiece(null);
+    event.preventDefault();
+    previewPiece(state);
     state.dragging = true;
     state.element.dataset.dragging = 'true';
     activePointer = { state, id: event.pointerId, moved: false, startX: event.clientX, startY: event.clientY };
   });
 
   document.addEventListener('pointermove', (event) => {
-    if (!activePointer || activePointer.id !== event.pointerId) return;
-    event.preventDefault();
-    const bounds = field.getBoundingClientRect();
-    const state = activePointer.state;
-    if (Math.hypot(event.clientX - activePointer.startX, event.clientY - activePointer.startY) > 5) activePointer.moved = true;
-    state.x = event.clientX - bounds.left - state.width / 2;
-    state.y = event.clientY - bounds.top - state.height / 2;
-    setPosition(state);
-    updateStrings();
+    if (activePointer && activePointer.id === event.pointerId) {
+      event.preventDefault();
+      const bounds = field.getBoundingClientRect();
+      const state = activePointer.state;
+      if (Math.hypot(event.clientX - activePointer.startX, event.clientY - activePointer.startY) > 5) activePointer.moved = true;
+      state.x = event.clientX - bounds.left - state.width / 2;
+      state.y = event.clientY - bounds.top - state.height / 2;
+      setPosition(state);
+      updateStrings();
+      if (activePointer.moved) {
+        const answerBounds = inputCell.getBoundingClientRect();
+        const index = pointInside(event.clientX, event.clientY, answerBounds, 4)
+          ? findReorderIndex(event.clientX, event.clientY, '')
+          : placedIds.length;
+        if (previewIndex !== index) previewPiece(state, index);
+      }
+      return;
+    }
+    if (activePlacedPointer && activePlacedPointer.id === event.pointerId) {
+      event.preventDefault();
+      const distance = Math.hypot(event.clientX - activePlacedPointer.startX, event.clientY - activePlacedPointer.startY);
+      if (distance > 5) {
+        activePlacedPointer.moved = true;
+        activePlacedPointer.ghost.style.visibility = 'visible';
+        activePlacedPointer.token.style.opacity = '.25';
+      }
+      activePlacedPointer.ghost.style.transform = `translate3d(${event.clientX - activePlacedPointer.startX}px, ${event.clientY - activePlacedPointer.startY}px, 0)`;
+      const answerBounds = inputCell.getBoundingClientRect();
+      if (activePlacedPointer.moved && pointInside(event.clientX, event.clientY, answerBounds, 4)) {
+        const index = findReorderIndex(event.clientX, event.clientY, activePlacedPointer.state.id);
+        showReorderPreview(activePlacedPointer, index);
+      } else if (activePlacedPointer.reorderIndex !== null) {
+        hideReorderPreview(activePlacedPointer);
+      }
+    }
   });
 
   const finishDrag = (event: PointerEvent, cancelled = false) => {
@@ -287,13 +425,15 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
       && event.clientX <= cellBounds.right
       && event.clientY >= cellBounds.top
       && event.clientY <= cellBounds.bottom;
-    if (moved && droppedOnCell) placePiece(state);
+    const insertionIndex = previewIndex ?? placedIds.length;
+    if (!cancelled && (!moved || droppedOnCell)) placePiece(state, insertionIndex);
     if (moved && !droppedOnCell) {
+      previewPiece(null);
       state.vx = 0;
       state.vy = 0;
       announce(`${state.value} rejoined the cluster.`);
     }
-    suppressClickId = moved ? state.id : null;
+    suppressClickId = !cancelled ? state.id : null;
     window.setTimeout(() => { suppressClickId = null; }, 0);
     activePointer = null;
     requestTick();
@@ -302,15 +442,84 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
   document.addEventListener('pointerup', (event) => finishDrag(event));
   document.addEventListener('pointercancel', (event) => finishDrag(event, true));
 
+  formulaOutput.addEventListener('pointerdown', (event) => {
+    const token = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-placed-id]');
+    const state = states.find((piece) => piece.id === token?.dataset.placedId);
+    if (!token || !state || activePointer || activePlacedPointer) return;
+    event.preventDefault();
+    const bounds = token.getBoundingClientRect();
+    const ghost = token.cloneNode(true) as HTMLButtonElement;
+    ghost.removeAttribute('data-placed-id');
+    ghost.classList.add('formula-token--dragging');
+    ghost.setAttribute('aria-hidden', 'true');
+    ghost.tabIndex = -1;
+    ghost.style.left = `${bounds.left}px`;
+    ghost.style.top = `${bounds.top}px`;
+    ghost.style.width = `${bounds.width}px`;
+    const reorderPreview = document.createElement('span');
+    reorderPreview.className = 'formula-token formula-token--preview formula-token--reorder';
+    reorderPreview.setAttribute('aria-hidden', 'true');
+    reorderPreview.style.minWidth = `${bounds.width}px`;
+    setPieceContent(reorderPreview, state);
+    root.append(ghost);
+    activePlacedPointer = {
+      state,
+      token,
+      ghost,
+      id: event.pointerId,
+      moved: false,
+      startX: event.clientX,
+      startY: event.clientY,
+      originalIndex: placedIds.indexOf(state.id),
+      reorderIndex: null,
+      reorderPreview,
+    };
+  });
+
+  const finishPlacedDrag = (event: PointerEvent, cancelled = false) => {
+    if (!activePlacedPointer || activePlacedPointer.id !== event.pointerId) return;
+    const pointer = activePlacedPointer;
+    const { state, token, ghost, moved, originalIndex, reorderIndex } = pointer;
+    const clusterBounds = field.getBoundingClientRect();
+    const answerBounds = inputCell.getBoundingClientRect();
+    const droppedOnCluster = !cancelled && pointInside(event.clientX, event.clientY, clusterBounds);
+    const droppedOnAnswer = !cancelled && moved && pointInside(event.clientX, event.clientY, answerBounds, 4);
+    ghost.remove();
+    pointer.reorderPreview.remove();
+    token.style.opacity = '';
+    token.hidden = false;
+    if (!cancelled && !moved) {
+      returnPiece(state.id);
+    } else if (droppedOnCluster) {
+      returnPiece(state.id);
+    } else if (droppedOnAnswer && reorderIndex !== null) {
+      placedIds.splice(originalIndex, 1);
+      placedIds.splice(reorderIndex, 0, state.id);
+      renderFormula();
+      announce(`${state.value} moved to position ${reorderIndex + 1}.`);
+    } else if (moved) {
+      renderFormula();
+      announce(`${state.value} remains in its original position.`);
+    }
+    if (cancelled) previewPiece(null);
+    suppressPlacedClickId = !cancelled ? state.id : null;
+    window.setTimeout(() => { suppressPlacedClickId = null; }, 0);
+    activePlacedPointer = null;
+  };
+
+  document.addEventListener('pointerup', (event) => finishPlacedDrag(event));
+  document.addEventListener('pointercancel', (event) => finishPlacedDrag(event, true));
+
   inputCell.addEventListener('click', (event) => {
     const placed = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-placed-id]');
     if (placed?.dataset.placedId) {
+      if (suppressPlacedClickId === placed.dataset.placedId) return;
       returnPiece(placed.dataset.placedId);
       return;
     }
     selectedCell = true;
     inputCell.dataset.selected = 'true';
-    announce('D2 selected. Pick the next formula piece.');
+    announce('The answer is selected. Pick the next formula piece.');
   });
 
   inputCell.addEventListener('keydown', (event) => {
@@ -319,14 +528,14 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
     event.preventDefault();
     selectedCell = true;
     inputCell.dataset.selected = 'true';
-    announce('D2 selected. Pick the next formula piece.');
+    announce('The answer is selected. Pick the next formula piece.');
   });
 
   inputCell.addEventListener('dragover', (event) => event.preventDefault());
 
   clearButton.addEventListener('click', () => {
     [...placedIds].forEach(returnPiece);
-    announce('D2 cleared.');
+    announce('Answer cleared.');
   });
 
   submitButton.addEventListener('click', () => {
@@ -355,6 +564,9 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
     updateStrings();
   });
   resizeObserver.observe(field);
+
+  const answerResizeObserver = new ResizeObserver(scheduleClusterClearance);
+  answerResizeObserver.observe(inputCell);
 
   measureAndArrange();
   renderFormula();

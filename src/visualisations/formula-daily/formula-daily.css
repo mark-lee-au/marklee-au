@@ -7,6 +7,7 @@
   --chalk-red: #ff8f83;
   --chalk-blue: #82cfff;
   --chalk-line: rgba(235, 235, 215, .2);
+  --chalk-font: "Segoe Print", "Comic Sans MS", cursive;
   max-width: 1000px;
   margin: 0 auto 34px;
   padding: clamp(18px, 3vw, 34px);
@@ -33,7 +34,7 @@
 .formula-daily__topline h2 {
   max-width: 610px;
   margin: 0;
-  font: 700 clamp(1.15rem, 2.5vw, 1.65rem)/1.15 "Segoe Print", "Comic Sans MS", cursive;
+  font: 700 clamp(1.15rem, 2.5vw, 1.65rem)/1.15 var(--chalk-font);
   letter-spacing: -.025em;
 }
 .formula-daily__topline p {
@@ -44,19 +45,16 @@
 }
 .formula-daily__topline strong { color: var(--chalk); }
 
-.formula-daily__sheet-scroll {
+.formula-daily__sheet {
   max-width: 760px;
   margin: 0 auto;
-  overflow-x: auto;
-  outline-offset: 5px;
 }
 .formula-sheet {
   width: 100%;
-  min-width: 690px;
   border-collapse: collapse;
   table-layout: fixed;
   background: rgba(2, 8, 5, .26);
-  font-size: .9rem;
+  font-size: clamp(.82rem, 2.5vw, .9rem);
 }
 .formula-sheet caption {
   padding: 0 0 10px;
@@ -88,22 +86,45 @@
   font-weight: 700;
   text-align: left;
 }
-.formula-sheet th:nth-child(2), .formula-sheet td:nth-child(2) { width: 112px; }
-.formula-sheet th:nth-child(3), .formula-sheet td:nth-child(3),
-.formula-sheet th:nth-child(4), .formula-sheet td:nth-child(4) { width: 76px; }
-.formula-sheet th:nth-child(5), .formula-sheet td:nth-child(5) { width: 350px; }
-.formula-sheet__input {
+.formula-sheet th:nth-child(1), .formula-sheet td:nth-child(1) { width: 8%; }
+.formula-sheet th:nth-child(2), .formula-sheet td:nth-child(2) { width: 34%; }
+.formula-sheet th:nth-child(3), .formula-sheet td:nth-child(3) { width: 20%; }
+.formula-sheet th:nth-child(4), .formula-sheet td:nth-child(4) { width: 18%; }
+.formula-sheet th:nth-child(5), .formula-sheet td:nth-child(5) { width: 20%; }
+
+.formula-entry {
+  max-width: 760px;
+  height: 66px;
+  margin: 14px auto 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 10px;
   position: relative;
-  height: 66px !important;
-  min-height: 66px;
-  padding: 6px 9px !important;
-  background: rgba(255,255,255,.025) !important;
-  cursor: pointer;
-  text-align: left !important;
-  vertical-align: middle;
+  z-index: 2;
 }
-.formula-sheet__input[data-selected="true"] { box-shadow: inset 0 0 0 2px var(--chalk-green); }
-.formula-sheet__input[data-selected="true"]::after {
+.formula-entry__reference {
+  color: var(--chalk);
+  font: 700 .9rem/1.25 var(--chalk-font);
+  white-space: nowrap;
+  align-self: start;
+  margin-top: 23px;
+}
+.formula-entry__input {
+  position: relative;
+  box-sizing: border-box;
+  height: 66px;
+  min-height: 66px;
+  min-width: 0;
+  padding: 6px 9px;
+  border: 1px solid rgba(223, 235, 225, .28);
+  background: rgba(255,255,255,.025);
+  cursor: pointer;
+  overflow: hidden;
+  transition: height 140ms cubic-bezier(.2, .75, .25, 1);
+}
+.formula-entry__input[data-selected="true"] { box-shadow: inset 0 0 0 2px var(--chalk-green); }
+.formula-entry__input[data-selected="true"]::after {
   content: '';
   position: absolute;
   right: -4px;
@@ -112,26 +133,26 @@
   height: 7px;
   background: var(--chalk-green);
 }
-.formula-sheet__placeholder {
+.formula-entry__placeholder {
   position: absolute;
   top: 50%;
   left: 12px;
   z-index: 0;
   transform: translateY(-50%);
   color: rgba(242, 236, 216, .36);
-  font: 600 .78rem "Segoe Print", "Comic Sans MS", cursive;
+  font: 600 .78rem var(--chalk-font);
   pointer-events: none;
 }
-.formula-sheet__formula {
+.formula-entry__formula {
   position: relative;
   z-index: 1;
   display: flex;
   align-items: center;
+  align-content: center;
+  flex-wrap: wrap;
   gap: 3px;
-  height: 52px;
   min-height: 52px;
-  overflow-x: auto;
-  overflow-y: hidden;
+  overflow: visible;
 }
 .formula-token {
   position: relative;
@@ -143,7 +164,8 @@
   border-radius: 7px 10px 6px 9px;
   background: transparent;
   cursor: pointer;
-  font: 700 .76rem/1 "Segoe Print", "Comic Sans MS", cursive !important;
+  touch-action: none;
+  font: 700 .76rem/1 var(--chalk-font) !important;
 }
 .formula-token::before {
   content: '−';
@@ -163,22 +185,35 @@
   border: 2px dashed rgba(215, 220, 215, .55);
   border-radius: 8px 10px 7px 9px;
   color: rgba(215, 220, 215, .62);
-  font: 700 .76rem/1 "Segoe Print", "Comic Sans MS", cursive;
+  font: 700 .76rem/1 var(--chalk-font);
   opacity: .8;
 }
 .formula-token--preview::before { content: none; }
+.formula-token--reorder {
+  transition: none;
+}
+.formula-token--dragging {
+  position: fixed;
+  z-index: 1000;
+  margin: 0;
+  pointer-events: none;
+  visibility: hidden;
+  filter: brightness(1.16) drop-shadow(0 8px 9px rgba(0,0,0,.45));
+}
 
 .formula-cluster {
   position: relative;
+  z-index: 1;
   max-width: 880px;
   height: clamp(310px, 38vw, 390px);
   margin: 18px auto 4px;
   overflow: visible;
+  transition: transform 220ms cubic-bezier(.2, .75, .25, 1), margin-bottom 220ms cubic-bezier(.2, .75, .25, 1);
 }
 .formula-cluster__field,
 .formula-cluster__strings { position: absolute; inset: 0; width: 100%; height: 100%; }
 .formula-cluster__field { z-index: 1; touch-action: none; }
-.formula-cluster__strings { z-index: 0; overflow: visible; pointer-events: none; }
+.formula-cluster__strings { z-index: 0; overflow: visible; pointer-events: none; opacity: 0; }
 .formula-cluster__strings line {
   stroke: rgba(242, 236, 216, .16);
   stroke-width: 1.4;
@@ -200,7 +235,7 @@
   user-select: none;
   touch-action: none;
   will-change: transform;
-  font: 700 clamp(.8rem, 1.5vw, 1rem)/1 "Segoe Print", "Comic Sans MS", cursive !important;
+  font: 700 clamp(.8rem, 1.5vw, 1rem)/1 var(--chalk-font) !important;
   letter-spacing: .015em;
   text-shadow: 0 0 1px currentColor, 1px 0 0 rgba(255,255,255,.1);
 }
@@ -223,6 +258,10 @@
   transform: scale(.7);
   transition: opacity 120ms ease, transform 120ms ease;
 }
+.piece-part { pointer-events: none; }
+.piece-part--function { color: var(--chalk-green); }
+.piece-part--syntax { color: var(--chalk); }
+.formula-token--preview .piece-part { color: inherit; }
 .chalk-piece:hover,
 .chalk-piece:focus-visible,
 .chalk-piece[data-preview="true"] {
@@ -236,7 +275,12 @@
   transform: scale(1);
 }
 .chalk-piece[data-dragging="true"] { z-index: 20; pointer-events: none; cursor: grabbing; box-shadow: 0 12px 24px rgba(0,0,0,.45); }
-.chalk-piece--function { border-color: var(--chalk-green); color: var(--chalk-green); }
+.chalk-piece--function {
+  border-color: rgba(242, 236, 216, .28);
+  border-style: dashed;
+  color: var(--chalk);
+}
+.chalk-piece--function::after { opacity: .1; }
 .chalk-piece--range { border-color: var(--chalk-red); color: var(--chalk-red); }
 .chalk-piece--value { border-color: var(--chalk-blue); color: var(--chalk-blue); }
 .chalk-piece--syntax { border-color: var(--chalk); color: var(--chalk); }
@@ -252,7 +296,7 @@
 .formula-daily__actions p {
   margin: 0;
   color: var(--chalk-muted);
-  font: 600 .78rem/1.35 "Segoe Print", "Comic Sans MS", cursive;
+  font: 600 .78rem/1.35 var(--chalk-font);
   text-align: center;
 }
 .formula-daily__clear,
@@ -261,24 +305,41 @@
   padding: 0 18px;
   border-radius: 8px 11px 7px 10px;
   cursor: pointer;
-  font: 750 .85rem "Segoe Print", "Comic Sans MS", cursive !important;
+  font: 750 .85rem var(--chalk-font) !important;
 }
 .formula-daily__clear { border: 1px solid var(--chalk-line); background: transparent; color: var(--chalk-muted); }
 .formula-daily__submit { border: 2px solid var(--chalk-green); background: transparent; color: var(--chalk-green); box-shadow: inset 0 0 0 1px rgba(155,226,143,.15); }
 .formula-daily__submit:disabled { cursor: not-allowed; opacity: .42; }
 
 .formula-daily :is(button, [tabindex="0"]):focus-visible { outline: 2px solid var(--chalk-blue); outline-offset: 4px; }
+.formula-entry__input .formula-token:focus-visible { outline-offset: -2px; }
 
 @media (max-width: 720px) {
-  .formula-daily { padding-inline: 12px; }
+  .formula-daily {
+    --chalk-font: "Trebuchet MS", "Arial Rounded MT Bold", system-ui, sans-serif;
+    padding-inline: 10px;
+  }
   .formula-daily__topline { align-items: flex-start; flex-direction: column; gap: 8px; }
+  .formula-sheet th,
+  .formula-sheet td { height: 40px; padding: 5px 4px; }
+  .formula-sheet thead th,
+  .formula-sheet tbody th { width: auto; font-size: .7rem; }
+  .formula-entry {
+    grid-template-columns: minmax(0, auto) minmax(120px, 1fr);
+    gap: 8px;
+  }
+  .formula-entry__reference { font-size: .82rem; white-space: normal; }
+  .formula-entry__placeholder { font-size: .82rem; }
   .formula-cluster { height: 430px; }
+  .chalk-piece { font-size: .88rem !important; letter-spacing: .01em; }
   .formula-daily__actions { grid-template-columns: 1fr 1fr; }
   .formula-daily__actions p { grid-column: 1 / -1; grid-row: 1; min-height: 2.2em; }
   .formula-daily__clear, .formula-daily__submit { width: 100%; }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .formula-entry__input { transition: none; }
+  .formula-cluster { transition: none; }
   .formula-cluster__strings { display: none; }
   .chalk-piece { will-change: auto; }
   .chalk-piece::before { transition: none; }

@@ -2,8 +2,8 @@
 import './formula-daily.css';
 
 const rows = [
-  ['Region', 'Units', 'Rate', 'East total'],
-  ['East', '12', '4', null],
+  ['Region', 'Units', 'Rate', ''],
+  ['East', '12', '4', ''],
   ['West', '8', '6', ''],
   ['East', '30', '5', ''],
   ['North', '16', '3', ''],
@@ -39,13 +39,13 @@ const pieces = [
 
 <section class="formula-daily" data-formula-daily aria-labelledby="formula-question">
   <header class="formula-daily__topline">
-    <h2 id="formula-question">Make D2 show the total units sold in East.</h2>
+    <h2 id="formula-question">Build the formula.</h2>
     <p>Attempt <strong data-attempt-count>0</strong> / 5</p>
   </header>
 
-  <div class="formula-daily__sheet-scroll" tabindex="0" aria-label="Sample spreadsheet. Scroll horizontally if needed.">
+  <div class="formula-daily__sheet" aria-label="Sample spreadsheet">
     <table class="formula-sheet">
-      <caption>Target result: <strong>42</strong></caption>
+      <caption>Sample spreadsheet</caption>
       <thead>
         <tr><th aria-hidden="true"></th>{['A', 'B', 'C', 'D'].map((column) => <th scope="col">{column}</th>)}</tr>
       </thead>
@@ -53,27 +53,31 @@ const pieces = [
         {rows.map((row, rowIndex) => (
           <tr>
             <th scope="row">{rowIndex + 1}</th>
-            {row.map((cell, columnIndex) => rowIndex === 1 && columnIndex === 3 ? (
-              <td
-                class="formula-sheet__input"
-                data-input-cell
-                data-selected="true"
-                tabindex="0"
-                aria-label="Cell D2, formula input selected"
-              >
-                <span class="formula-sheet__placeholder" data-placeholder>Drop formula here</span>
-                <span class="formula-sheet__formula" data-formula-output aria-live="polite"></span>
-              </td>
-            ) : <td>{cell}</td>)}
+            {row.map((cell) => <td>{cell}</td>)}
           </tr>
         ))}
       </tbody>
     </table>
   </div>
 
+  <div class="formula-entry">
+    <span class="formula-entry__reference" aria-hidden="true">Total units sold in East =</span>
+    <div
+      class="formula-entry__input"
+      data-input-cell
+      data-selected="true"
+      tabindex="0"
+      role="group"
+      aria-label="Formula answer for total units sold in East, selected"
+    >
+      <span class="formula-entry__placeholder" data-placeholder>Drop formula here</span>
+      <span class="formula-entry__formula" data-formula-output aria-live="polite"></span>
+    </div>
+  </div>
+
   <div class="formula-cluster" data-cluster>
     <svg class="formula-cluster__strings" data-strings aria-hidden="true"></svg>
-    <div class="formula-cluster__field" data-cluster-field aria-label="Formula pieces. Click a piece or drag it into cell D2.">
+    <div class="formula-cluster__field" data-cluster-field aria-label="Formula pieces. Click a piece or drag it into the answer field.">
       {pieces.map((piece, index) => (
         <button
           class={`chalk-piece chalk-piece--${piece.kind}`}
@@ -83,14 +87,21 @@ const pieces = [
           data-piece-kind={piece.kind}
           style={`--piece-index:${index}`}
           aria-label={`Add ${piece.value}`}
-        >{piece.value}</button>
+        >
+          {piece.kind === 'function' ? (
+            <>
+              <span class="piece-part piece-part--function">{piece.value.slice(0, -1)}</span>
+              <span class="piece-part piece-part--syntax">(</span>
+            </>
+          ) : piece.value}
+        </button>
       ))}
     </div>
   </div>
 
   <footer class="formula-daily__actions">
     <button class="formula-daily__clear" type="button" data-clear>Clear</button>
-    <p data-status role="status" aria-live="polite">D2 is selected. Pick pieces in formula order.</p>
+    <p data-status role="status" aria-live="polite">The answer is selected. Pick pieces in formula order.</p>
     <button class="formula-daily__submit" type="button" data-submit>Submit</button>
   </footer>
 </section>

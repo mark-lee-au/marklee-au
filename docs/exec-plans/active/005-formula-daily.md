@@ -10,7 +10,7 @@ The central question is: **Can a five-minute game make spreadsheet logic feel li
 
 The primary audience is a general puzzle player who can recognise a grid and simple arithmetic. Spreadsheet users are a secondary audience. The portfolio value is visible interaction design, TypeScript logic, structured content, state management, accessibility, responsive design, and testing.
 
-Formula Daily is an unpublished GAMES prototype. GAMES is a dedicated top-level collection; LAB remains for data projects, visualisations, experiments, and work in progress. The stable slug is `formula-daily`.
+Formula Daily is a published GAMES prototype with ongoing review work kept local until separately approved. GAMES is a dedicated top-level collection; LAB remains for data projects, visualisations, experiments, and work in progress. The stable slug is `formula-daily`.
 
 ## Product direction
 
@@ -199,3 +199,54 @@ Stage 2 authorises the local GAMES structure and non-validating Formula Daily in
 - The existing externally managed Cloudflare deployment served `/games/` and `/projects/formula-daily/` successfully; no Cloudflare, DNS, or email configuration was changed.
 - The project remains labelled `prototype`. Formula evaluation, a complete five-question loop, persistence, and daily behaviour remain future stages requiring separate approval.
 - Publication-stage usage: rolling five-hour 34% to 39%; weekly 14% to 15%, below both stage ceilings.
+
+### Stage 2 review iteration — mobile spreadsheet and formula strip
+
+- Reported issue: the sample spreadsheet retained a 690px minimum width because the wide interactive formula cell was embedded in column D, forcing horizontal scrolling on phones.
+- Revision: the data grid now fits its container at narrow widths, while D1 is a separate full-width interactive formula strip beneath the spreadsheet with its clue alongside it on desktop and below it on mobile.
+- Mobile chalk text uses a legible rounded sans-serif fallback while borders, colour, texture, and irregular shapes preserve the blackboard identity.
+- Elastic clustering remains active, but its connector SVG is transparent so players see the pieces regroup without dashed lines.
+- Starting usage: rolling five-hour 49% used; weekly 17% used.
+- Ending usage: rolling five-hour 58% used; weekly 18% used.
+- Measured review change: +9 percentage points rolling five-hour; +1 percentage point weekly, below both stage ceilings.
+- Validation: `npm run build` completed successfully with 11 static pages; the local Formula Daily route returned HTTP 200; focused visual inspection at 360px confirmed the spreadsheet fits without horizontal scrolling and the label cluster has no visible connector lines; `git diff --check` found no whitespace errors (line-ending notices only).
+
+### Stage 2 review iteration — bidirectional pointer interactions
+
+- Reported issue: setting a cluster piece to ignore pointer events during pointer-down could prevent a normal tap from producing its later click event.
+- Revision: pointer-up now distinguishes taps from drags directly. Click/tap and keyboard activation add available pieces; clicking placed pieces removes them; pieces can be dragged into the answer or dragged from the answer back into the cluster.
+- The answer row now reads `Total units sold in East =` and no longer presents the prototype as a D1-specific answer type.
+- Starting usage: rolling five-hour 60% used; weekly 18% used.
+- Ending usage: rolling five-hour 67% used; weekly 20% used.
+- Measured review change: +7 percentage points rolling five-hour; +2 percentage points weekly, below both stage ceilings.
+- Validation: `npm run build` completed successfully with 11 static pages; the local route returned HTTP 200; focused browser checks passed for desktop click add/remove, desktop drag into the answer, drag from the answer back to the cluster, and 360px tap add/remove; `git diff --check` found no whitespace errors (line-ending notices only).
+
+### Stage 2 review iteration — wrapping answer reordering
+
+- Placed pieces can now be reordered inside the answer. A single grey insertion preview moves only when the pointer crosses a neighbouring token midpoint; dropping in the answer commits the order, dropping in the cluster removes the piece, and dropping elsewhere restores its original position.
+- The answer canvas wraps and grows vertically instead of scrolling horizontally, including multi-row answers on narrow screens.
+- Function-openers remain one draggable/clickable token but render as a grouped pair: a green function name and neutral opening parenthesis inside a subtle dashed group border. Standalone opening-parenthesis pieces remain unchanged and available for nesting.
+- Starting usage: rolling five-hour 70% used; weekly 20% used.
+- Ending usage: rolling five-hour 81% used; weekly 22% used.
+- Measured review change: +11 percentage points rolling five-hour; +2 percentage points weekly, below both stage ceilings.
+- Validation: `npm run build` completed successfully with 11 static pages; the local route returned HTTP 200; browser checks confirmed reorder from first to last, removal by dragging to the cluster, grouped function styling, and a 360px answer expanding to five rows with no horizontal overflow; `git diff --check` found no whitespace errors (line-ending notices only).
+
+### Stage 2 review iteration — stable floating cluster clearance
+
+- Reported issue: intrinsic answer wrapping moved the label cluster in normal document flow, making the page jump whenever the answer gained or lost a row.
+- Revision: the answer grows independently over a fixed layout anchor. The label cluster remains at its original position until the answer reaches the topmost available label, then receives only the smooth clearance needed to preserve a 12px gap. Matching bottom space keeps the controls below the cluster correctly positioned.
+- Reduced-motion users receive the same collision clearance without animation.
+- Starting usage: rolling five-hour 85% used; weekly 22% used.
+- Ending usage: rolling five-hour 92% used; weekly 23% used.
+- Measured review change: +7 percentage points rolling five-hour; +1 percentage point weekly, below both stage ceilings.
+- Validation: `npm run build` completed successfully with 11 static pages; the local route returned HTTP 200; a focused 360px browser check confirmed that the first wrap left the cluster anchored and later contact applied 12px of clearance while retaining approximately 12px between the answer and topmost label; `git diff --check` found no whitespace errors (line-ending notices only).
+
+### Stage 2 review iteration — animated answer preview
+
+- Reported issue: preview pieces of different widths could change the answer's wrapped height abruptly, and the preview disappeared when a hovered cluster piece became a drag.
+- Revision: the answer now transitions between measured row heights and clips the preview during that short transition so the green cell boundary reveals or covers it cleanly. Reduced-motion users receive the final height immediately.
+- A cluster piece now keeps its preview throughout pointer-down and dragging. Outside the answer it previews at the end; inside the answer it uses the same row and token-midpoint insertion logic as reordering a placed piece, and a successful drop inserts at that indicated position.
+- Starting usage: rolling five-hour 95% used; weekly 24% used.
+- Ending usage: rolling five-hour 98% used; weekly 24% used.
+- Measured review change: +3 percentage points rolling five-hour; no measured weekly change, below both stage ceilings.
+- Validation: `npm run build` completed successfully with 11 static pages; `git diff --check` found no whitespace errors (line-ending notices only).
