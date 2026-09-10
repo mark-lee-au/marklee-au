@@ -106,8 +106,35 @@ const pieces = [
 
     <footer class="formula-daily__actions">
       <button class="formula-daily__clear" type="button" data-clear>Clear</button>
-      <p data-status role="status" aria-live="polite">The answer is selected. Pick pieces in formula order.</p>
-      <button class="formula-daily__submit" type="button" data-submit>Submit</button>
+      <p data-status role="status" aria-live="polite"></p>
+      <div class="formula-daily__primary-actions">
+        <button
+          class="formula-daily__help"
+          type="button"
+          data-help-button
+          aria-expanded="false"
+          aria-controls="formula-function-help"
+        >
+          Help
+        </button>
+        <div
+          class="formula-daily__help-panel"
+          id="formula-function-help"
+          data-help-panel
+          role="group"
+          aria-label="Formula function help"
+          hidden
+        >
+          <div class="formula-daily__help-heading">
+            <span>Function help</span>
+            <span data-help-cost></span>
+          </div>
+          <div class="formula-daily__help-functions" data-help-functions></div>
+          <div class="formula-daily__help-detail" data-help-detail aria-live="polite"></div>
+        </div>
+        <button class="formula-daily__test" type="button" data-test-answer>Test Answer</button>
+        <button class="formula-daily__submit" type="button" data-submit>Submit</button>
+      </div>
     </footer>
 
     <div class="formula-cluster" data-cluster>

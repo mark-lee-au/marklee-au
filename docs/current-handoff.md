@@ -5,7 +5,7 @@ Snapshot date: 2026-09-10
 ## Repository state supplied to ChatGPT
 
 - Latest supplied source snapshot branch: `main`.
-- Base commit: `fc9c6962e333aaf23f02164d8bcdc92d967ad5f5`.
+- Base commit: `094e8f7dc859a9f6b76dd30c5acd904bf1062187`.
 - The supplied working tree is recorded as clean.
 - The snapshot contains the current Ascend Genesis expansion and the local archive/publication helpers.
 - Cloudflare deployment state has not been independently verified from this ChatGPT session.
@@ -19,15 +19,14 @@ Snapshot date: 2026-09-10
 
 ## Formula Daily review change prepared in this package
 
-- The chalkboard frame now uses layered CSS wood-grain bands, darker bevels and an inner frame groove instead of the previous flat brown border.
-- The board surface is substantially blacker with restrained reflected highlights, vignette shading and fine chalkboard texture. The implementation uses CSS gradients only, so it adds no image asset or dependency.
-- Four low-contrast teacher-style chalk notes are selected deterministically from a larger lesson pool each day. Their placement, angle and wording vary by the daily seed and remain behind the answer and movable labels.
-- The chalkboard now has a stable base height. Answer wrapping no longer increases the board height during ordinary play.
-- The loose-piece cluster is anchored independently of the answer row. When the answer grows into the cluster's occupied space, only the minimum clearance transform is applied to move the loose labels down.
-- The board gains extra height only when that clearance would otherwise push the cluster past the usable bottom edge. It can shrink back to its base height when the extra space is no longer needed.
-- The answer row no longer animates its height. Its wrapped formula block remains vertically centred with the same alignment on one or several lines, avoiding the previous wrap/un-wrap flicker.
-- Existing bounded drag, edge sliding/fling behaviour, answer overlap insertion, grouped-function styling and hidden-state fixes remain unchanged.
-- No formula evaluation, puzzle content, attempts, persistence, or daily-game progression logic changes are included.
+- Adds a muted white `Help` button immediately left of `Test Answer`. It reaches full opacity on hover/focus and opens a compact function-reference popup.
+- The popup derives its links from function pieces present in the current puzzle. The current puzzle exposes `COUNTIF`, `SUMIF`, `SUM`, `AVERAGE` and `COUNT`.
+- Before Help is purchased, hovering/focusing a function shows `Tap to reveal (-50% points)`. The penalty is controlled by the single `HELP_SCORE_PENALTY_PERCENT` constant.
+- The first function reveal purchases Help once for the current question/session and records `data-help-used="true"` plus `data-help-penalty-percent="50"` on the Formula Daily root for later scoring integration. The current prototype still has no final score calculation, so this patch records the score-cap penalty rather than calculating points.
+- Once Help is purchased, hovering/focusing any current function link shows a concise Excel-style signature and argument guidance. The content stays generic and does not reference the current puzzle columns or target answer.
+- Clear does not relock Help or remove its recorded penalty. A later five-question implementation should reset Help state only when advancing to a new question.
+- Help opens on pointer hover, keyboard focus or tap/click. Tap/click can pin the popup, and Escape closes it.
+- Formula validation, Test Answer, Submit, loose-label movement, hidden connector logic, answer wrapping and Sample Data behaviour are unchanged.
 
 ## Local context archive utility
 
@@ -46,12 +45,23 @@ Snapshot date: 2026-09-10
 
 ## Next action
 
-1. Apply this cumulative Formula Daily review package to the repository root.
-2. Run the site locally and compare the wood frame and darker board surface with the previous flat border.
-3. Add and remove enough answer pieces to switch repeatedly between one and two lines. Confirm the answer content stays vertically centred and the board height does not pulse.
-4. Keep adding pieces until the answer reaches the loose cluster. Confirm the cluster moves down only when needed and the board itself remains fixed until the cluster would otherwise hit the bottom edge.
-5. Confirm the daily chalk lesson remains faint behind labels and does not compete with the playable pieces.
-6. Recheck drag-to-edge, drag-to-answer, grouped functions, return-from-answer and reorder behaviour before expanding Formula Daily further.
+1. Apply this Help prototype over the latest reviewed Formula Daily files.
+2. Check desktop hover/focus and mobile tap behaviour, including popup placement over the loose labels.
+3. Reveal one function, confirm the `-50%` Help state remains available after Clear, then hover the other function links and review the amount of guidance exposed.
+4. Stop for review before wiring the Help penalty into the final scoring system or adding further function-reference detail.
+
+## 2026-09-10 review prototype - Formula Daily Test Answer type checks
+
+- Branch base: `main`; base commit: `094e8f7dc859a9f6b76dd30c5acd904bf1062187`.
+- Working baseline for this patch is the previously prepared Test Answer structural-validation package layered on that clean snapshot.
+- Added a worksheet model derived from the existing Sample Data table. Each referenced cell is classified as number, text or blank; decimal values are numeric.
+- Added a second semantic validation pass after the existing structural parser. It propagates basic number/text/reference types through grouped expressions, supported functions and arithmetic operators.
+- `SUM`, `AVERAGE` and `COUNT` now report likely type misuse while preserving Excel's distinction between direct text arguments and text contained in references. `SUM(A2)` with text in A2 is flagged as a game-help issue because Excel would ignore that text and return 0 rather than raise `#VALUE!`.
+- `COUNTIF` and `SUMIF` now validate range positions and obvious criteria/data type mismatches against the current sample data. `SUMIF` also checks that the effective sum range has numeric cells.
+- Added future-facing `COUNTIFS` validator support for complete range/criteria pairs, criteria-range positions and equal criteria-range dimensions. No `COUNTIFS` piece was added to the current puzzle.
+- Arithmetic operators now require numeric-compatible operands and flag direct text, text references and mixed ranges containing text.
+- No Astro/CSS changes were required. No movement, collision, hover, drag/drop, wrapping, token reordering, Sample Data disclosure or Submit behaviour changed.
+- Validation: focused strict TypeScript compile passed; 26 representative structural/type validator cases passed; the current Astro and CSS files are unchanged from the previous Test Answer package. Full Astro build was not run because `npm ci` timed out in this sandbox.
 
 ## 2026-09-10 review patch — Formula Daily board-notes regression
 
@@ -272,3 +282,71 @@ Snapshot date: 2026-09-10
 - Files changed: `src/visualisations/formula-daily/formula-daily.ts`, `docs/current-handoff.md`, `docs/exec-plans/active/005-formula-daily.md`.
 - Validation: focused strict TypeScript compile and ZIP integrity check. Full Astro build not run because installed dependencies are absent from the supplied snapshot.
 - Next review: test middle-of-cluster drags locally. If labels still stack under sustained pressure, adjust collision escape behaviour separately rather than changing the restored live movement equations.
+## 2026-09-10 review prototype - Formula Daily Test Answer
+
+- Branch base: `main`; base commit: `094e8f7dc859a9f6b76dd30c5acd904bf1062187`.
+- Added a native `Test Answer` button immediately left of Submit, grouped with Submit so the existing three-column action layout remains intact.
+- The control uses muted orange chalk styling at reduced opacity and becomes fully prominent on hover or keyboard focus. Reduced-motion mode removes its visual transition.
+- Added token-aware structural validation using the existing ordered `placedIds` and piece `kind`/`value` model. It does not evaluate spreadsheet data or compare the answer with a target result.
+- Checks cover empty answers, bracket matching/nesting, empty or misplaced comma arguments, malformed operators, misplaced equals signs, adjacent expression pieces, incomplete endings and function argument counts.
+- Current function signatures recognised by the prototype: `SUM`/`COUNT`/`AVERAGE` require at least one argument, `SUMIF` accepts two or three, and `COUNTIF` requires two.
+- Feedback is sent through the existing `role="status"` / `aria-live="polite"` message area. Test Answer does not increment the five prototype submissions.
+- No future scoring penalty or `hasTestedAnswer` state was added because the current prototype has no scoring architecture that needs it yet.
+- Regression scope excludes loose-label movement, collision behaviour, drag boundaries, hover locking, answer wrapping, token reordering, grouped function appearance and Sample Data behaviour.
+- Validation: focused strict TypeScript compile passed; 18 representative validator cases passed; CSS brace validation and static Test Answer wiring checks passed. Full Astro build and browser/mobile runtime checks were not run because `npm ci` timed out and did not install the project dependencies in this sandbox.
+
+
+## 2026-09-10 review correction - Formula Daily Test Answer error feedback
+
+- Branch base: `main`; base commit: `094e8f7dc859a9f6b76dd30c5acd904bf1062187`, using the reviewed Test Answer type-check package as the working baseline layered on that snapshot.
+- Test Answer now flags supported syntax/structure problems and Excel-style evaluation errors only. It no longer warns about formulas that Excel accepts but that are likely to return zero/no match for the current sample data.
+- `COUNTIF(B2:B5, "East")`, `COUNTIF(A2:A5, 12)`, `SUM(A2)`, `COUNT(A2)` and a text-only `SUMIF` sum range are allowed by the pre-check.
+- Current terse issue categories are `Bracket error`, `Argument error`, `Syntax error`, `Operator error`, `#VALUE!` and `#DIV/0!`. The status area does not reveal the exact correction.
+- Each issue now stores implicated placed-piece IDs. Hover/focus on the error category shows a short generic tooltip and highlights those placed tokens red; touch/click can toggle the same hint/highlight. Empty formula remains a direct build-first message.
+- Files changed: `src/visualisations/formula-daily/formula-daily.ts`, `src/visualisations/formula-daily/formula-daily.css`, `docs/exec-plans/active/005-formula-daily.md`, `docs/current-handoff.md`.
+- No Astro markup, loose-label movement, collision behaviour, drag/reorder behaviour, answer wrapping, Sample Data or scoring logic changed.
+- Validation: focused strict TypeScript compile and generated-JavaScript syntax check passed. Focused validator cases cover accepted no-match formulas, `#VALUE!`, `#DIV/0!`, argument errors, bracket errors, operator errors, syntax errors and implicated token IDs. Full Astro/browser QA remains to be run locally.
+- Next review: test the amount of information exposed by the error categories/tooltips, the red target highlighting, and touch behaviour before adding further Excel error classes.
+
+## 2026-09-10 review patch - Test Answer hazard highlighting and tooltip placement
+
+- Branch base: `main`; base commit: `094e8f7dc859a9f6b76dd30c5acd904bf1062187`, using the reviewed Test Answer error-feedback package as the working baseline layered on that snapshot.
+- Error feedback now uses a separate bright error red rather than the softer red assigned to normal range pieces.
+- When an error category is hovered, keyboard-focused or touch-pinned, implicated answer tokens retain their existing targeting behaviour but now show translucent diagonal hazard bands alternating bright red and black, plus a brighter border/text treatment. The bands remain transparent enough to keep token text readable.
+- The short error explanation tooltip now opens below the `Test found:` line instead of above it, so it no longer covers the answer cell.
+- No validator rules, TypeScript logic, Astro markup, formula interaction, loose-label physics, answer behaviour, Sample Data or scoring logic changed.
+- Files changed: `src/visualisations/formula-daily/formula-daily.css`, `docs/exec-plans/active/005-formula-daily.md`, `docs/current-handoff.md`.
+- Validation: CSS brace balance and focused selector checks passed. Full Astro/browser QA remains a local visual check because installed dependencies are absent from the supplied snapshot.
+- Next review: check stripe strength/readability on range, value, syntax and grouped-function tokens at desktop and mobile widths.
+
+## 2026-09-10 review patch - multi-error Test Answer reporting
+
+- Branch base: `main`; base commit: `094e8f7dc859a9f6b76dd30c5acd904bf1062187`, using the reviewed Test Answer hazard-tooltip package as the working baseline layered on that snapshot.
+- Test Answer now reports all currently detectable validator findings instead of returning only the first issue.
+- Findings are de-duplicated by category plus implicated token set, sorted left to right, and rendered as separate red interactive links after `Test found:`. Two links use `and`; three or more use Oxford-comma punctuation.
+- Each link retains its own implicated token IDs. Hover/focus highlights only that error's tokens. Touch/click pins one error at a time and switching links updates the hazard highlight to the selected finding.
+- Structural validation now collects bracket, argument, operator and adjacency issues independently. Type/function validation can continue after a recoverable earlier function-level issue, allowing multiple categories in the same formula to be reported together.
+- Successful Test Answer copy is now `No test errors found. Ready to submit.`
+- No CSS or Astro changes were required. Formula interaction, loose-label movement, collision behaviour, drag/reorder behaviour, answer wrapping, Sample Data and scoring remain unchanged.
+- Validation: focused strict TypeScript compile passed, emitted JavaScript passed `node --check`, 22 prior regression validator cases passed, and dedicated multi-error/Oxford-comma tests passed. Full Astro/browser QA remains to be run locally because dependencies are not present in the supplied snapshot.
+- Next review: test formulas containing two to four independent failures, especially repeated categories, and check status-line wrapping on mobile before expanding the Excel error checklist.
+
+
+## 2026-09-10 review patch - Test Answer tooltip stacking
+
+- Branch base: `main`; base commit: `094e8f7dc859a9f6b76dd30c5acd904bf1062187`, using the latest reviewed Test Answer error-semantics package as the working baseline layered on that snapshot.
+- Raised the Formula Daily action/status stacking layer above the loose-label cluster so an open Test Answer error tooltip paints over loose formula pieces rather than being obscured by them.
+- Raised the tooltip's local `z-index` within that action layer for an explicit internal ordering.
+- Tooltip placement remains below `Test found:`. Error targeting, hover/focus/touch behaviour, hazard highlighting, validation rules, label movement, collision physics, drag/drop, answer layout and scoring are unchanged.
+- Files changed: `src/visualisations/formula-daily/formula-daily.css`, `docs/current-handoff.md`, `docs/exec-plans/active/005-formula-daily.md`.
+- Validation: focused CSS structure/stacking checks and ZIP integrity check. Full Astro/browser QA remains for local review because installed dependencies are absent from the supplied snapshot.
+- Next review: confirm locally that tooltips remain readable above loose labels at desktop and narrow mobile widths.
+
+## 2026-09-10 review patch - hidden neighbour strings and quieter status feedback
+
+- Branch base: `main`; base commit: `094e8f7dc859a9f6b76dd30c5acd904bf1062187`, with the latest reviewed Formula Daily Test Answer patches layered on that snapshot.
+- The dashed nearest-neighbour connector SVG is now visually hidden in CSS. Its SVG generation and neighbour/physics logic are unchanged.
+- Routine status narration was removed for answer selection, piece add/remove/rejoin/reorder actions and Clear. Formula changes silently clear stale Test Answer feedback instead.
+- Test Answer results, the build-a-formula prompt, and Submit/attempt feedback remain in the status live region.
+- Files changed: `src/visualisations/formula-daily/FormulaDaily.astro`, `src/visualisations/formula-daily/formula-daily.css`, `src/visualisations/formula-daily/formula-daily.ts`, `docs/exec-plans/active/005-formula-daily.md`, `docs/current-handoff.md`.
+- Validation: focused strict TypeScript compile, CSS structure/static selector checks, routine-status string checks and package integrity. Full Astro/browser QA remains local because the supplied context snapshot excludes installed dependencies.

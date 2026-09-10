@@ -20,6 +20,612 @@ type PieceState = {
   dragAngle: number;
 };
 
+type FormulaStructureToken = Pick<PieceState, 'id' | 'value' | 'kind'>;
+
+type FormulaIssue = {
+  label: string;
+  help: string;
+  tokenIds: string[];
+};
+
+type FormulaCheckResult =
+  | { valid: true; message: string }
+  | { valid: false; issues: FormulaIssue[] };
+
+type WorksheetCellKind = 'number' | 'text' | 'blank';
+
+type WorksheetCell = {
+  kind: WorksheetCellKind;
+  raw: string;
+};
+
+type WorksheetModel = Map<string, WorksheetCell>;
+
+type ReferenceSummary = {
+  label: string;
+  rows: number;
+  columns: number;
+  numbers: number;
+  texts: number;
+  blanks: number;
+  unknowns: number;
+};
+
+type FormulaSemanticValue =
+  | { kind: 'number'; label: string; tokenIds: string[] }
+  | { kind: 'text'; label: string; raw: string; numericText: boolean; tokenIds: string[] }
+  | { kind: 'reference'; label: string; reference: ReferenceSummary; tokenIds: string[] }
+  | { kind: 'unknown'; label: string; tokenIds: string[] };
+
+const FUNCTION_SIGNATURES: Record<string, { min: number; max?: number }> = {
+  SUM: { min: 1 },
+  COUNT: { min: 1 },
+  AVERAGE: { min: 1 },
+  SUMIF: { min: 2, max: 3 },
+  COUNTIF: { min: 2, max: 2 },
+  COUNTIFS: { min: 2 },
+};
+
+const NUMERIC_RESULT_FUNCTIONS = new Set(['SUM', 'COUNT', 'AVERAGE', 'SUMIF', 'COUNTIF', 'COUNTIFS']);
+
+const HELP_SCORE_PENALTY_PERCENT = 50;
+
+type FunctionHelpGuide = {
+  signature: string;
+  lines: string[];
+};
+
+const FUNCTION_HELP_GUIDES: Record<string, FunctionHelpGuide> = {
+  SUM: {
+    signature: 'SUM(<number or range>, ...)',
+    lines: [
+      '<number or range> supplies values to add.',
+      'Text inside referenced cells or ranges is ignored.',
+    ],
+  },
+  COUNT: {
+    signature: 'COUNT(<value or range>, ...)',
+    lines: [
+      'Counts numeric values in the supplied values, cells, or ranges.',
+      'Text and blank cells in references do not count.',
+    ],
+  },
+  AVERAGE: {
+    signature: 'AVERAGE(<number or range>, ...)',
+    lines: [
+      'Returns the mean of the numeric values supplied.',
+      'Text and blank cells in references are ignored.',
+    ],
+  },
+  SUMIF: {
+    signature: 'SUMIF(<range>, <criteria>, [sum_range])',
+    lines: [
+      '<range> is checked against <criteria>.',
+      '[sum_range] is optional and supplies the corresponding cells to add.',
+      'Text criteria normally use quotation marks.',
+    ],
+  },
+  COUNTIF: {
+    signature: 'COUNTIF(<range>, <criteria>)',
+    lines: [
+      '<range> is the group of cells to check.',
+      '<criteria> is the value or condition to match.',
+      'Text criteria normally use quotation marks.',
+    ],
+  },
+};
+
+const ARITHMETIC_OPERATORS = new Set(['*', '+', '-', '/']);
+const COMPARISON_OPERATORS = new Set(['=']);
+const FORMULA_OPERATORS = new Set([...ARITHMETIC_OPERATORS, ...COMPARISON_OPERATORS]);
+
+const parseNumber = (value: string): number | null => {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const parsed = Number(trimmed.replace(/,/g, ''));
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const buildWorksheetModel = (sampleDataSheet: HTMLElement | null): WorksheetModel => {
+  const worksheet: WorksheetModel = new Map();
+  const table = sampleDataSheet?.querySelector<HTMLTableElement>('table');
+  if (!table) return worksheet;
+
+  const columns = Array.from(table.querySelectorAll<HTMLTableCellElement>('thead th'))
+    .slice(1)
+    .map((cell) => cell.textContent?.trim().toUpperCase() ?? '');
+
+  table.querySelectorAll<HTMLTableRowElement>('tbody tr').forEach((row) => {
+    const rowNumber = row.querySelector<HTMLTableCellElement>('th')?.textContent?.trim();
+    if (!rowNumber) return;
+
+    row.querySelectorAll<HTMLTableCellElement>('td').forEach((cell, columnIndex) => {
+      const column = columns[columnIndex];
+      if (!column) return;
+      const raw = cell.textContent?.trim() ?? '';
+      const kind: WorksheetCellKind = !raw ? 'blank' : parseNumber(raw) !== null ? 'number' : 'text';
+      worksheet.set(`${column}${rowNumber}`, { kind, raw });
+    });
+  });
+
+  return worksheet;
+};
+
+const columnToNumber = (column: string) => [...column.toUpperCase()].reduce((total, character) => (
+  total * 26 + character.charCodeAt(0) - 64
+), 0);
+
+const numberToColumn = (value: number) => {
+  let column = '';
+  let remainder = value;
+  while (remainder > 0) {
+    remainder -= 1;
+    column = String.fromCharCode(65 + (remainder % 26)) + column;
+    remainder = Math.floor(remainder / 26);
+  }
+  return column;
+};
+
+const summariseReference = (label: string, worksheet: WorksheetModel): ReferenceSummary | null => {
+  const match = label.match(/^\$?([A-Z]+)\$?(\d+)(?::\$?([A-Z]+)\$?(\d+))?$/i);
+  if (!match) return null;
+
+  const startColumn = columnToNumber(match[1]);
+  const startRow = Number(match[2]);
+  const endColumn = columnToNumber(match[3] ?? match[1]);
+  const endRow = Number(match[4] ?? match[2]);
+  const firstColumn = Math.min(startColumn, endColumn);
+  const lastColumn = Math.max(startColumn, endColumn);
+  const firstRow = Math.min(startRow, endRow);
+  const lastRow = Math.max(startRow, endRow);
+  const summary: ReferenceSummary = {
+    label,
+    rows: lastRow - firstRow + 1,
+    columns: lastColumn - firstColumn + 1,
+    numbers: 0,
+    texts: 0,
+    blanks: 0,
+    unknowns: 0,
+  };
+
+  for (let row = firstRow; row <= lastRow; row += 1) {
+    for (let column = firstColumn; column <= lastColumn; column += 1) {
+      const cell = worksheet.get(`${numberToColumn(column)}${row}`);
+      if (!cell) {
+        summary.unknowns += 1;
+      } else if (cell.kind === 'number') {
+        summary.numbers += 1;
+      } else if (cell.kind === 'text') {
+        summary.texts += 1;
+      } else {
+        summary.blanks += 1;
+      }
+    }
+  }
+
+  return summary;
+};
+
+const formulaIssue = (label: string, help: string, tokenIds: string[] = []): FormulaIssue => ({
+  label,
+  help,
+  tokenIds: [...new Set(tokenIds.filter(Boolean))],
+});
+
+const dedupeFormulaIssues = (issues: FormulaIssue[]) => {
+  const seen = new Set<string>();
+  return issues.filter((issue) => {
+    const key = `${issue.label}|${[...issue.tokenIds].sort().join('|')}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
+
+const sortFormulaIssues = (issues: FormulaIssue[], tokens: FormulaStructureToken[]) => {
+  const tokenOrder = new Map(tokens.map((token, index) => [token.id, index]));
+  return [...issues].sort((left, right) => {
+    const leftIndex = Math.min(...left.tokenIds.map((id) => tokenOrder.get(id) ?? Number.MAX_SAFE_INTEGER));
+    const rightIndex = Math.min(...right.tokenIds.map((id) => tokenOrder.get(id) ?? Number.MAX_SAFE_INTEGER));
+    return leftIndex - rightIndex;
+  });
+};
+
+const getOxfordListSeparator = (itemIndex: number, itemCount: number) => {
+  if (itemIndex >= itemCount - 1) return '';
+  if (itemCount === 2) return ' and ';
+  if (itemIndex === itemCount - 2) return ', and ';
+  return ', ';
+};
+
+const validateFormulaStructure = (tokens: FormulaStructureToken[]): FormulaIssue[] => {
+  if (!tokens.length) {
+    return [formulaIssue('Empty formula', 'Build a formula before testing it.')];
+  }
+
+  const issues: FormulaIssue[] = [];
+  const addIssue = (issue: FormulaIssue) => issues.push(issue);
+  const idsAt = (...indexes: number[]) => indexes.flatMap((tokenIndex) => tokens[tokenIndex]?.id ?? []);
+  const isOperator = (token: FormulaStructureToken | undefined) => Boolean(token && FORMULA_OPERATORS.has(token.value));
+  const startsOperand = (token: FormulaStructureToken | undefined) => Boolean(token && (
+    token.kind === 'range' || token.kind === 'value' || token.kind === 'function' || token.value === '('
+  ));
+  const endsOperand = (token: FormulaStructureToken | undefined) => Boolean(token && (
+    token.kind === 'range' || token.kind === 'value' || token.value === ')'
+  ));
+  const functionName = (token: FormulaStructureToken) => token.value.endsWith('(')
+    ? token.value.slice(0, -1).toUpperCase()
+    : token.value.toUpperCase();
+
+  const bracketIssue = (...indexes: number[]) => formulaIssue(
+    'Bracket error',
+    'The brackets do not form a valid pair.',
+    idsAt(...indexes),
+  );
+  const argumentIssue = (...indexes: number[]) => formulaIssue(
+    'Argument error',
+    'A function has missing, extra, or misplaced arguments.',
+    idsAt(...indexes),
+  );
+  const syntaxIssue = (...indexes: number[]) => formulaIssue(
+    'Syntax error',
+    'Part of the formula is not valid in this position.',
+    idsAt(...indexes),
+  );
+  const operatorIssue = (...indexes: number[]) => formulaIssue(
+    'Operator error',
+    'An operator is missing one of its values.',
+    idsAt(...indexes),
+  );
+
+  const openingStack: number[] = [];
+  const matchingClose = new Map<number, number>();
+  const containingStackByIndex = new Map<number, number[]>();
+
+  tokens.forEach((token, tokenIndex) => {
+    containingStackByIndex.set(tokenIndex, [...openingStack]);
+
+    if (token.kind === 'function' || token.value === '(') {
+      openingStack.push(tokenIndex);
+      return;
+    }
+
+    if (token.value === ')') {
+      const openingIndex = openingStack.pop();
+      if (openingIndex === undefined) {
+        addIssue(bracketIssue(tokenIndex));
+      } else {
+        matchingClose.set(openingIndex, tokenIndex);
+      }
+      return;
+    }
+
+    if (token.value === ',') {
+      const immediateContainer = openingStack.at(-1);
+      if (immediateContainer === undefined || tokens[immediateContainer]?.kind !== 'function') {
+        addIssue(syntaxIssue(tokenIndex));
+      }
+    }
+  });
+
+  openingStack.forEach((openingIndex) => addIssue(bracketIssue(openingIndex)));
+
+  matchingClose.forEach((closingIndex, openingIndex) => {
+    if (tokens[openingIndex]?.value === '(' && closingIndex === openingIndex + 1) {
+      addIssue(syntaxIssue(openingIndex, closingIndex));
+    }
+  });
+
+  tokens.forEach((token, functionIndex) => {
+    if (token.kind !== 'function') return;
+    const closingIndex = matchingClose.get(functionIndex);
+    if (closingIndex === undefined) return;
+
+    const name = functionName(token);
+    const signature = FUNCTION_SIGNATURES[name];
+    const commaIndexes: number[] = [];
+    let nestedDepth = 0;
+
+    for (let tokenIndex = functionIndex + 1; tokenIndex < closingIndex; tokenIndex += 1) {
+      const nestedToken = tokens[tokenIndex];
+      if (nestedToken.kind === 'function' || nestedToken.value === '(') {
+        nestedDepth += 1;
+      } else if (nestedToken.value === ')') {
+        nestedDepth = Math.max(0, nestedDepth - 1);
+      } else if (nestedToken.value === ',' && nestedDepth === 0) {
+        commaIndexes.push(tokenIndex);
+      }
+    }
+
+    const boundaries = [functionIndex, ...commaIndexes, closingIndex];
+    const argumentCount = closingIndex === functionIndex + 1 ? 0 : boundaries.length - 1;
+
+    for (let boundaryIndex = 0; boundaryIndex < boundaries.length - 1; boundaryIndex += 1) {
+      const leftBoundary = boundaries[boundaryIndex];
+      const rightBoundary = boundaries[boundaryIndex + 1];
+      if (rightBoundary - leftBoundary > 1) continue;
+      addIssue(argumentIssue(functionIndex, leftBoundary, rightBoundary));
+    }
+
+    if (!signature) return;
+    const invalidCount = argumentCount < signature.min
+      || (signature.max !== undefined && argumentCount > signature.max)
+      || (name === 'COUNTIFS' && argumentCount % 2 !== 0);
+    if (invalidCount) addIssue(argumentIssue(functionIndex, closingIndex));
+  });
+
+  tokens.forEach((token, tokenIndex) => {
+    if (token.value === '=' && tokenIndex === 0) {
+      if (!tokens[1]) addIssue(syntaxIssue(tokenIndex));
+      return;
+    }
+
+    if (!isOperator(token)) return;
+    const previous = tokens[tokenIndex - 1];
+    const next = tokens[tokenIndex + 1];
+    const affectedIndexes = [tokenIndex];
+    if (!endsOperand(previous) && previous) affectedIndexes.unshift(tokenIndex - 1);
+    if (!startsOperand(next) && next) affectedIndexes.push(tokenIndex + 1);
+    if (!endsOperand(previous) || !startsOperand(next)) addIssue(operatorIssue(...affectedIndexes));
+  });
+
+  for (let tokenIndex = 0; tokenIndex < tokens.length - 1; tokenIndex += 1) {
+    const left = tokens[tokenIndex];
+    const right = tokens[tokenIndex + 1];
+    if (!endsOperand(left) || !startsOperand(right)) continue;
+
+    const insideFunction = (containingStackByIndex.get(tokenIndex) ?? []).some((openingIndex) => (
+      tokens[openingIndex]?.kind === 'function' && (matchingClose.get(openingIndex) ?? -1) > tokenIndex + 1
+    ));
+    addIssue(insideFunction
+      ? argumentIssue(tokenIndex, tokenIndex + 1)
+      : syntaxIssue(tokenIndex, tokenIndex + 1));
+  }
+
+  return dedupeFormulaIssues(issues);
+};
+
+const validateFormulaTypes = (tokens: FormulaStructureToken[], worksheet: WorksheetModel): FormulaIssue[] => {
+  let index = tokens[0]?.value === '=' ? 1 : 0;
+  const issues: FormulaIssue[] = [];
+  const current = () => tokens[index];
+  const functionName = (token: FormulaStructureToken) => token.value.endsWith('(')
+    ? token.value.slice(0, -1).toUpperCase()
+    : token.value.toUpperCase();
+
+  const isReference = (value: FormulaSemanticValue | undefined): value is Extract<FormulaSemanticValue, { kind: 'reference' }> => value?.kind === 'reference';
+  const valueIssue = (...tokenIds: string[]) => formulaIssue(
+    '#VALUE!',
+    'Excel cannot use one of these values in this calculation.',
+    tokenIds,
+  );
+  const divisionIssue = (...tokenIds: string[]) => formulaIssue(
+    '#DIV/0!',
+    'Excel cannot complete this calculation with the supplied values.',
+    tokenIds,
+  );
+  const argumentIssue = (...tokenIds: string[]) => formulaIssue(
+    'Argument error',
+    'One function argument is not valid in this position.',
+    tokenIds,
+  );
+
+  const hasValidArgumentCount = (name: string, count: number) => {
+    const signature = FUNCTION_SIGNATURES[name];
+    if (!signature) return true;
+    if (count < signature.min) return false;
+    if (signature.max !== undefined && count > signature.max) return false;
+    if (name === 'COUNTIFS' && count % 2 !== 0) return false;
+    return true;
+  };
+
+  const validateReferenceArgument = (functionTokenId: string, argument: FormulaSemanticValue | undefined) => {
+    if (!argument || isReference(argument)) return null;
+    return argumentIssue(functionTokenId, ...argument.tokenIds);
+  };
+
+  const numericOperatorIssue = (
+    operatorToken: FormulaStructureToken,
+    left: FormulaSemanticValue,
+    right: FormulaSemanticValue,
+  ): FormulaIssue | null => {
+    const invalidValues = [left, right].filter((value) => {
+      if (value.kind === 'number' || value.kind === 'unknown') return false;
+      if (value.kind === 'text') return !value.numericText;
+      return value.reference.unknowns === 0 && value.reference.texts > 0;
+    });
+    if (!invalidValues.length) return null;
+    return valueIssue(operatorToken.id, ...invalidValues.flatMap((value) => value.tokenIds));
+  };
+
+  const validateFunctionTypes = (
+    name: string,
+    functionTokenId: string,
+    args: FormulaSemanticValue[],
+  ): FormulaIssue[] => {
+    if (!hasValidArgumentCount(name, args.length)) return [];
+    const functionIssues: FormulaIssue[] = [];
+
+    if (name === 'SUM') {
+      const directText = args.filter((argument) => argument.kind === 'text' && !argument.numericText);
+      if (directText.length) {
+        functionIssues.push(valueIssue(functionTokenId, ...directText.flatMap((argument) => argument.tokenIds)));
+      }
+      return functionIssues;
+    }
+
+    if (name === 'AVERAGE') {
+      const directText = args.filter((argument) => argument.kind === 'text' && !argument.numericText);
+      if (directText.length) {
+        functionIssues.push(valueIssue(functionTokenId, ...directText.flatMap((argument) => argument.tokenIds)));
+        return functionIssues;
+      }
+
+      const hasNumericValue = args.some((argument) => (
+        argument.kind === 'number'
+        || (argument.kind === 'reference' && argument.reference.numbers > 0)
+        || argument.kind === 'unknown'
+      ));
+      if (!hasNumericValue) {
+        functionIssues.push(divisionIssue(functionTokenId, ...args.flatMap((argument) => argument.tokenIds)));
+      }
+      return functionIssues;
+    }
+
+    if (name === 'COUNT') return functionIssues;
+
+    if (name === 'COUNTIF') {
+      const rangeError = validateReferenceArgument(functionTokenId, args[0]);
+      if (rangeError) functionIssues.push(rangeError);
+      return functionIssues;
+    }
+
+    if (name === 'COUNTIFS') {
+      const firstRange = args[0];
+      const firstRangeError = validateReferenceArgument(functionTokenId, firstRange);
+      if (firstRangeError) functionIssues.push(firstRangeError);
+      const firstShape = isReference(firstRange) ? firstRange.reference : null;
+
+      for (let argumentIndex = 2; argumentIndex < args.length; argumentIndex += 2) {
+        const range = args[argumentIndex];
+        const rangeError = validateReferenceArgument(functionTokenId, range);
+        if (rangeError) {
+          functionIssues.push(rangeError);
+          continue;
+        }
+        if (firstShape && isReference(range) && (
+          range.reference.rows !== firstShape.rows || range.reference.columns !== firstShape.columns
+        )) {
+          functionIssues.push(valueIssue(functionTokenId, ...firstRange.tokenIds, ...range.tokenIds));
+        }
+      }
+      return functionIssues;
+    }
+
+    if (name === 'SUMIF') {
+      const rangeError = validateReferenceArgument(functionTokenId, args[0]);
+      if (rangeError) functionIssues.push(rangeError);
+      if (args[2]) {
+        const sumRangeError = validateReferenceArgument(functionTokenId, args[2]);
+        if (sumRangeError) functionIssues.push(sumRangeError);
+      }
+      return functionIssues;
+    }
+
+    return functionIssues;
+  };
+
+  function parsePrimary(): FormulaSemanticValue {
+    const token = current();
+    if (!token) return { kind: 'unknown', label: 'incomplete expression', tokenIds: [] };
+
+    if (token.kind === 'range') {
+      index += 1;
+      const reference = summariseReference(token.value, worksheet);
+      return reference
+        ? { kind: 'reference', label: token.value, reference, tokenIds: [token.id] }
+        : { kind: 'unknown', label: token.value, tokenIds: [token.id] };
+    }
+
+    if (token.kind === 'value') {
+      index += 1;
+      if (/^".*"$/.test(token.value)) {
+        const raw = token.value.slice(1, -1);
+        return { kind: 'text', label: token.value, raw, numericText: parseNumber(raw) !== null, tokenIds: [token.id] };
+      }
+      if (parseNumber(token.value) !== null) {
+        return { kind: 'number', label: token.value, tokenIds: [token.id] };
+      }
+      return { kind: 'unknown', label: token.value, tokenIds: [token.id] };
+    }
+
+    if (token.kind === 'function') return parseFunction(token);
+
+    if (token.value === '(') {
+      index += 1;
+      const result = parseExpression(new Set([')']));
+      if (current()?.value === ')') index += 1;
+      return result;
+    }
+
+    index += 1;
+    return { kind: 'unknown', label: token.value, tokenIds: [token.id] };
+  }
+
+  function parseFunction(token: FormulaStructureToken): FormulaSemanticValue {
+    const startIndex = index;
+    const name = functionName(token);
+    index += 1;
+    const args: FormulaSemanticValue[] = [];
+
+    while (index < tokens.length && current().value !== ')') {
+      const beforeArgument = index;
+      args.push(parseExpression(new Set([',', ')'])));
+      if (current()?.value === ',') index += 1;
+      if (index === beforeArgument) index += 1;
+    }
+    if (current()?.value === ')') index += 1;
+
+    const expressionTokenIds = tokens.slice(startIndex, index).map((formulaToken) => formulaToken.id);
+    issues.push(...validateFunctionTypes(name, token.id, args));
+    return NUMERIC_RESULT_FUNCTIONS.has(name)
+      ? { kind: 'number', label: `${name}(...)`, tokenIds: expressionTokenIds }
+      : { kind: 'unknown', label: `${name}(...)`, tokenIds: expressionTokenIds };
+  }
+
+  function parseExpression(stopValues: Set<string>): FormulaSemanticValue {
+    let left = parsePrimary();
+
+    while (index < tokens.length && !stopValues.has(current().value)) {
+      const operatorToken = current();
+      if (!FORMULA_OPERATORS.has(operatorToken.value)) break;
+      index += 1;
+      const right = parsePrimary();
+      if (ARITHMETIC_OPERATORS.has(operatorToken.value)) {
+        const operatorError = numericOperatorIssue(operatorToken, left, right);
+        if (operatorError) issues.push(operatorError);
+      }
+
+      left = COMPARISON_OPERATORS.has(operatorToken.value)
+        ? {
+          kind: 'unknown',
+          label: 'comparison',
+          tokenIds: [...left.tokenIds, operatorToken.id, ...right.tokenIds],
+        }
+        : {
+          kind: 'number',
+          label: 'calculation',
+          tokenIds: [...left.tokenIds, operatorToken.id, ...right.tokenIds],
+        };
+    }
+
+    return left;
+  }
+
+  while (index < tokens.length) {
+    const beforeExpression = index;
+    parseExpression(new Set());
+    if (index === beforeExpression) index += 1;
+  }
+
+  return dedupeFormulaIssues(issues);
+};
+
+const validateFormula = (tokens: FormulaStructureToken[], worksheet: WorksheetModel): FormulaCheckResult => {
+  const structuralIssues = validateFormulaStructure(tokens);
+  if (structuralIssues.some((issue) => issue.label === 'Empty formula')) {
+    return { valid: false, issues: structuralIssues };
+  }
+
+  const issues = sortFormulaIssues(
+    dedupeFormulaIssues([...structuralIssues, ...validateFormulaTypes(tokens, worksheet)]),
+    tokens,
+  );
+  return issues.length
+    ? { valid: false, issues }
+    : { valid: true, message: 'No test errors found. Ready to submit.' };
+};
+
 type HoverLock = {
   state: PieceState;
   clientLeft: number;
@@ -78,6 +684,8 @@ type PlacedPointer = {
   edge: DragEdge;
 };
 
+let testFeedbackSequence = 0;
+
 document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) => {
   const canvas = root.querySelector<HTMLElement>('[data-formula-canvas]');
   let boardNotes = root.querySelector<HTMLElement>('[data-board-notes]');
@@ -90,6 +698,12 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
   const attemptCount = root.querySelector<HTMLElement>('[data-attempt-count]');
   const status = root.querySelector<HTMLElement>('[data-status]');
   const clearButton = root.querySelector<HTMLButtonElement>('[data-clear]');
+  const helpButton = root.querySelector<HTMLButtonElement>('[data-help-button]');
+  const helpPanel = root.querySelector<HTMLElement>('[data-help-panel]');
+  const helpFunctions = root.querySelector<HTMLElement>('[data-help-functions]');
+  const helpDetail = root.querySelector<HTMLElement>('[data-help-detail]');
+  const helpCost = root.querySelector<HTMLElement>('[data-help-cost]');
+  const testAnswerButton = root.querySelector<HTMLButtonElement>('[data-test-answer]');
   const submitButton = root.querySelector<HTMLButtonElement>('[data-submit]');
   const sampleDataButton = root.querySelector<HTMLButtonElement>('[data-sample-data-open]');
   const sampleDataSheet = root.querySelector<HTMLElement>('[data-sample-data-sheet]');
@@ -102,7 +716,7 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
     canvas.prepend(boardNotes);
   }
 
-  if (!canvas || !field || !cluster || !inputCell || !formulaOutput || !placeholder || !strings || !attemptCount || !status || !clearButton || !submitButton) return;
+  if (!canvas || !field || !cluster || !inputCell || !formulaOutput || !placeholder || !strings || !attemptCount || !status || !clearButton || !helpButton || !helpPanel || !helpFunctions || !helpDetail || !helpCost || !testAnswerButton || !submitButton) return;
 
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const placedIds: string[] = [];
@@ -142,6 +756,18 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
   let lastAnswerHeight = 66;
   let clusterEnergy = 0;
   let clusterBreathingInset = 32;
+  let helpPurchased = false;
+  let helpPenaltyPercent = 0;
+  let helpPanelPinned = false;
+  let helpCloseTimer = 0;
+
+  const helpFunctionNames = Array.from(new Set(
+    states
+      .filter((state) => state.kind === 'function')
+      .map((state) => state.value.endsWith('(') ? state.value.slice(0, -1).toUpperCase() : state.value.toUpperCase())
+      .filter((name) => Boolean(FUNCTION_HELP_GUIDES[name])),
+  ));
+  let activeHelpFunction = helpFunctionNames[0] ?? null;
 
   const createSeededRandom = (seed: number) => () => {
     seed = (seed * 1664525 + 1013904223) % 4294967296;
@@ -181,7 +807,229 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
     });
   };
 
-  const announce = (message: string) => { status.textContent = message; };
+  const renderHelpDetail = () => {
+    helpDetail.replaceChildren();
+    helpCost.textContent = helpPurchased
+      ? `Help active · -${helpPenaltyPercent}% max points`
+      : `Reveal cost: -${HELP_SCORE_PENALTY_PERCENT}%`;
+
+    helpFunctions.querySelectorAll<HTMLButtonElement>('[data-help-function]').forEach((button) => {
+      const active = button.dataset.helpFunction === activeHelpFunction;
+      button.dataset.active = String(active);
+      button.setAttribute('aria-label', helpPurchased
+        ? `${button.dataset.helpFunction} function help`
+        : `${button.dataset.helpFunction} help. Tap to reveal, costs ${HELP_SCORE_PENALTY_PERCENT} percent of maximum points.`);
+    });
+
+    if (!activeHelpFunction) return;
+    if (!helpPurchased) {
+      const locked = document.createElement('span');
+      locked.className = 'formula-daily__help-lock';
+      locked.textContent = `Tap to reveal (-${HELP_SCORE_PENALTY_PERCENT}% points)`;
+      helpDetail.append(locked);
+      return;
+    }
+
+    const guide = FUNCTION_HELP_GUIDES[activeHelpFunction];
+    if (!guide) return;
+
+    const signature = document.createElement('span');
+    signature.className = 'formula-daily__help-signature';
+    signature.textContent = guide.signature;
+    helpDetail.append(signature);
+
+    guide.lines.forEach((line) => {
+      const copy = document.createElement('span');
+      copy.className = 'formula-daily__help-copy';
+      copy.textContent = line;
+      helpDetail.append(copy);
+    });
+  };
+
+  const setActiveHelpFunction = (name: string) => {
+    if (!FUNCTION_HELP_GUIDES[name]) return;
+    activeHelpFunction = name;
+    renderHelpDetail();
+  };
+
+  const cancelHelpClose = () => {
+    if (!helpCloseTimer) return;
+    window.clearTimeout(helpCloseTimer);
+    helpCloseTimer = 0;
+  };
+
+  const openHelpPanel = () => {
+    cancelHelpClose();
+    helpPanel.hidden = false;
+    helpButton.setAttribute('aria-expanded', 'true');
+    renderHelpDetail();
+  };
+
+  const closeHelpPanel = (force = false) => {
+    cancelHelpClose();
+    if (helpPanelPinned && !force) return;
+    helpPanel.hidden = true;
+    helpButton.setAttribute('aria-expanded', 'false');
+  };
+
+  const scheduleHelpClose = () => {
+    cancelHelpClose();
+    helpCloseTimer = window.setTimeout(() => {
+      helpCloseTimer = 0;
+      if (helpPanelPinned || helpButton.matches(':hover') || helpPanel.matches(':hover') || helpPanel.contains(document.activeElement)) return;
+      closeHelpPanel();
+    }, 120);
+  };
+
+  const purchaseHelp = () => {
+    if (helpPurchased) return;
+    helpPurchased = true;
+    helpPenaltyPercent = HELP_SCORE_PENALTY_PERCENT;
+    root.dataset.helpUsed = 'true';
+    root.dataset.helpPenaltyPercent = String(helpPenaltyPercent);
+    renderHelpDetail();
+  };
+
+  helpFunctionNames.forEach((name) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'formula-daily__help-function';
+    button.dataset.helpFunction = name;
+    button.textContent = name;
+    button.addEventListener('mouseenter', () => setActiveHelpFunction(name));
+    button.addEventListener('focus', () => setActiveHelpFunction(name));
+    button.addEventListener('click', () => {
+      setActiveHelpFunction(name);
+      purchaseHelp();
+    });
+    helpFunctions.append(button);
+  });
+  renderHelpDetail();
+
+  helpButton.addEventListener('mouseenter', openHelpPanel);
+  helpButton.addEventListener('mouseleave', scheduleHelpClose);
+  helpButton.addEventListener('focus', openHelpPanel);
+  helpButton.addEventListener('blur', scheduleHelpClose);
+  helpButton.addEventListener('click', () => {
+    helpPanelPinned = !helpPanelPinned;
+    if (helpPanelPinned) {
+      openHelpPanel();
+      return;
+    }
+    scheduleHelpClose();
+  });
+  helpPanel.addEventListener('mouseenter', () => {
+    cancelHelpClose();
+    openHelpPanel();
+  });
+  helpPanel.addEventListener('mouseleave', scheduleHelpClose);
+  helpPanel.addEventListener('focusin', openHelpPanel);
+  helpPanel.addEventListener('focusout', scheduleHelpClose);
+
+  root.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' || helpPanel.hidden) return;
+    helpPanelPinned = false;
+    closeHelpPanel(true);
+    helpButton.focus();
+  });
+
+  const clearTestErrorHighlight = () => {
+    formulaOutput.querySelectorAll<HTMLElement>('[data-test-error="true"]').forEach((token) => {
+      delete token.dataset.testError;
+    });
+  };
+
+  const setTestErrorHighlight = (tokenIds: string[], active: boolean) => {
+    clearTestErrorHighlight();
+    if (!active) return;
+    const targets = new Set(tokenIds);
+    formulaOutput.querySelectorAll<HTMLElement>('[data-placed-id]').forEach((token) => {
+      if (targets.has(token.dataset.placedId ?? '')) token.dataset.testError = 'true';
+    });
+  };
+
+  const clearStatus = () => {
+    clearTestErrorHighlight();
+    status.replaceChildren();
+  };
+
+  const announce = (message: string) => {
+    clearTestErrorHighlight();
+    status.textContent = message;
+  };
+
+  const announceTestResult = (result: FormulaCheckResult) => {
+    if (result.valid) {
+      announce(result.message);
+      return;
+    }
+    if (result.issues.length === 1 && result.issues[0].label === 'Empty formula') {
+      announce('Build a formula first.');
+      return;
+    }
+
+    clearTestErrorHighlight();
+    let pinnedIssueIndex: number | null = null;
+    const issueEntries = result.issues.map((resultIssue, issueIndex) => {
+      const issue = document.createElement('span');
+      issue.className = 'formula-daily__test-issue';
+
+      const trigger = document.createElement('button');
+      trigger.type = 'button';
+      trigger.className = 'formula-daily__error-link';
+      trigger.textContent = resultIssue.label;
+
+      const tooltip = document.createElement('span');
+      tooltip.className = 'formula-daily__error-tooltip';
+      tooltip.id = `formula-test-error-${++testFeedbackSequence}`;
+      tooltip.setAttribute('role', 'tooltip');
+      tooltip.textContent = resultIssue.help;
+      trigger.setAttribute('aria-describedby', tooltip.id);
+      trigger.setAttribute('aria-expanded', 'false');
+
+      issue.append(trigger, tooltip);
+      return { issue, trigger, resultIssue, issueIndex };
+    });
+
+    const restorePinnedTargets = () => {
+      if (pinnedIssueIndex === null) {
+        clearTestErrorHighlight();
+        return;
+      }
+      setTestErrorHighlight(issueEntries[pinnedIssueIndex].resultIssue.tokenIds, true);
+    };
+
+    issueEntries.forEach(({ issue, trigger, resultIssue, issueIndex }) => {
+      const showTargets = () => setTestErrorHighlight(resultIssue.tokenIds, true);
+      trigger.addEventListener('mouseenter', showTargets);
+      trigger.addEventListener('mouseleave', restorePinnedTargets);
+      trigger.addEventListener('focus', showTargets);
+      trigger.addEventListener('blur', restorePinnedTargets);
+      trigger.addEventListener('click', (event) => {
+        if (event.detail === 0) return;
+        const nextPinnedIndex = pinnedIssueIndex === issueIndex ? null : issueIndex;
+        issueEntries.forEach(({ issue: entryIssue, trigger: entryTrigger }) => {
+          delete entryIssue.dataset.open;
+          entryTrigger.setAttribute('aria-expanded', 'false');
+        });
+        pinnedIssueIndex = nextPinnedIndex;
+        if (pinnedIssueIndex !== null) {
+          issue.dataset.open = 'true';
+          trigger.setAttribute('aria-expanded', 'true');
+        }
+        restorePinnedTargets();
+      });
+    });
+
+    const message = document.createDocumentFragment();
+    message.append(document.createTextNode('Test found: '));
+    issueEntries.forEach(({ issue }, issueIndex) => {
+      message.append(issue);
+      const separator = getOxfordListSeparator(issueIndex, issueEntries.length);
+      if (separator) message.append(document.createTextNode(separator));
+    });
+    status.replaceChildren(message);
+  };
 
   const clamp = (value: number, minimum: number, maximum: number) => Math.max(minimum, Math.min(maximum, value));
 
@@ -562,7 +1410,7 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
     state.element.hidden = true;
     placedIds.splice(Math.max(0, Math.min(index, placedIds.length)), 0, state.id);
     renderFormula();
-    announce(`${state.value} added to the answer.`);
+    clearStatus();
   };
 
   const previewPiece = (state: PieceState | null, index = placedIds.length) => {
@@ -591,7 +1439,7 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
     setPosition(state);
     renderFormula();
     scheduleClusterHeight();
-    announce(`${state.value} returned to the cluster.`);
+    clearStatus();
     clusterEnergy = Math.max(clusterEnergy, .9);
     requestTick();
   };
@@ -631,7 +1479,7 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
     state.vx = 0;
     state.vy = 0;
     renderFormula();
-    announce(`${state.value} returned to the cluster.`);
+    clearStatus();
 
     requestAnimationFrame(() => {
       const fieldBounds = field.getBoundingClientRect();
@@ -1242,8 +2090,7 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
       if (moved && !cancelled) {
         state.vx = 0;
         state.vy = 0;
-          syncClusterHeight();
-        announce(`${state.value} rejoined the cluster.`);
+        syncClusterHeight();
       }
       if (!state.used) setPosition(state);
     }
@@ -1357,11 +2204,10 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
       placedIds.splice(originalIndex, 1);
       placedIds.splice(reorderIndex, 0, state.id);
       renderFormula();
-      announce(`${state.value} moved to position ${reorderIndex + 1}.`);
+      clearStatus();
     } else if (moved) {
       ghost.remove();
       renderFormula();
-      announce(`${state.value} remains in its original position.`);
     } else {
       ghost.remove();
     }
@@ -1383,7 +2229,6 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
     }
     selectedCell = true;
     inputCell.dataset.selected = 'true';
-    announce('The answer is selected. Pick the next formula piece.');
   });
 
   inputCell.addEventListener('keydown', (event) => {
@@ -1392,7 +2237,6 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
     event.preventDefault();
     selectedCell = true;
     inputCell.dataset.selected = 'true';
-    announce('The answer is selected. Pick the next formula piece.');
   });
 
   inputCell.addEventListener('dragover', (event) => event.preventDefault());
@@ -1425,7 +2269,16 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
 
   clearButton.addEventListener('click', () => {
     [...placedIds].forEach(returnPiece);
-    announce('Answer cleared.');
+    clearStatus();
+  });
+
+  testAnswerButton.addEventListener('click', () => {
+    const formulaTokens = placedIds.flatMap((id) => {
+      const state = states.find((piece) => piece.id === id);
+      return state ? [{ id: state.id, value: state.value, kind: state.kind }] : [];
+    });
+    const result = validateFormula(formulaTokens, buildWorksheetModel(sampleDataSheet));
+    announceTestResult(result);
   });
 
   submitButton.addEventListener('click', () => {
@@ -1463,6 +2316,7 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
   });
   answerResizeObserver.observe(inputCell);
 
+  populateBoardNotes();
   packCluster();
   renderFormula();
   updateStrings();

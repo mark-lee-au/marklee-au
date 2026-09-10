@@ -430,3 +430,207 @@ Stage 2 authorises the local GAMES structure and non-validating Formula Daily in
 - Prototype response: keep the restored movement equations untouched and increase only the cluster field's vertical reserve. The packer now adds a symmetric breathing inset derived from available label count and row count, bounded to avoid excessive whitespace.
 - The additional room is part of the cluster's normal responsive size, so centre seeking, collision impulses and damping still operate against the live field centre.
 - Validation: focused strict TypeScript compile passed.
+
+### Stage 2 review prototype - Test Answer structural check
+
+- Added `Test Answer` immediately left of Submit as a subdued orange chalk control. It reaches full prominence on hover and keyboard focus, stays a native button, and respects the existing reduced-motion treatment.
+- Test Answer is deliberately a pre-submit structural helper. It reads the current ordered answer-piece model and reports through the existing live status area without incrementing attempts or submitting.
+- The prototype recognises the current function allowlist by argument count: `SUM`, `COUNT` and `AVERAGE` require at least one argument; `SUMIF` accepts two or three; `COUNTIF` requires exactly two.
+- Structural checks cover missing or extra brackets, malformed nesting, empty/misplaced comma arguments, malformed operator placement, misplaced equals signs, adjacent expression pieces and incomplete formula endings. Only the first useful issue is reported.
+- Correctness evaluation against sample data remains deferred to Stage 3. The future score reduction for using Test Answer is also deferred, and no scoring/tested-answer flag was introduced because the current prototype does not need it.
+- The action-row change groups Test Answer and Submit inside the existing right-hand grid cell, preserving the established Clear/status/right-actions responsive structure.
+- Loose-label physics, collision/bounce behaviour, drag boundaries, hover handling, answer-cell wrapping, placed-token reordering, grouped-function appearance and Sample Data behaviour were not changed.
+- Validation: focused strict TypeScript compile passed; 18 representative token-structure cases passed; CSS brace validation and static Test Answer wiring checks passed. Full Astro build and browser/mobile runtime checks were not run because the dependency install timed out in this sandbox.
+
+### Stage 2 review prototype - Test Answer value-type checks
+
+- Extended Test Answer with a second validation pass after structural parsing. The first structural issue still wins; type checks run only when the formula shape is valid.
+- The checker derives a small worksheet model from the existing Sample Data table instead of duplicating cell values in TypeScript. Cells are classified as number, text or blank. Numeric detection supports decimals as well as whole numbers.
+- Excel behaviour note: a mixed cell range is not treated as one string value. Functions inspect the cell values according to their own rules. For example, `SUM` ignores text reached through references, while direct arithmetic on non-numeric text can return `#VALUE!`.
+- `SUM`: rejects direct non-numeric text. A text-only reference such as `SUM(A2)` is reported as a likely mistake with accurate feedback that Excel would ignore the text and return 0. Mixed references remain allowed when numeric cells are present.
+- `AVERAGE`: rejects direct non-numeric text and reports when referenced arguments contain no numeric values. Text inside a reference can be ignored when other numeric values remain.
+- `COUNT`: reports a text-only reference that would count zero numeric values.
+- Arithmetic operators `+`, `-`, `*` and `/`: require numeric-compatible operands. Direct text, a text cell, or a range containing text is reported. This catches `AVERAGE(A2,C2:C5)*("East")`.
+- `SUMIF`: validates the criteria-range position, optional sum-range position, obvious criteria/data-type mismatches against the current sample data and a text-only effective sum range.
+- `COUNTIF`: validates the range position and obvious criteria/data-type mismatches.
+- `COUNTIFS`: validator support now recognises `criteria_range1, criteria1, [criteria_range2, criteria2], ...`, requires complete pairs, checks range positions and requires all criteria ranges to have the same dimensions. This does not add a `COUNTIFS` gameplay token yet.
+- No answer-result calculation, target-answer comparison, scoring penalty or `hasTestedAnswer` state was added.
+- Validation: focused strict TypeScript compile passed before and after the change; 26 representative structural/type cases passed. The package also confirms `FormulaDaily.astro` and `formula-daily.css` are byte-for-byte unchanged from the previous Test Answer prototype. Full Astro build was not run because `npm ci` timed out in this sandbox.
+
+#### Test Answer validation checklist
+
+- [x] Empty formula and structural syntax errors.
+- [x] Required and maximum argument counts for the current function set.
+- [x] `COUNTIFS` complete range/criteria pair structure.
+- [x] Sample-cell classification as number, text or blank.
+- [x] Decimal numeric values.
+- [x] Direct text misuse in `SUM` and `AVERAGE`.
+- [x] Text-only reference warnings for `SUM`, `AVERAGE` and `COUNT`.
+- [x] Numeric operand checks for `+`, `-`, `*` and `/`.
+- [x] `SUMIF`, `COUNTIF` and `COUNTIFS` range-argument positions.
+- [x] Obvious criteria/data type mismatches for `SUMIF`, `COUNTIF` and `COUNTIFS`.
+- [x] Equal criteria-range dimensions for `COUNTIFS`.
+- [ ] Division by zero and other value-dependent runtime errors such as `#DIV/0!`.
+- [ ] Invalid or unavailable references such as `#REF!`.
+- [ ] Unsupported/misspelled function names such as `#NAME?`.
+- [ ] Boolean, date and Excel error-value types.
+- [ ] Full numeric-text coercion rules and locale-sensitive numeric formats.
+- [ ] Rich criteria parsing including wildcards, escaped wildcards and concatenated criteria expressions.
+- [ ] Additional function families such as `SUMIFS`, `AVERAGEIF` and `AVERAGEIFS` when gameplay needs them.
+- [ ] Formula evaluation against the sample data and target-answer correctness.
+- [ ] Test Answer score-reduction state and final scoring rules.
+
+#### Candidate common player errors for later iterations
+
+- Using a criteria function with range and criteria arguments in the wrong order.
+- Supplying an odd number of `COUNTIFS` arguments or mismatched criteria-range sizes.
+- Applying arithmetic directly to text labels or mixed text/number ranges.
+- Dividing by a cell or expression that evaluates to zero.
+- Using text criteria without required quotation marks once comparison/operator criteria pieces are introduced.
+- Choosing `COUNT` when the player intends to count text values, which would need `COUNTA`, `COUNTIF` or another suitable function.
+- Confusing `SUMIF(range, criteria, [sum_range])` with the different argument order used by `SUMIFS(sum_range, criteria_range1, criteria1, ...)`.
+
+
+### Stage 2 review correction - Test Answer error-only feedback
+
+- Tightened Test Answer so it behaves as an Excel error pre-check rather than a solution coach. A formula is no longer rejected merely because it is unlikely to match the intended sample data.
+- Removed the previous criteria/data compatibility warning. Valid Excel formulas such as `COUNTIF(B2:B5, "East")` now pass the test even though the criteria will not match the current numeric data.
+- Removed non-error warnings for accepted Excel behaviour. `SUM(A2)` and `COUNT(A2)` now pass when `A2` contains text because those functions accept the reference and ignore/count no text rather than returning a formula error. A text-only `SUMIF` sum range is likewise not rejected solely because it contributes zero.
+- Retained checks where the current supported formula would fail to evaluate, including invalid structure/argument layouts, direct non-numeric text where the supported numeric functions reject it, arithmetic on non-numeric text, text-only `AVERAGE` inputs that leave no numeric values, and unequal `COUNTIFS` criteria-range dimensions.
+- Error feedback is now intentionally terse. The status area shows `Test found:` plus one focusable error category: `Bracket error`, `Argument error`, `Syntax error`, `Operator error`, `#VALUE!`, or `#DIV/0!`.
+- Each reported issue carries the piece IDs involved. Hovering or keyboard-focusing the error category shows one short category-level tooltip and temporarily recolours the implicated placed tokens red. Touch/click can pin and unpin the same tooltip/highlight. The tooltip describes the error class without naming the exact bad argument or giving a correction.
+- Empty-answer testing remains a plain `Build a formula first.` message because there is no formula element to identify.
+- No formula-piece physics, dragging, reordering, wrapping, Sample Data behaviour, Submit behaviour or scoring logic changed in this correction.
+
+#### Current Test Answer validation checklist
+
+- [x] Empty-formula guard.
+- [x] Missing, extra and mismatched brackets.
+- [x] Missing, extra and misplaced function arguments/commas for the current function signatures.
+- [x] Malformed operator placement and incomplete expressions.
+- [x] `COUNTIF(range, criteria)` argument structure.
+- [x] `COUNTIFS(criteria_range1, criteria1, ...)` complete pair structure and equal criteria-range dimensions.
+- [x] `SUMIF(range, criteria, [sum_range])` range-argument positions.
+- [x] Direct non-numeric text errors in the currently supported `SUM`/`AVERAGE` cases.
+- [x] Arithmetic `+`, `-`, `*`, `/` checks for non-numeric text operands.
+- [x] `AVERAGE` with no available numeric values reports the current `#DIV/0!` class.
+- [x] Valid-but-unhelpful criteria/data combinations are allowed rather than treated as errors.
+- [x] Error category hover/focus/touch explanation with implicated-token highlighting.
+- [ ] Evaluate denominator values so literal/reference/expression division by zero can report `#DIV/0!`.
+- [ ] Invalid or unavailable references and `#REF!`.
+- [ ] Unsupported or misspelled function names and `#NAME?`.
+- [ ] Invalid numeric-domain cases that produce `#NUM!` once relevant functions exist.
+- [ ] Excel error values inside referenced cells and propagation of `#VALUE!`, `#N/A`, `#REF!`, etc.
+- [ ] Boolean/date/error cell types and deeper Excel coercion rules.
+- [ ] Criteria parsing for quoted comparison expressions, wildcards and escaped wildcards when those puzzle pieces are introduced.
+- [ ] Additional conditional families such as `SUMIFS`, `AVERAGEIF` and `AVERAGEIFS` when gameplay needs them.
+- [ ] Dynamic-array/spill behaviour if formulas later allow whole ranges as arithmetic operands.
+- [ ] Formula evaluation against the sample data and target-answer correctness.
+- [ ] Test Answer score-reduction state and final scoring rules.
+
+#### Candidate Excel/player errors for later iterations
+
+- Division by zero from a literal, blank cell, zero-valued cell or expression.
+- Invalid references after future puzzles introduce references outside the supplied sample data.
+- Misspelled/unsupported function names if free-form function construction is introduced.
+- Criteria text missing quotes once comparison/operator criteria can be assembled from separate pieces.
+- `SUMIFS`/`COUNTIFS` range dimensions that do not align.
+- Text used directly with arithmetic operators.
+- Function-specific numeric-domain errors that map to `#NUM!`.
+- Referenced cells that already contain Excel error values and propagate that error into the formula.
+
+### Stage 2 review patch - Test Answer hazard highlighting and tooltip placement
+
+- Changed only the visual treatment of the existing Test Answer error interaction. Validation rules and implicated-token selection are unchanged.
+- Added a dedicated bright error red so Test Answer failures are visually distinct from the normal red chalk used for range pieces.
+- Implicated answer tokens now receive a translucent diagonal hazard pattern while the error category is hovered, focused or touch-pinned. The pattern alternates bright red and black bands while preserving readable label text and the token's shape.
+- The error category itself uses the brighter error red, with the existing hover/focus affordance retained.
+- Moved the category tooltip below the `Test found:` line by changing its anchored position and reveal transform. This prevents the hint from obscuring the answer cell above.
+- No change to TypeScript, validator coverage, formula assembly, token movement, hover targeting, drag/drop, answer wrapping, Sample Data or scoring.
+- Validation: CSS brace balance and selector presence checks passed. Local browser review is still required for final stripe opacity and narrow-screen tooltip placement.
+
+### Stage 2 review patch - collect all current Test Answer errors
+
+- Test Answer no longer stops at the first supported validator finding. Structural and value/type checks now collect all detectable issues from the assembled formula, then sort them from left to right by the first implicated token.
+- Exact duplicate findings for the same category and implicated token set are collapsed. Separate errors of the same category remain separate findings so each link can point to a different part of the formula.
+- The status line renders every finding as its own existing red error link and joins the links with normal prose punctuation. Two findings use `A and B`; three or more use an Oxford comma, for example `A, B, and C`.
+- Hovering or keyboard-focusing one error link highlights only that finding's implicated tokens. Touch/click can pin one finding at a time; hovering another finding temporarily previews that finding, then restores the pinned highlight.
+- Type validation now continues after a function-level error where the remaining token stream can still be parsed. This allows a formula such as an invalid `COUNTIF(...)` followed by a separate invalid `AVERAGE(...)` to report each detectable issue in one test.
+- Structural checks were changed from a fail-fast parser to independent bracket, argument, operator and adjacency checks so multiple structural findings can be surfaced in one result.
+- A successful test now says `No test errors found. Ready to submit.` rather than describing only the formula structure.
+- This does not mean Formula Daily now emulates every Excel error. The multi-error result covers the currently implemented validator classes only; deferred Excel errors in the checklist below remain deferred.
+- No CSS, Astro markup, loose-label physics, drag/reorder behaviour, answer wrapping, Sample Data or scoring logic changed.
+- Validation: focused strict TypeScript compilation and generated JavaScript syntax checks passed; the previous 22 validator regression cases passed; dedicated multi-error cases passed for mixed error categories, repeated categories with separate target sets, left-to-right ordering and Oxford-comma separator rules. Full Astro/browser QA remains a local test because installed project dependencies are absent from the supplied snapshot.
+
+#### Multi-error Test Answer checklist
+
+- [x] Collect multiple currently supported findings in one Test Answer run.
+- [x] Keep each finding's implicated token IDs separate for hover/focus/touch highlighting.
+- [x] Sort findings by formula position rather than validator-pass order.
+- [x] Collapse exact duplicate findings while retaining separate instances of the same category.
+- [x] Format two-item and three-plus-item status lists with natural `and` / Oxford-comma punctuation.
+- [x] Continue parseable type checking after an earlier function-level error.
+- [ ] Review locally how long four-plus-error status lines wrap on narrow mobile widths.
+- [ ] Add further Excel error classes only as their required formula pieces and evaluation rules are introduced.
+
+## 2026-09-10 review correction - equals comparison operator
+
+- Branch base: `main`; base commit: `094e8f7dc859a9f6b76dd30c5acd904bf1062187`, using the reviewed multi-error Test Answer package as the working baseline layered on that snapshot.
+- Corrected the `=` formula piece from an invalid/misplaced syntax token to a supported comparison operator when it appears between two expressions. This matches Excel, where equality comparisons return `TRUE` or `FALSE`.
+- An internal `=` now participates in the same missing-operand structure check as other operators, so a comparison with no expression on one side still reports `Operator error`. A leading `=` remains valid as Excel's formula marker.
+- The semantic pre-check does not apply numeric-operand `#VALUE!` rules to equality comparisons. Text and numeric expressions can therefore be compared without a false type error.
+- The validator distinguishes a leading `=` formula marker from an internal `=` comparison operator. This keeps the pre-check aligned with Excel syntax while allowing the game's equality piece to compare two assembled expressions.
+- No other comparison operators were added in this patch. `<`, `>`, `<=`, `>=` and `<>` remain future validator/token work if they are introduced as puzzle pieces.
+- No CSS, Astro markup, multi-error rendering, hover targeting, loose-label physics, drag/reorder behaviour, Sample Data or scoring logic changed.
+
+## 2026-09-10 review correction - Excel error semantics for commas and text-range SUM
+
+- Branch base: `main`; base commit: `094e8f7dc859a9f6b76dd30c5acd904bf1062187`, using the reviewed equals-comparison Test Answer package as the working baseline layered on that snapshot.
+- Reaffirmed the Test Answer rule: report syntax/structure problems or Excel evaluation errors only. Do not reject a formula because it is a poor answer to the puzzle.
+- A comma outside a function argument list now reports `Syntax error`, not `Argument error`. The generic hover help is `Part of the formula is not valid in this position.` and the implicated comma token remains the only highlighted piece.
+- Commas that create a missing/empty argument inside a supported function remain `Argument error`, because the problem belongs to that function call's argument structure.
+- `SUM(A2:A5)="East"` is accepted when `A2:A5` contains text. Excel permits the `SUM` reference, ignores text within referenced cells, then evaluates the equality comparison and returns a logical result rather than an error.
+- `COUNTIF(B2:B5, "East")` remains accepted because a criteria/data mismatch that simply produces no matches is not an Excel error.
+- General comma reference-union semantics are not added in this patch. The current game validator treats a loose comma outside a supported function as invalid for the currently available puzzle grammar.
+- No CSS, Astro markup, error-link rendering, hazard highlighting, loose-label movement, drag/reorder behaviour, answer wrapping, Sample Data or scoring logic changed.
+- Validation: focused strict TypeScript compile passed. Focused validator cases passed for text-range SUM equality, loose-comma syntax classification, empty in-function arguments remaining argument errors, and valid no-match COUNTIF criteria.
+
+
+
+### Stage 2 review patch - Test Answer tooltip above loose labels
+
+- Changed only Test Answer feedback stacking. The action/status layer now sits above the loose-label cluster so the tooltip is not visually covered by nearby formula pieces.
+- The tooltip keeps its below-status placement and receives a higher local `z-index` within the action layer.
+- No changes to validator semantics, error categories, implicated-token highlighting, loose-label movement, collision behaviour, drag/drop, answer wrapping, Sample Data or scoring.
+- Validation: CSS brace/selector checks and package integrity check. Local browser review remains required for final desktop/mobile confirmation.
+
+### Stage 2 review patch - hide neighbour strings and reduce routine status narration
+
+- Hid the loose-label nearest-neighbour SVG strings in CSS while leaving the existing neighbour-link calculation, SVG element and `updateStrings()` logic unchanged. The physics system still uses the same neighbour relationships; only the dashed visual debugging aid is no longer rendered.
+- Removed routine status narration for selecting the answer, adding/removing/rejoining pieces, reordering pieces, leaving a dragged answer piece in place, and clearing the answer.
+- Formula mutations now clear any stale Test Answer feedback silently instead of replacing it with action narration. Moving an unused loose piece without changing the assembled formula does not clear the current test result.
+- Kept status messages that carry gameplay or validation information: Test Answer results, the empty-formula prompt, and Submit/attempt feedback.
+- The existing formula output live region remains in place, so the status area no longer duplicates every routine interaction announcement.
+- No changes to neighbour physics, collision/bouncing, centre-seeking behaviour, cluster breathing room, drag boundaries, label return behaviour, hover handling, answer wrapping, Test Answer validation, error highlighting, Sample Data, or scoring.
+
+### Stage 2 review patch - initial whiteboard notes on desktop
+
+- Reported issue: the faint whiteboard lesson notes were missing on a fresh desktop load, but appeared after switching Chrome DevTools into a mobile viewport and then back to desktop.
+- Root cause: `packCluster()` ran immediately after registering the `ResizeObserver` and set `lastFieldWidth`. When the observer's initial asynchronous callback arrived, the field width matched `lastFieldWidth`, so its early return prevented `populateBoardNotes()` from running. A later responsive width change triggered the population path.
+- Revision: call `populateBoardNotes()` explicitly during Formula Daily initialization before the initial `packCluster()`. The existing resize observer is retained unchanged for genuine width changes.
+- No note content, styling, responsive rules, label physics, formula assembly, Test Answer, Sample Data or scoring behaviour changed.
+- Validation: focused TypeScript compilation and static initialization-order checks passed. Full Astro/browser QA remains a local test because installed project dependencies are not included in the supplied snapshot.
+
+### Stage 2 review prototype - costed Function Help
+
+- Added a `Help` control immediately left of `Test Answer`. It uses subdued white chalk styling by default and becomes fully prominent on hover/focus.
+- The Help popup builds its function-link list from the current puzzle pieces rather than a separate hard-coded display list. The current puzzle therefore shows `COUNTIF`, `SUMIF`, `SUM`, `AVERAGE` and `COUNT`; validator-only `COUNTIFS` is not shown because no `COUNTIFS` piece exists in this puzzle.
+- Added a single `HELP_SCORE_PENALTY_PERCENT` constant, currently `50`, so the cost can be tuned without changing the interaction code or copy in several places.
+- Before purchase, hovering/focusing a function keeps the reference locked and shows `Tap to reveal (-50% points)`. The first function click/tap purchases Help once for the current question/session. It records `data-help-used="true"` and the configured penalty percentage on the Formula Daily root for later scoring integration.
+- The current Stage 2 prototype does not yet calculate a final question score. This patch therefore records the Help score-cap penalty but does not redesign the existing attempt counter or future scoring loop.
+- After Help is purchased, all function links in the current puzzle become available on hover/focus. Guides use concise Excel-style signatures and generic argument guidance only. They intentionally avoid naming the current puzzle's target columns, ranges or answer.
+- Current guide structures are `COUNTIF(<range>, <criteria>)`, `SUMIF(<range>, <criteria>, [sum_range])`, `SUM(<number or range>, ...)`, `AVERAGE(<number or range>, ...)` and `COUNT(<value or range>, ...)`. Guidance follows the corresponding Microsoft Excel function definitions.
+- Help purchase is independent of formula state. Clear removes assembled answer pieces/status as before but does not relock Help or remove the paid-help flag. The future multi-question loop should reset this state when the player advances to a new question.
+- Pointer hover, keyboard focus and tap/click can open the Help popup. Click/tap can pin it, individual function links are keyboard-accessible buttons, and Escape closes the popup.
+- No changes were made to Test Answer validation, Submit behaviour, formula evaluation, loose-label physics, collision/bouncing, drag boundaries, connector calculations, answer wrapping, Sample Data or board-note behaviour.
+- Validation: focused strict TypeScript compilation passed. Full Astro build and browser/mobile visual QA remain local because the supplied context snapshot excludes installed dependencies; a headless Chromium interaction attempt timed out in the sandbox.
