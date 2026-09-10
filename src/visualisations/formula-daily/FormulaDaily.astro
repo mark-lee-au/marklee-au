@@ -38,72 +38,102 @@ const pieces = [
 ---
 
 <section class="formula-daily" data-formula-daily aria-labelledby="formula-question">
-  <header class="formula-daily__topline">
-    <h2 id="formula-question">Build the formula.</h2>
-    <p>Attempt <strong data-attempt-count>0</strong> / 5</p>
-  </header>
+  <div
+    class="formula-canvas"
+    data-formula-canvas
+    data-sample-open="true"
+    role="group"
+    aria-label="Formula construction chalkboard"
+  >
+    <div class="formula-canvas__notes" data-board-notes aria-hidden="true"></div>
 
-  <div class="formula-daily__sheet" aria-label="Sample spreadsheet">
-    <table class="formula-sheet">
-      <caption>Sample spreadsheet</caption>
-      <thead>
-        <tr><th aria-hidden="true"></th>{['A', 'B', 'C', 'D'].map((column) => <th scope="col">{column}</th>)}</tr>
-      </thead>
-      <tbody>
-        {rows.map((row, rowIndex) => (
-          <tr>
-            <th scope="row">{rowIndex + 1}</th>
-            {row.map((cell) => <td>{cell}</td>)}
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
+    <header class="formula-canvas__heading">
+      <h2 id="formula-question">Build the formula.</h2>
+      <p>Attempt <strong data-attempt-count>0</strong> / 5</p>
+    </header>
 
-  <div class="formula-entry">
-    <span class="formula-entry__reference" aria-hidden="true">Total units sold in East =</span>
-    <div
-      class="formula-entry__input"
-      data-input-cell
-      data-selected="true"
-      tabindex="0"
-      role="group"
-      aria-label="Formula answer for total units sold in East, selected"
+    <button
+      class="formula-canvas__sample-toggle"
+      type="button"
+      data-sample-data-open
+      aria-expanded="true"
+      aria-controls="formula-sample-data"
     >
-      <span class="formula-entry__placeholder" data-placeholder>Drop formula here</span>
-      <span class="formula-entry__formula" data-formula-output aria-live="polite"></span>
+      <span>Sample Data</span>
+      <span class="formula-canvas__sample-chevron" aria-hidden="true"></span>
+    </button>
+
+    <aside
+      class="formula-sample-sheet"
+      id="formula-sample-data"
+      data-sample-data-sheet
+      data-open="true"
+      aria-hidden="false"
+      aria-label="Sample data"
+    >
+      <div class="formula-sample-sheet__table-wrap">
+        <table class="formula-sheet formula-sheet--reference">
+          <caption class="sr-only">Sample spreadsheet</caption>
+          <thead>
+            <tr><th aria-hidden="true"></th>{['A', 'B', 'C', 'D'].map((column) => <th scope="col">{column}</th>)}</tr>
+          </thead>
+          <tbody>
+            {rows.map((row, rowIndex) => (
+              <tr>
+                <th scope="row">{rowIndex + 1}</th>
+                {row.map((cell) => <td>{cell}</td>)}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </aside>
+
+    <div class="formula-entry">
+      <span class="formula-entry__reference" aria-hidden="true">Total units sold in East =</span>
+      <div
+        class="formula-entry__input"
+        data-input-cell
+        data-selected="true"
+        tabindex="0"
+        role="group"
+        aria-label="Formula answer for total units sold in East, selected"
+      >
+        <span class="formula-entry__placeholder" data-placeholder>Drop formula here</span>
+        <span class="formula-entry__formula" data-formula-output aria-live="polite"></span>
+      </div>
+    </div>
+
+    <footer class="formula-daily__actions">
+      <button class="formula-daily__clear" type="button" data-clear>Clear</button>
+      <p data-status role="status" aria-live="polite">The answer is selected. Pick pieces in formula order.</p>
+      <button class="formula-daily__submit" type="button" data-submit>Submit</button>
+    </footer>
+
+    <div class="formula-cluster" data-cluster>
+      <svg class="formula-cluster__strings" data-strings aria-hidden="true"></svg>
+      <div class="formula-cluster__field" data-cluster-field aria-label="Formula pieces. Click a piece or drag it into the answer field.">
+        {pieces.map((piece, index) => (
+          <button
+            class={`chalk-piece chalk-piece--${piece.kind}`}
+            type="button"
+            data-piece-id={piece.id}
+            data-piece-value={piece.value}
+            data-piece-kind={piece.kind}
+            style={`--piece-index:${index}`}
+            aria-label={`Add ${piece.value}`}
+          >
+            {piece.kind === 'function' ? (
+              <>
+                <span class="piece-part piece-part--function">{piece.value.slice(0, -1)}</span>
+                <span class="piece-part piece-part--syntax">(</span>
+              </>
+            ) : piece.value}
+          </button>
+        ))}
+      </div>
     </div>
   </div>
-
-  <div class="formula-cluster" data-cluster>
-    <svg class="formula-cluster__strings" data-strings aria-hidden="true"></svg>
-    <div class="formula-cluster__field" data-cluster-field aria-label="Formula pieces. Click a piece or drag it into the answer field.">
-      {pieces.map((piece, index) => (
-        <button
-          class={`chalk-piece chalk-piece--${piece.kind}`}
-          type="button"
-          data-piece-id={piece.id}
-          data-piece-value={piece.value}
-          data-piece-kind={piece.kind}
-          style={`--piece-index:${index}`}
-          aria-label={`Add ${piece.value}`}
-        >
-          {piece.kind === 'function' ? (
-            <>
-              <span class="piece-part piece-part--function">{piece.value.slice(0, -1)}</span>
-              <span class="piece-part piece-part--syntax">(</span>
-            </>
-          ) : piece.value}
-        </button>
-      ))}
-    </div>
-  </div>
-
-  <footer class="formula-daily__actions">
-    <button class="formula-daily__clear" type="button" data-clear>Clear</button>
-    <p data-status role="status" aria-live="polite">The answer is selected. Pick pieces in formula order.</p>
-    <button class="formula-daily__submit" type="button" data-submit>Submit</button>
-  </footer>
 </section>
 
 <script>

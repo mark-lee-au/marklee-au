@@ -250,3 +250,183 @@ Stage 2 authorises the local GAMES structure and non-validating Formula Daily in
 - Ending usage: rolling five-hour 98% used; weekly 24% used.
 - Measured review change: +3 percentage points rolling five-hour; no measured weekly change, below both stage ceilings.
 - Validation: `npm run build` completed successfully with 11 static pages; `git diff --check` found no whitespace errors (line-ending notices only).
+
+### Stage 2 review iteration: bounded chalkboard canvas and edge play
+
+- User direction: treat the answer and loose formula pieces as one physical chalkboard play area, with the frame acting as a real drag boundary rather than decoration only.
+- The answer strip and floating cluster now share a `formula-canvas` frame. Source pieces and placed-token drag ghosts are clamped inside its inner edge while the pointer or finger may continue beyond it.
+- Dragging preserves the point where the player grabbed a piece. When the pointer moves outside the canvas, the piece follows the nearest frame edge and gains a small edge-dependent tilt, so it slides around the perimeter instead of leaving the board.
+- Normal-motion dragging uses a lightweight spring follow with a capped catch-up speed. A large pointer jump, including leaving the browser and re-entering on another side when the browser resumes pointer events, makes the piece travel quickly across the board rather than teleport directly. Existing collision forces displace loose pieces as the dragged piece crosses them; placed-token drag ghosts also push loose pieces while crossing the cluster.
+- Drag acceptance now follows the physical piece rather than only the pointer coordinates. A dragged source piece shows the answer insertion preview only after the piece overlaps the answer area, and releasing it there uses the existing insertion logic. This supersedes the earlier review behaviour that kept a drag preview visible while the piece was elsewhere on the board. Hover and keyboard-focus preview behaviour remains unchanged.
+- Pointer capture is used as a best-effort browser primitive for keeping an active drag connected after the pointer leaves the piece itself. Reduced-motion mode keeps the boundary and drop logic but moves pieces directly without spring/fling animation.
+- Validation in the ChatGPT workspace: the project-specific TypeScript passed a strict DOM TypeScript compile; the Formula Daily CSS parsed with zero stylesheet errors; the emitted JavaScript passed `node --check`. A full Astro build was not run because the supplied context snapshot excludes dependencies and dependency installation did not complete in the sandbox.
+
+
+### Stage 2 review iteration: wood-frame board and stable answer layout
+
+- User direction: replace the flat brown chalkboard frame with a more convincing wooden frame, darken and lightly polish the board surface, add faint rotating teacher-style lesson notes, and stop answer wrapping from resizing the whole play board during normal use.
+- The frame now uses layered CSS wood-grain gradients, darker bevels and an inner groove. The chalkboard surface uses near-black layered gradients, subtle reflected highlights, vignette shading and fine texture with no raster asset or dependency.
+- A deterministic daily seed selects four notes from a larger classroom-note pool. Notes use faint chalk colouring, handwritten typography, irregular placement and rotation, and stay beneath the interactive labels.
+- The canvas now has a fixed responsive base height. The loose cluster is absolutely anchored to the board instead of following the answer in normal document flow.
+- Answer growth triggers only the existing clearance calculation. The cluster moves down when its highest available label would collide with the answer, while the board remains unchanged. The board receives temporary extra height only if the shifted cluster would exceed the usable bottom edge.
+- The answer cell no longer transitions its height. The wrapped formula container keeps the same vertical centring and row alignment before and after line wraps, removing the visible wrap/un-wrap flicker.
+- Existing edge-constrained dragging, spring/fling motion, overlap-based answer insertion, collision displacement and grouped-function behaviour are retained.
+- Validation in the ChatGPT workspace: Formula Daily TypeScript passed strict DOM TypeScript compilation and the stylesheet parsed with zero CSS syntax errors. `npm run build` was attempted but could not run because the supplied sandbox dependency folder does not contain the Astro executable. Browser rendering was also attempted, but sandbox browser policy blocked local and `data:` preview navigation, so visual review remains a local-user check.
+
+### Stage 2 review iteration — board-notes initializer fix
+
+- Reported issue: after the chalkboard wood-frame revision, all loose pieces sat at the canvas origin and none could be clicked or dragged.
+- Root cause: the revised script required a decorative `data-board-notes` element, but the shipped `FormulaDaily.astro` package did not include it, so the initializer exited before binding any interaction logic.
+- Revision: restored the chalk-note layer in `FormulaDaily.astro` and made the script continue safely even if that optional decorative node is missing in a future partial patch.
+- Validation: focused strict TypeScript compile passed; static selector/initializer checks passed. Full Astro build was not run because dependencies are not installed in the supplied snapshot and `npm ci` timed out in the sandbox.
+
+### Stage 2 review iteration — token and chalk-note polish
+
+- Removed the unintended internal dashed border from standard loose labels. The dashed border remains only as the outer grouping treatment for function-openers.
+- Added a quieter hover/focus response to labels already placed in the answer, using a smaller glow and lift than the loose-piece hover state.
+- Background lesson notes now use deterministic pastel chalk colours while keeping the existing subdued opacity so they remain secondary to the game pieces.
+- Interaction and formula behaviour are unchanged.
+- Validation: focused strict TypeScript compile passed and the Formula Daily stylesheet parsed with zero CSS syntax errors.
+
+### Stage 2 review iteration — placed drag feedback and pastel chalk legibility
+
+- Reported issue: the softer hover glow on answer tokens disappeared as soon as a placed token began dragging, and the daily lesson-note hues read too close to grey on the dark board.
+- Revision: the placed-token drag ghost now carries the same low-key colour glow throughout the drag. Lesson notes retain their previous opacity hierarchy but use brighter pastel source colours, modest saturation/brightness, and a small same-colour halo to improve hue recognition without competing with playable labels.
+- Formula and drag/drop behaviour are unchanged.
+- Validation: focused strict TypeScript compile passed; CSS brace balance and ZIP integrity checked.
+
+
+### Stage 2 review iteration — placed token size and release position
+
+- Reported issue: a token dragged out of the answer stayed at the smaller answer-token size and, when released into the cluster, reappeared at its previous stored cluster coordinates with a bounce rather than where the player released it.
+- Revision: placed-token drag ghosts now scale quickly between answer and loose-piece sizes according to their answer-boundary state. A small hysteresis band prevents size flicker when hovering around the boundary.
+- Revision: loose-piece dimensions are measured from the hidden source element at drag start so the target size remains current after responsive changes.
+- Revision: cluster drops now preserve the player's release position. If answer shrinkage moves the floating cluster, the fixed drag ghost holds its screen position through that transition before handing off to the real loose piece at the matching field-relative coordinates.
+- Revision: returned pieces start with zero velocity instead of the previous upward return impulse; normal cluster physics then resume from the dropped location.
+- Validation: focused strict TypeScript compile passed; CSS brace validation passed. Full Astro build not run because the supplied snapshot does not include an installed dependency tree.
+
+### Stage 2 review iteration — suppress canvas text selection
+
+- Reported issue: rapid label clicking and double-clicking could select chalkboard text, which made fast play feel like normal document interaction.
+- Revision: the Formula Daily chalkboard canvas now disables user text selection while leaving text outside the game selectable. No drag, click, touch, or formula behaviour changed.
+- Validation: CSS structure check and package ZIP integrity check.
+
+### Stage 2 review prototype — Sample Data popout
+
+- Request: remove the permanently visible sample spreadsheet and make it available from a chalk-style `Sample Data` control in the top-right of the board, with a phone-friendly popout for review.
+- Prototype: the spreadsheet now lives in a native modal `<dialog>` with a chalkboard treatment, explicit close control, backdrop dismissal, Escape support, and focus return. The old inline sheet is removed.
+- Layout: the answer row and loose cluster are shifted down to reserve a stable control area at the top of the board; the narrow-screen board receives a small base-height increase rather than allowing the new control to overlap game pieces.
+- Responsive check: isolated Chromium rendering at 390px and 360px showed the dialog and spreadsheet fitting without horizontal overflow. Desktop was checked at 1280px.
+- Interaction check: the cumulative Formula Daily script initialized without runtime errors in the isolated harness, click-to-place still worked, and the dialog opened/closed correctly.
+- This remains a review prototype. No formula evaluation, puzzle content, attempt rules, persistence, or drag physics were changed.
+
+### Stage 2 review prototype — persistent Sample Data reference sheet
+
+- User feedback: the modal spreadsheet prevented the player from seeing the reference while constructing the formula, which worked against the intended classroom-test feel.
+- Revision: Sample Data is now a non-modal disclosure sheet that opens inside the chalkboard and remains visible until explicitly closed. The rest of the game stays interactive while it is open.
+- Layout: opening the reference reserves board space and shifts the answer plus loose-piece field down together instead of covering them. Desktop uses a compact right-aligned sheet; narrow screens use the board width with reduced table spacing.
+- Interaction: the Sample Data button exposes `aria-expanded` and `aria-controls`; the closed sheet is inert and hidden from accessibility APIs. Escape and the internal close button close it. Outside interaction does not dismiss it accidentally.
+- Validation: focused strict TypeScript compilation passed; CSS parsed without syntax errors; isolated Chromium checks at 1280px and 390px confirmed open/close state, no horizontal overflow, positive clearance between reference/answer/cluster, and click-to-place continuing while the sheet remained open.
+- This is a review prototype only. No formula evaluation, question generation, scoring, persistence or daily puzzle logic changed.
+
+### Stage 2 review prototype — teacher-written Sample Data disclosure
+
+- User feedback: the persistent reference sheet solved the modal blocking problem, but still looked like a UI card placed over the blackboard rather than information a teacher had written for a classroom test.
+- Revision: `Build the formula.` moved from the outer project header into the top-left of the wooden chalkboard. The attempt counter remains visible at the opposite side of the board header.
+- Revision: the top-right `Sample Data` opener and separate `×` close control were replaced by one centred disclosure control. Its chalk label remains visible in both states and a small chevron points up while open and down while collapsed.
+- Revision: Sample Data is open by default because it is required problem context. The script reads the initial `aria-expanded` state from markup instead of forcing the reference closed at startup. Escape still collapses it and returns focus to the disclosure control.
+- Revision: the reference sheet no longer has a panel border, filled card background, header chrome or drop shadow. The table is written directly onto the board with the same chalk-family typography used by the game. Only internal row/column separators are drawn, using faint dashed chalk lines with slight opacity variation; there is no enclosing table border.
+- Revision: row numbers and column letters use subdued pastel chalk colours to improve the handwritten spreadsheet feel without competing with the playable labels. Header cells remain legible but no longer use spreadsheet-style filled backgrounds.
+- Layout: desktop reserves 214px while the reference is open; narrow screens reserve 186px. The answer and cluster continue to move as one content block below the disclosure. Closing the reference releases that space rather than leaving an empty gap.
+- Accessibility: the disclosure uses `aria-expanded` and `aria-controls`; the collapsed table is `aria-hidden` and inert. The single control receives a dynamic accessible label (`Collapse sample data` / `Expand sample data`).
+- Validation: focused strict TypeScript compilation passed. An isolated browser harness using the cumulative Formula Daily script reported no runtime errors at 1280px or 390px. Initial state was open, collapse/reopen state stayed synchronized across ARIA/data/inert attributes, horizontal overflow was zero, and a formula piece could still be placed while Sample Data was open.
+
+### Stage 2 review prototype — compact responsive cluster and in-board actions
+
+- User feedback: the chalkboard still reserved too much empty space around the loose pieces, the controls sat outside the answer/cluster relationship, the sample table did not follow text-versus-number alignment conventions, and answer growth needed to continue disturbing the loose labels.
+- Revision: the loose-piece field now packs visible labels into measured rows using their actual rendered widths. The cluster height is derived from those packed positions instead of a fixed desktop/mobile height. Width changes trigger a repack, including narrow-screen layouts.
+- Revision: each loose piece now has a responsive home position. Ambient physics attracts pieces back toward their packed or user-drop home rather than pulling everything toward the cluster centre. Collision and small wandering motion remain, and answer-height growth adds a brief disturbance impulse.
+- Revision: the action row moved inside the board immediately below the answer and above the cluster. Because it is in normal flow, it follows answer wrapping without custom offset math.
+- Revision: the answer uses a rounded green chalk border with a faint inner dashed trace. Sample Data text fields and headers align left, while numeric fields and numeric headers align right; spreadsheet coordinate markers remain centred.
+- Responsive check: isolated Chromium at 390px reported no initial label overlaps and no horizontal page overflow. Desktop at 1280px also had no initial overlaps. Resizing a desktop viewport caused a full cluster repack, and adding enough answer tokens to wrap moved the actions and cluster downward while the remaining labels visibly changed position from the disturbance impulse.
+- Validation: focused strict TypeScript compilation passed; CSS brace structure passed; isolated browser runtime reported no errors. Full Astro build was not available because dependencies are excluded from the supplied context snapshot.
+
+### Stage 2 review iteration — animated wrapping and overlap-safe cluster
+
+- User feedback: answer wrapping had regressed to an instantaneous height jump, causing visible flicker when rapidly previewing pieces of different widths. Loose pieces could also overlap after cluster movement or return interactions.
+- Revision: the answer cell again transitions between measured pixel heights. The transition can be retargeted while already running, so rapid preview changes expand or contract from the current intermediate height rather than snapping between one and two rows.
+- Revision: cluster disturbance is fired once from the answer-height target change. The answer `ResizeObserver` now handles layout follow-up only and does not repeatedly add impulses while the CSS height transition is progressing.
+- Revision: the responsive pack uses 10px minimum horizontal spacing and 12px row spacing, which kept the layout compact in browser testing while preventing initial visual intersections from the labels' small rotations.
+- Revision: settled loose-piece motion now rejects candidate positions that would intersect another settled label. The old pairwise velocity collision loop was removed because its collision buffer could amplify movement and create temporary piles on narrow screens. Drag-body push behaviour remains separate.
+- Revision: return/drop settlement preserves the released token as an anchor, then moves only conflicting loose pieces to the nearest free board position. Search can extend downward, and cluster height is based on actual occupied positions, so extra rows create space instead of stacking labels.
+- Validation: focused strict TypeScript compilation and JavaScript syntax check passed. Isolated Chromium tests at 1280px and 390px reported zero initial overlaps, zero overlaps after clearing/returning placed labels, successful desktop → mobile → desktop repacking, no horizontal overflow, and a measured answer transition from 66px toward 86px across intermediate frames before settling.
+
+### Stage 2 review iteration — restore cluster life without overlaps
+
+- Reported regression: the previous no-overlap implementation blocked candidate movements instead of resolving collisions, which removed the visible bumping and ambient movement from the loose pieces.
+- Revision: restored pairwise collision impulses and added a post-movement separation pass. Pieces can now push and disturb each other while the resolver prevents them from finishing a frame overlapped. Vertical cluster space continues to expand from actual piece positions when collisions require another row.
+- Answer wrapping now keeps the entire formula block vertically centred for one or multiple rows, with extra symmetrical breathing room inside the animated answer height.
+- Validation: focused strict TypeScript compile passed; CSS structure check passed; ZIP integrity check passed. Full Astro build not run because installed dependencies are absent from the supplied snapshot.
+
+### Stage 2 review iteration — hover pinning and bounded cluster homes
+
+- User feedback: dragged loose pieces could establish distant permanent homes and grow the board downward, while preview-induced answer growth moved the currently hovered label away from the pointer and caused a repeating hover/unhover height flicker.
+- Revision: loose pieces retain their responsive packed home after manual movement and return drops. They can still be released where the player places them, but spring back toward the cluster instead of remaining isolated.
+- Revision: cluster physics now clamps on all four sides and cluster height is derived from packed home rows plus a small motion allowance, not transient physics positions. Only layout changes such as answer growth or responsive repacking can increase the board footprint.
+- Revision: pointer-hovered loose pieces are pinned to their viewport position while the answer preview animates. The pinned piece is excluded from ambient motion and answer disturbance and acts as an immovable collision body, while surrounding pieces can still be bumped around it. Hover release restores normal attraction.
+- Validation: focused strict TypeScript compile plus isolated Chromium checks. The hover preview remained active through answer-height animation, the hovered piece stayed effectively fixed in viewport space, cluster height stayed constant after a bottom-edge drag, and a displaced label returned toward its packed home. Full Astro build unavailable in the supplied dependency-free snapshot.
+
+### Stage 2 review iteration — dynamic neighbour cluster physics
+
+- User feedback: fixed per-piece home coordinates made returned labels force themselves back toward one original slot. When another label blocked that path, the two pieces could vibrate against each other. The user preferred the earlier local-neighbour feel and requested the neighbour strings be visible again while tuning.
+- Revision: individual home-position attraction was removed from ambient movement. Every loose piece now recalculates its nearest active neighbour on each active animation frame and receives a damped spring pull only when the edge-to-edge gap exceeds the preferred cluster spacing.
+- Revision: a weak collective gravity term compares the live cluster centroid with the centroid of the current responsive packed layout. This returns an isolated or displaced group toward the natural cluster area without assigning any individual label a fixed destination.
+- Revision: sinusoidal perpetual wandering was removed. Damping, attraction dead zones, velocity sleep thresholds and conditional `requestAnimationFrame` continuation let the physics settle and stop until another interaction wakes it.
+- Revision: collision bounds include each piece's small rotation, and collision resolution now keeps the animation alive until separation completes. This preserves visible bumping while preventing the residual sub-pixel overlaps seen on narrow screens.
+- Debug view: nearest-neighbour SVG strings are temporarily visible at restrained chalk-green opacity. The lines are pointer-transparent and remain behind the labels.
+- Validation: focused strict TypeScript compile passed. Isolated Chromium checks at 1280px and 390px reported zero label overlaps, zero horizontal overflow and no runtime errors. The desktop debug graph rendered 20 neighbour links on the initial 24-piece cluster.
+
+### Stage 2 review iteration — stable hover activation boundary
+
+- User feedback: resting the pointer on a loose label border could repeatedly enter and leave hover as the active visual treatment/layout compensation altered the live button hit boundary.
+- Revision: hover activation now captures a fixed viewport hit rectangle when the piece becomes active, with 5px of invisible tolerance. The label can glow, be pinned, or compensate for answer-layout movement without changing that interaction boundary.
+- Revision: loose-piece glow/plus styling is driven by the existing explicit `data-preview` state (plus keyboard focus), not raw CSS `:hover`. `pointerout` is ignored while the pointer remains inside the captured activation rectangle, and document pointer movement releases the preview after the pointer genuinely leaves it.
+- Validation: focused strict TypeScript compilation passed; CSS structure passed. Isolated Chromium held the hover preview active for 40/40 samples during answer-height animation with zero state changes; 3px beyond the visual edge remained active while 8px beyond released as expected; no page errors occurred.
+
+### Stage 2 review iteration — live-style loose-label physics reference
+
+- User supplied the older live Formula Daily TypeScript and requested that only its movement feel be reintroduced into the current prototype.
+- Reference behaviour retained from the live build: collision-driven velocity transfer, `.035` collision force and `.91` frame damping. The current prototype does not restore the live build's perpetual sinusoidal wander because the user specifically raised concern about motion continuing indefinitely.
+- Current responsive packing is now only the starting arrangement. Individual pieces no longer seek stored packed coordinates after being moved.
+- A displaced piece temporarily seeks cohesion using its nearest active neighbour recalculated every frame, blended with a small pull toward the live cluster centroid. This lets neighbour relationships change dynamically as pieces move.
+- Collision participants and pieces pushed by answer-token movement can re-enter seeking state. Seeking ends once local spacing is restored, then velocity damping and the sleep threshold allow the system to stop.
+- Physics integration is split into three short movement steps and a positional-only separation pass so collision bounce is retained without a second velocity impulse creating vibration.
+- The initial idle cluster does not start physics merely because the page becomes visible. Debug neighbour connector lines remain visible during tuning.
+- No non-movement Formula Daily behaviour was intentionally changed.
+- Validation: focused strict TypeScript compile passed. Isolated Chromium at desktop and 390px mobile reported zero runtime errors, zero oriented-rectangle overlaps before and after a focused drag interaction, no horizontal overflow, 20 neighbour links and stable hover positioning. A drag through the cluster displaced multiple neighbours, confirming the live-style propagation effect.
+
+### Stage 2 review iteration - restore live-style centre gravity
+
+- User feedback: the previous neighbour-seeking implementation did not match the older live build. Labels could stop returning toward the cluster too early, hover behaviour appeared inconsistent around overlaps, and physical overlaps could remain visible.
+- Review of the user-supplied live TypeScript showed that its nearest-neighbour search is used for connector lines, not for movement attraction. The movement feel comes from weak centre gravity on every free label, small sinusoidal drift, collision impulses, `.91` damping, and boundary clamping.
+- Revision: removed the added per-piece `seeking` state and nearest-neighbour return spring. The current prototype now uses the live force values for centre pull (`.0007`), organic drift (`.004`), collision impulse (`.035`) and damping (`.91`) while preserving the current drag boundaries and layout.
+- Finite-motion adaptation: user or layout interaction supplies temporary cluster energy; it decays at `.982` per frame. Collision propagation does not refresh that energy. Once energy and residual velocity fall below the sleep threshold and no overlap remains, the animation loop stops. This keeps the live glide/bounce feel without perpetual domino motion.
+- Collision padding is 10px and a positional-only separation pass prevents labels from remaining overlapped without adding another bounce impulse.
+- No CSS or Astro files changed in this iteration. Existing hover locking, answer wrapping, Sample Data and formula interactions remain unchanged.
+- Validation: focused strict TypeScript compilation passed; emitted JavaScript passed syntax checking; an abstract force simulation settled without overlap. Full Astro/browser validation was not available in the supplied dependency-free sandbox.
+
+### Stage 2 review correction — direct live physics transplant
+
+- User supplied the live Formula Daily `.ts`, `.css` and `.astro` files after the previous two physics recreations failed to match the live movement.
+- The supplied live TypeScript was treated as the source of truth for loose-label movement. Its movement loop uses continuous weak centre gravity, small sinusoidal drift, pairwise collision velocity transfer, `.91` damping and simple boundary clamping. Its nearest-neighbour search drives connector lines rather than attraction.
+- Revision: the current prototype now runs those same movement forces and collision equations directly for loose pieces. Removed active use of the added finite-energy gate, speed cap, sleep logic, substep positional separation and overlap resolver that changed the collision outcome. This restores the live behaviour where pieces can temporarily bunch while dragged, then slide/bounce around the moving piece rather than being snapped to a separated side.
+- Current features outside loose-label movement remain in place. Hover pinning remains as a narrow exception so answer-wrap animation cannot move the currently hovered piece away from the pointer. The hover anchor itself was corrected so entering hover does not move a rotated label.
+- No CSS or Astro file changed in this correction.
+- Validation: focused strict TypeScript compile passed; generated JavaScript passed `node --check`. Local Chromium runtime validation was blocked by the sandbox navigation policy.
+
+### Stage 2 review iteration — extra vertical breathing room
+
+- Reported issue: with the restored live-style centre gravity, dragging a label through the middle can compress neighbours against the top/bottom bounds because the compact responsive cluster leaves little vertical escape room.
+- Prototype response: keep the restored movement equations untouched and increase only the cluster field's vertical reserve. The packer now adds a symmetric breathing inset derived from available label count and row count, bounded to avoid excessive whitespace.
+- The additional room is part of the cluster's normal responsive size, so centre seeking, collision impulses and damping still operate against the live field centre.
+- Validation: focused strict TypeScript compile passed.
