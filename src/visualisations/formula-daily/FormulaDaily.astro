@@ -1,6 +1,8 @@
 ---
 import './formula-daily.css';
 
+const questionId = 'total-units-sold-east-v1';
+
 const rows = [
   ['Region', 'Units', 'Rate', ''],
   ['East', '12', '4', ''],
@@ -11,10 +13,12 @@ const rows = [
 
 const pieces = [
   { id: 'countif', value: 'COUNTIF(', kind: 'function' },
+  { id: 'countifs', value: 'COUNTIFS(', kind: 'function' },
   { id: 'b-range', value: 'B2:B5', kind: 'range' },
   { id: 'comma-1', value: ',', kind: 'syntax' },
   { id: 'east', value: '"East"', kind: 'value' },
   { id: 'sumif', value: 'SUMIF(', kind: 'function' },
+  { id: 'sumifs', value: 'SUMIFS(', kind: 'function' },
   { id: 'close-1', value: ')', kind: 'syntax' },
   { id: 'a-range', value: 'A2:A5', kind: 'range' },
   { id: 'west', value: '"West"', kind: 'value' },
@@ -37,7 +41,7 @@ const pieces = [
 ];
 ---
 
-<section class="formula-daily" data-formula-daily aria-labelledby="formula-question">
+<section class="formula-daily" data-formula-daily data-question-id={questionId} data-chalk="on" aria-labelledby="formula-question">
   <div
     class="formula-canvas"
     data-formula-canvas
@@ -49,7 +53,15 @@ const pieces = [
 
     <header class="formula-canvas__heading">
       <h2 id="formula-question">Build the formula.</h2>
-      <p>Attempt <strong data-attempt-count>0</strong> / 5</p>
+      <div class="formula-canvas__progress" aria-label="Question score, attempts, and display options">
+        <p class="formula-canvas__points">Points <strong data-points-current>100</strong> / 100</p>
+        <p>Attempt <strong data-attempt-count>0</strong> / 5</p>
+        <label class="formula-canvas__chalk-toggle">
+          <span>Chalk</span>
+          <input type="checkbox" data-chalk-toggle role="switch" aria-label="Use chalk font" checked />
+          <span class="formula-canvas__chalk-track" aria-hidden="true"></span>
+        </label>
+      </div>
     </header>
 
     <button
@@ -90,7 +102,7 @@ const pieces = [
     </aside>
 
     <div class="formula-entry">
-      <span class="formula-entry__reference" aria-hidden="true">Total units sold in East =</span>
+      <span class="formula-entry__reference" aria-hidden="true">Total units sold in East</span>
       <div
         class="formula-entry__input"
         data-input-cell
@@ -100,7 +112,20 @@ const pieces = [
         aria-label="Formula answer for total units sold in East, selected"
       >
         <span class="formula-entry__placeholder" data-placeholder>Drop formula here</span>
-        <span class="formula-entry__formula" data-formula-output aria-live="polite"></span>
+        <span class="formula-entry__formula" data-formula-output aria-live="polite">
+          <button
+            class="formula-token formula-token--marker chalk-piece--syntax"
+            type="button"
+            data-formula-marker
+            aria-label="Required formula equals sign. Formulas always begin with equals and this marker cannot be removed."
+            aria-describedby="formula-required-marker-help"
+          >
+            =
+            <span class="formula-token__marker-tooltip" id="formula-required-marker-help" role="tooltip">
+              Formulas always begin with =. This first sign stays in place.
+            </span>
+          </button>
+        </span>
       </div>
     </div>
 
@@ -108,15 +133,17 @@ const pieces = [
       <button class="formula-daily__clear" type="button" data-clear>Clear</button>
       <p data-status role="status" aria-live="polite"></p>
       <div class="formula-daily__primary-actions">
-        <button
-          class="formula-daily__help"
-          type="button"
-          data-help-button
-          aria-expanded="false"
-          aria-controls="formula-function-help"
-        >
-          Help
-        </button>
+        <span class="formula-daily__help-anchor">
+          <button
+            class="formula-daily__help"
+            type="button"
+            data-help-button
+            aria-expanded="false"
+            aria-controls="formula-function-help"
+          >
+            Help
+          </button>
+        </span>
         <div
           class="formula-daily__help-panel"
           id="formula-function-help"
@@ -126,11 +153,28 @@ const pieces = [
           hidden
         >
           <div class="formula-daily__help-heading">
-            <span>Function help</span>
-            <span data-help-cost></span>
+            <span class="formula-daily__help-title">Function help</span>
+            <span class="formula-daily__help-meta">
+              <span data-help-cost></span>
+              <button
+                class="formula-daily__help-pin"
+                type="button"
+                data-help-pin
+                aria-pressed="false"
+                aria-label="Pin function help"
+                title="Pin function help"
+              >
+                <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                  <path d="M6 2.25h4l-.55 2.7 2.05 2.05v1.1H8.7v4.45L8 13.7l-.7-1.15V8.1H4.5V7l2.05-2.05L6 2.25Z" />
+                </svg>
+              </button>
+            </span>
           </div>
           <div class="formula-daily__help-functions" data-help-functions></div>
           <div class="formula-daily__help-detail" data-help-detail aria-live="polite"></div>
+          <div class="formula-daily__help-footer">
+            <button class="formula-daily__help-reset" type="button" data-help-reset aria-label="Reset this question to its initial state" hidden>Reset</button>
+          </div>
         </div>
         <button class="formula-daily__test" type="button" data-test-answer>Test Answer</button>
         <button class="formula-daily__submit" type="button" data-submit>Submit</button>

@@ -64,11 +64,50 @@ const FUNCTION_SIGNATURES: Record<string, { min: number; max?: number }> = {
   SUMIF: { min: 2, max: 3 },
   COUNTIF: { min: 2, max: 2 },
   COUNTIFS: { min: 2 },
+  SUMIFS: { min: 3 },
 };
 
-const NUMERIC_RESULT_FUNCTIONS = new Set(['SUM', 'COUNT', 'AVERAGE', 'SUMIF', 'COUNTIF', 'COUNTIFS']);
+const NUMERIC_RESULT_FUNCTIONS = new Set(['SUM', 'COUNT', 'AVERAGE', 'SUMIF', 'SUMIFS', 'COUNTIF', 'COUNTIFS']);
 
+const QUESTION_MAX_POINTS = 100;
+const QUESTION_MAX_ATTEMPTS = 5;
 const HELP_SCORE_PENALTY_PERCENT = 50;
+const HELP_PURCHASE_STORAGE_PREFIX = 'formula-daily:question-help:v1:';
+const QUESTION_SCORE_STORAGE_PREFIX = 'formula-daily:question-score:v1:';
+const CHALK_PREFERENCE_STORAGE_KEY = 'formula-daily:chalk-enabled:v1';
+const EMPTY_SUBMIT_WARNING_MS = 1500;
+const HELP_CLUSTER_RECOVERY_MS = 1050;
+const HELP_CLUSTER_RECOVERY_PULL_X = .0031;
+const HELP_CLUSTER_RECOVERY_PULL_Y = .0011;
+const HELP_CLUSTER_RECOVERY_DAMPING = .925;
+const HELP_CLUSTER_RECOVERY_VERTICAL_KICK = .62;
+const HELP_CLUSTER_RECOVERY_SETTLE_MS = 650;
+const HELP_CLUSTER_OVERLAP_FORCE_PINNED = .082;
+const HELP_CLUSTER_OVERLAP_FORCE_RECOVERY = .068;
+const HELP_CLUSTER_OVERLAP_SHUFFLE = .11;
+const HELP_PANEL_DESKTOP_BOTTOM_GAP = 18;
+const HELP_PANEL_DESKTOP_SIDE_GAP = 18;
+const HELP_INTRO_NOTICE_MS = 5000;
+
+const primeHelpClusterRecovery = (states: PieceState[], bounds: DOMRect) => {
+  const targetX = bounds.width / 2;
+  states.filter((state) => !state.used && !state.dragging && !state.hovered).forEach((state, index) => {
+    const stateCentreX = state.x + state.width / 2;
+    const horizontalDistance = targetX - stateCentreX;
+    const nearTop = state.y < bounds.height * .24;
+    const nearBottom = state.y + state.height > bounds.height * .76;
+    let verticalDirection = index % 2 === 0 ? -1 : 1;
+    if (nearTop) verticalDirection = 1;
+    if (nearBottom) verticalDirection = -1;
+
+    state.vx += Math.max(-2.2, Math.min(2.2, horizontalDistance * .009));
+    state.vy += verticalDirection * (HELP_CLUSTER_RECOVERY_VERTICAL_KICK + (index % 3) * .08);
+  });
+
+  return performance.now() + HELP_CLUSTER_RECOVERY_MS;
+};
+
+const FORMULA_MARKER_WARNING_MS = 2200;
 
 type FunctionHelpGuide = {
   signature: string;
@@ -111,6 +150,22 @@ const FUNCTION_HELP_GUIDES: Record<string, FunctionHelpGuide> = {
       '<range> is the group of cells to check.',
       '<criteria> is the value or condition to match.',
       'Text criteria normally use quotation marks.',
+    ],
+  },
+  COUNTIFS: {
+    signature: 'COUNTIFS(<criteria_range1>, <criteria1>, ...)',
+    lines: [
+      'Each criteria range is followed by the condition to test.',
+      'Add more range-and-criteria pairs for more conditions.',
+      'All criteria ranges must use the same shape.',
+    ],
+  },
+  SUMIFS: {
+    signature: 'SUMIFS(<sum_range>, <criteria_range1>, <criteria1>, ...)',
+    lines: [
+      '<sum_range> is the range whose matching values are added.',
+      'Each criteria range is followed by its condition.',
+      'SUMIFS puts <sum_range> first, unlike SUMIF.',
     ],
   },
 };
@@ -350,16 +405,12 @@ const validateFormulaStructure = (tokens: FormulaStructureToken[]): FormulaIssue
     if (!signature) return;
     const invalidCount = argumentCount < signature.min
       || (signature.max !== undefined && argumentCount > signature.max)
-      || (name === 'COUNTIFS' && argumentCount % 2 !== 0);
+      || (name === 'COUNTIFS' && argumentCount % 2 !== 0)
+      || (name === 'SUMIFS' && argumentCount % 2 === 0);
     if (invalidCount) addIssue(argumentIssue(functionIndex, closingIndex));
   });
 
   tokens.forEach((token, tokenIndex) => {
-    if (token.value === '=' && tokenIndex === 0) {
-      if (!tokens[1]) addIssue(syntaxIssue(tokenIndex));
-      return;
-    }
-
     if (!isOperator(token)) return;
     const previous = tokens[tokenIndex - 1];
     const next = tokens[tokenIndex + 1];
@@ -386,7 +437,7 @@ const validateFormulaStructure = (tokens: FormulaStructureToken[]): FormulaIssue
 };
 
 const validateFormulaTypes = (tokens: FormulaStructureToken[], worksheet: WorksheetModel): FormulaIssue[] => {
-  let index = tokens[0]?.value === '=' ? 1 : 0;
+  let index = 0;
   const issues: FormulaIssue[] = [];
   const current = () => tokens[index];
   const functionName = (token: FormulaStructureToken) => token.value.endsWith('(')
@@ -416,6 +467,7 @@ const validateFormulaTypes = (tokens: FormulaStructureToken[], worksheet: Worksh
     if (count < signature.min) return false;
     if (signature.max !== undefined && count > signature.max) return false;
     if (name === 'COUNTIFS' && count % 2 !== 0) return false;
+    if (name === 'SUMIFS' && count % 2 === 0) return false;
     return true;
   };
 
@@ -508,6 +560,28 @@ const validateFormulaTypes = (tokens: FormulaStructureToken[], worksheet: Worksh
       if (args[2]) {
         const sumRangeError = validateReferenceArgument(functionTokenId, args[2]);
         if (sumRangeError) functionIssues.push(sumRangeError);
+      }
+      return functionIssues;
+    }
+
+    if (name === 'SUMIFS') {
+      const sumRange = args[0];
+      const sumRangeError = validateReferenceArgument(functionTokenId, sumRange);
+      if (sumRangeError) functionIssues.push(sumRangeError);
+      const sumShape = isReference(sumRange) ? sumRange.reference : null;
+
+      for (let argumentIndex = 1; argumentIndex < args.length; argumentIndex += 2) {
+        const criteriaRange = args[argumentIndex];
+        const rangeError = validateReferenceArgument(functionTokenId, criteriaRange);
+        if (rangeError) {
+          functionIssues.push(rangeError);
+          continue;
+        }
+        if (sumShape && isReference(criteriaRange) && (
+          criteriaRange.reference.rows !== sumShape.rows || criteriaRange.reference.columns !== sumShape.columns
+        )) {
+          functionIssues.push(valueIssue(functionTokenId, ...sumRange.tokenIds, ...criteriaRange.tokenIds));
+        }
       }
       return functionIssues;
     }
@@ -691,18 +765,24 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
   let boardNotes = root.querySelector<HTMLElement>('[data-board-notes]');
   const field = root.querySelector<HTMLElement>('[data-cluster-field]');
   const cluster = root.querySelector<HTMLElement>('[data-cluster]');
+  const formulaEntry = root.querySelector<HTMLElement>('.formula-entry');
   const inputCell = root.querySelector<HTMLElement>('[data-input-cell]');
   const formulaOutput = root.querySelector<HTMLElement>('[data-formula-output]');
   const placeholder = root.querySelector<HTMLElement>('[data-placeholder]');
   const strings = root.querySelector<SVGSVGElement>('[data-strings]');
+  const pointsCurrent = root.querySelector<HTMLElement>('[data-points-current]');
   const attemptCount = root.querySelector<HTMLElement>('[data-attempt-count]');
+  const chalkToggle = root.querySelector<HTMLInputElement>('[data-chalk-toggle]');
   const status = root.querySelector<HTMLElement>('[data-status]');
   const clearButton = root.querySelector<HTMLButtonElement>('[data-clear]');
+  const actions = root.querySelector<HTMLElement>('.formula-daily__actions');
   const helpButton = root.querySelector<HTMLButtonElement>('[data-help-button]');
   const helpPanel = root.querySelector<HTMLElement>('[data-help-panel]');
   const helpFunctions = root.querySelector<HTMLElement>('[data-help-functions]');
   const helpDetail = root.querySelector<HTMLElement>('[data-help-detail]');
   const helpCost = root.querySelector<HTMLElement>('[data-help-cost]');
+  const helpPinButton = root.querySelector<HTMLButtonElement>('[data-help-pin]');
+  const helpResetButton = root.querySelector<HTMLButtonElement>('[data-help-reset]');
   const testAnswerButton = root.querySelector<HTMLButtonElement>('[data-test-answer]');
   const submitButton = root.querySelector<HTMLButtonElement>('[data-submit]');
   const sampleDataButton = root.querySelector<HTMLButtonElement>('[data-sample-data-open]');
@@ -716,7 +796,7 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
     canvas.prepend(boardNotes);
   }
 
-  if (!canvas || !field || !cluster || !inputCell || !formulaOutput || !placeholder || !strings || !attemptCount || !status || !clearButton || !helpButton || !helpPanel || !helpFunctions || !helpDetail || !helpCost || !testAnswerButton || !submitButton) return;
+  if (!canvas || !field || !cluster || !formulaEntry || !inputCell || !formulaOutput || !placeholder || !strings || !pointsCurrent || !attemptCount || !chalkToggle || !status || !clearButton || !actions || !helpButton || !helpPanel || !helpFunctions || !helpDetail || !helpCost || !helpPinButton || !helpResetButton || !testAnswerButton || !submitButton) return;
 
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const placedIds: string[] = [];
@@ -740,6 +820,8 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
   }));
 
   let attempts = 0;
+  let currentPointsExact = QUESTION_MAX_POINTS;
+  let chalkEnabled = true;
   let selectedCell = true;
   let previewId: string | null = null;
   let previewIndex: number | null = null;
@@ -753,13 +835,162 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
   let suppressPlacedClickId: string | null = null;
   let clusterLayoutFrame = 0;
   let lastFieldWidth = 0;
-  let lastAnswerHeight = 66;
+  let lastAnswerHeight = 50;
   let clusterEnergy = 0;
   let clusterBreathingInset = 32;
   let helpPurchased = false;
   let helpPenaltyPercent = 0;
   let helpPanelPinned = false;
   let helpCloseTimer = 0;
+  let helpIntroShown = false;
+  let helpIntroActive = false;
+  let helpIntroTimer = 0;
+  let helpPromptFlashTimer = 0;
+  let helpClusterRecoveryUntil = 0;
+  let helpClusterRecoveryHardStop = 0;
+  let formulaMarkerWarningActive = false;
+  let formulaMarkerWarningTimer = 0;
+  let emptySubmitWarningTimer = 0;
+
+  const questionId = root.dataset.questionId?.trim() ?? '';
+  const helpStorageKey = questionId ? `${HELP_PURCHASE_STORAGE_PREFIX}${questionId}` : '';
+  const scoreStorageKey = questionId ? `${QUESTION_SCORE_STORAGE_PREFIX}${questionId}` : '';
+  const clampPercent = (value: number) => Math.max(0, Math.min(100, value));
+  const clampPoints = (value: number) => Math.max(0, Math.min(QUESTION_MAX_POINTS, value));
+  const renderQuestionScore = () => {
+    const visiblePoints = Math.max(0, Math.round(currentPointsExact));
+    pointsCurrent.textContent = String(visiblePoints);
+    attemptCount.textContent = String(attempts);
+    submitButton.disabled = attempts >= QUESTION_MAX_ATTEMPTS;
+    root.dataset.currentPoints = String(visiblePoints);
+    root.dataset.currentPointsExact = currentPointsExact.toFixed(6);
+    root.dataset.attemptsUsed = String(attempts);
+  };
+  const readStoredQuestionScore = () => {
+    if (!scoreStorageKey) return null;
+    try {
+      const raw = window.localStorage.getItem(scoreStorageKey);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as { version?: number; attempts?: number; pointsExact?: number };
+      if (parsed.version !== 1 || !Number.isFinite(parsed.attempts) || !Number.isFinite(parsed.pointsExact)) return null;
+      return {
+        attempts: Math.max(0, Math.min(QUESTION_MAX_ATTEMPTS, Math.trunc(Number(parsed.attempts)))),
+        pointsExact: clampPoints(Number(parsed.pointsExact)),
+      };
+    } catch {
+      return null;
+    }
+  };
+  const persistQuestionScore = () => {
+    if (!scoreStorageKey) return;
+    try {
+      window.localStorage.setItem(scoreStorageKey, JSON.stringify({
+        version: 1,
+        attempts,
+        pointsExact: currentPointsExact,
+      }));
+    } catch {
+      // Keep the in-memory score usable when storage is unavailable.
+    }
+  };
+  const readStoredHelpPurchase = () => {
+    if (!helpStorageKey) return null;
+    try {
+      const raw = window.localStorage.getItem(helpStorageKey);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as {
+        version?: number;
+        penaltyPercent?: number;
+        maxScorePercent?: number;
+        pointsAfterPurchase?: number;
+      };
+      if ((parsed.version !== 1 && parsed.version !== 2) || !Number.isFinite(parsed.penaltyPercent)) return null;
+      const legacyPoints = Number.isFinite(parsed.maxScorePercent) ? Number(parsed.maxScorePercent) : QUESTION_MAX_POINTS;
+      const storedPoints = Number.isFinite(parsed.pointsAfterPurchase) ? Number(parsed.pointsAfterPurchase) : legacyPoints;
+      return {
+        penaltyPercent: clampPercent(Number(parsed.penaltyPercent)),
+        pointsAfterPurchase: clampPoints(storedPoints),
+      };
+    } catch {
+      return null;
+    }
+  };
+  const persistHelpPurchase = () => {
+    if (!helpStorageKey) return;
+    try {
+      window.localStorage.setItem(helpStorageKey, JSON.stringify({
+        version: 2,
+        penaltyPercent: helpPenaltyPercent,
+        pointsAfterPurchase: currentPointsExact,
+      }));
+    } catch {
+      // Storage can be unavailable in restrictive/private browser contexts.
+    }
+  };
+  const clearStoredHelpPurchase = () => {
+    if (!helpStorageKey) return;
+    try {
+      window.localStorage.removeItem(helpStorageKey);
+    } catch {
+      // Keep the in-memory reset usable even when storage is unavailable.
+    }
+  };
+  const clearStoredQuestionScore = () => {
+    if (!scoreStorageKey) return;
+    try {
+      window.localStorage.removeItem(scoreStorageKey);
+    } catch {
+      // Keep the in-memory reset usable even when storage is unavailable.
+    }
+  };
+  const readStoredChalkPreference = () => {
+    try {
+      const stored = window.localStorage.getItem(CHALK_PREFERENCE_STORAGE_KEY);
+      if (stored === '0') return false;
+      if (stored === '1') return true;
+    } catch {
+      // Fall back to the default chalk presentation when storage is unavailable.
+    }
+    return true;
+  };
+  const persistChalkPreference = () => {
+    try {
+      window.localStorage.setItem(CHALK_PREFERENCE_STORAGE_KEY, chalkEnabled ? '1' : '0');
+    } catch {
+      // The font toggle still works for the current session if storage is unavailable.
+    }
+  };
+  const clearStoredChalkPreference = () => {
+    try {
+      window.localStorage.removeItem(CHALK_PREFERENCE_STORAGE_KEY);
+    } catch {
+      // Keep the in-memory reset usable even when storage is unavailable.
+    }
+  };
+  const renderChalkPreference = () => {
+    root.dataset.chalk = chalkEnabled ? 'on' : 'off';
+    chalkToggle.checked = chalkEnabled;
+  };
+
+  chalkEnabled = readStoredChalkPreference();
+  renderChalkPreference();
+
+  const storedQuestionScore = readStoredQuestionScore();
+  if (storedQuestionScore) {
+    attempts = storedQuestionScore.attempts;
+    currentPointsExact = storedQuestionScore.pointsExact;
+  }
+
+  const storedHelpPurchase = readStoredHelpPurchase();
+  if (storedHelpPurchase) {
+    helpPurchased = true;
+    helpPenaltyPercent = storedHelpPurchase.penaltyPercent;
+    if (!storedQuestionScore) currentPointsExact = storedHelpPurchase.pointsAfterPurchase;
+    helpIntroShown = true;
+    root.dataset.helpUsed = 'true';
+    root.dataset.helpPenaltyPercent = String(helpPenaltyPercent);
+  }
+  renderQuestionScore();
 
   const helpFunctionNames = Array.from(new Set(
     states
@@ -809,23 +1040,50 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
 
   const renderHelpDetail = () => {
     helpDetail.replaceChildren();
+    helpDetail.dataset.locked = String(!helpPurchased);
+    helpResetButton.hidden = !helpPurchased;
     helpCost.textContent = helpPurchased
-      ? `Help active · -${helpPenaltyPercent}% max points`
+      ? `Help active · -${helpPenaltyPercent}% points`
       : `Reveal cost: -${HELP_SCORE_PENALTY_PERCENT}%`;
 
     helpFunctions.querySelectorAll<HTMLButtonElement>('[data-help-function]').forEach((button) => {
       const active = button.dataset.helpFunction === activeHelpFunction;
-      button.dataset.active = String(active);
+      button.dataset.locked = String(!helpPurchased);
+      button.dataset.active = String(helpPurchased && active);
       button.setAttribute('aria-label', helpPurchased
         ? `${button.dataset.helpFunction} function help`
-        : `${button.dataset.helpFunction} help. Tap to reveal, costs ${HELP_SCORE_PENALTY_PERCENT} percent of maximum points.`);
+        : `${button.dataset.helpFunction} help is locked. Activate to show the help purchase prompt.`);
     });
 
     if (!activeHelpFunction) return;
     if (!helpPurchased) {
       const locked = document.createElement('span');
-      locked.className = 'formula-daily__help-lock';
-      locked.textContent = `Tap to reveal (-${HELP_SCORE_PENALTY_PERCENT}% points)`;
+      locked.className = helpIntroActive
+        ? 'formula-daily__help-lock formula-daily__help-lock--intro'
+        : 'formula-daily__help-lock';
+
+      const prompt = document.createElement('span');
+      prompt.className = 'formula-daily__help-lock-prompt';
+
+      if (helpIntroActive) {
+        prompt.textContent = `Unlock help for every puzzle function for -${HELP_SCORE_PENALTY_PERCENT}% points.`;
+      } else {
+        prompt.append(document.createTextNode('Reveal Help? ('));
+        const penalty = document.createElement('span');
+        penalty.className = 'formula-daily__help-penalty';
+        penalty.textContent = `-${HELP_SCORE_PENALTY_PERCENT}% points`;
+        prompt.append(penalty, document.createTextNode(')'));
+      }
+
+      const buy = document.createElement('button');
+      buy.type = 'button';
+      buy.className = 'formula-daily__help-buy';
+      buy.dataset.helpBuy = '';
+      buy.textContent = 'Buy';
+      buy.setAttribute('aria-label', `Buy function help for ${HELP_SCORE_PENALTY_PERCENT} percent of your current points`);
+      buy.addEventListener('click', purchaseHelp);
+
+      locked.append(prompt, buy);
       helpDetail.append(locked);
       return;
     }
@@ -858,11 +1116,77 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
     helpCloseTimer = 0;
   };
 
+  const showHelpIntro = () => {
+    if (helpIntroShown) return;
+    helpIntroShown = true;
+    helpIntroActive = true;
+    renderHelpDetail();
+    if (helpIntroTimer) window.clearTimeout(helpIntroTimer);
+    helpIntroTimer = window.setTimeout(() => {
+      helpIntroActive = false;
+      helpIntroTimer = 0;
+      renderHelpDetail();
+    }, HELP_INTRO_NOTICE_MS);
+  };
+
+  const flashHelpPurchasePrompt = () => {
+    if (helpPurchased) return;
+    if (helpPromptFlashTimer) window.clearTimeout(helpPromptFlashTimer);
+    delete helpDetail.dataset.promptFlash;
+    void helpDetail.offsetWidth;
+    helpDetail.dataset.promptFlash = 'true';
+    helpPromptFlashTimer = window.setTimeout(() => {
+      delete helpDetail.dataset.promptFlash;
+      helpPromptFlashTimer = 0;
+    }, 560);
+  };
+
+  const isMobileHelpLayout = () => window.matchMedia('(max-width: 720px)').matches;
+
+  const positionHelpPanel = () => {
+    if (helpPanel.hidden) return;
+    const actionsBounds = actions.getBoundingClientRect();
+    const helpBounds = helpButton.getBoundingClientRect();
+    const canvasBounds = canvas.getBoundingClientRect();
+    const top = helpBounds.bottom - actionsBounds.top + 9;
+    const mobileLayout = isMobileHelpLayout();
+
+    helpPanel.style.width = '';
+    helpPanel.style.height = '';
+    helpPanel.style.maxWidth = '';
+
+    if (mobileLayout) {
+      helpPanel.style.left = '0px';
+      helpPanel.style.top = `${Math.round(top)}px`;
+      helpPanel.style.width = `${Math.max(0, Math.floor(actionsBounds.width))}px`;
+      return;
+    }
+
+    const panelWidth = helpPanel.offsetWidth;
+    const panelRight = canvasBounds.right - actionsBounds.left - HELP_PANEL_DESKTOP_SIDE_GAP;
+    const left = Math.max(0, panelRight - panelWidth);
+    const panelBottom = canvasBounds.bottom - actionsBounds.top - HELP_PANEL_DESKTOP_BOTTOM_GAP;
+    const panelHeight = Math.max(0, panelBottom - top);
+
+    helpPanel.style.left = `${Math.round(left)}px`;
+    helpPanel.style.top = `${Math.round(top)}px`;
+    helpPanel.style.height = `${Math.round(panelHeight)}px`;
+  };
+
+  const renderHelpPinState = () => {
+    const actionLabel = helpPanelPinned ? 'Unpin function help' : 'Pin function help';
+    helpPinButton.dataset.pinned = String(helpPanelPinned);
+    helpPinButton.setAttribute('aria-pressed', String(helpPanelPinned));
+    helpPinButton.setAttribute('aria-label', actionLabel);
+    helpPinButton.title = actionLabel;
+  };
+
   const openHelpPanel = () => {
     cancelHelpClose();
     helpPanel.hidden = false;
     helpButton.setAttribute('aria-expanded', 'true');
-    renderHelpDetail();
+    renderHelpPinState();
+    positionHelpPanel();
   };
 
   const closeHelpPanel = (force = false) => {
@@ -881,13 +1205,100 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
     }, 120);
   };
 
+  const spendCurrentPointsByPercent = (percent: number) => {
+    const boundedPercent = clampPercent(percent);
+    currentPointsExact = clampPoints(currentPointsExact * (1 - boundedPercent / 100));
+    renderQuestionScore();
+    persistQuestionScore();
+  };
+
   const purchaseHelp = () => {
     if (helpPurchased) return;
     helpPurchased = true;
     helpPenaltyPercent = HELP_SCORE_PENALTY_PERCENT;
+    spendCurrentPointsByPercent(helpPenaltyPercent);
     root.dataset.helpUsed = 'true';
     root.dataset.helpPenaltyPercent = String(helpPenaltyPercent);
+    persistHelpPurchase();
+    if (helpIntroTimer) {
+      window.clearTimeout(helpIntroTimer);
+      helpIntroTimer = 0;
+    }
+    helpIntroActive = false;
+    if (helpPromptFlashTimer) {
+      window.clearTimeout(helpPromptFlashTimer);
+      helpPromptFlashTimer = 0;
+    }
+    delete helpDetail.dataset.promptFlash;
     renderHelpDetail();
+  };
+
+  const resetQuestionState = () => {
+    cancelHelpClose();
+    if (helpIntroTimer) {
+      window.clearTimeout(helpIntroTimer);
+      helpIntroTimer = 0;
+    }
+    if (helpPromptFlashTimer) {
+      window.clearTimeout(helpPromptFlashTimer);
+      helpPromptFlashTimer = 0;
+    }
+    if (formulaMarkerWarningTimer) {
+      window.clearTimeout(formulaMarkerWarningTimer);
+      formulaMarkerWarningTimer = 0;
+    }
+    clearEmptySubmitWarning();
+
+    clearStoredHelpPurchase();
+    clearStoredQuestionScore();
+    clearStoredChalkPreference();
+
+    attempts = 0;
+    currentPointsExact = QUESTION_MAX_POINTS;
+    chalkEnabled = true;
+    renderChalkPreference();
+    helpPurchased = false;
+    helpPenaltyPercent = 0;
+    helpIntroShown = false;
+    helpIntroActive = false;
+    helpPanelPinned = false;
+    helpClusterRecoveryUntil = 0;
+    helpClusterRecoveryHardStop = 0;
+    activeHelpFunction = helpFunctionNames[0] ?? null;
+    previewId = null;
+    previewIndex = null;
+    selectedCell = true;
+    suppressClickId = null;
+    suppressPlacedClickId = null;
+    activePointer = null;
+    if (activePlacedPointer?.ghost.isConnected) activePlacedPointer.ghost.remove();
+    activePlacedPointer = null;
+    clusterEnergy = 0;
+
+    releaseHoverLock();
+    placedIds.length = 0;
+    states.forEach((state) => {
+      state.used = false;
+      state.dragging = false;
+      state.hovered = false;
+      state.vx = 0;
+      state.vy = 0;
+      state.dragAngle = getBaseTilt(state);
+      state.element.hidden = false;
+      state.element.dataset.preview = 'false';
+    });
+
+    delete root.dataset.helpUsed;
+    delete root.dataset.helpPenaltyPercent;
+    delete helpDetail.dataset.promptFlash;
+    setFormulaMarkerWarning(false);
+    renderQuestionScore();
+    renderHelpPinState();
+    renderHelpDetail();
+    closeHelpPanel(true);
+    clearStatus();
+    renderFormula();
+    packCluster();
   };
 
   helpFunctionNames.forEach((name) => {
@@ -896,40 +1307,96 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
     button.className = 'formula-daily__help-function';
     button.dataset.helpFunction = name;
     button.textContent = name;
-    button.addEventListener('mouseenter', () => setActiveHelpFunction(name));
-    button.addEventListener('focus', () => setActiveHelpFunction(name));
+    button.addEventListener('mouseenter', () => {
+      if (helpPurchased) setActiveHelpFunction(name);
+    });
+    button.addEventListener('focus', () => {
+      if (helpPurchased) setActiveHelpFunction(name);
+    });
     button.addEventListener('click', () => {
+      if (!helpPurchased) {
+        activeHelpFunction = name;
+        renderHelpDetail();
+        flashHelpPurchasePrompt();
+        return;
+      }
       setActiveHelpFunction(name);
-      purchaseHelp();
     });
     helpFunctions.append(button);
   });
+  renderQuestionScore();
   renderHelpDetail();
-
-  helpButton.addEventListener('mouseenter', openHelpPanel);
-  helpButton.addEventListener('mouseleave', scheduleHelpClose);
-  helpButton.addEventListener('focus', openHelpPanel);
-  helpButton.addEventListener('blur', scheduleHelpClose);
-  helpButton.addEventListener('click', () => {
-    helpPanelPinned = !helpPanelPinned;
-    if (helpPanelPinned) {
-      openHelpPanel();
-      return;
-    }
-    scheduleHelpClose();
+  renderHelpPinState();
+  helpResetButton.addEventListener('click', resetQuestionState);
+  chalkToggle.addEventListener('change', () => {
+    chalkEnabled = chalkToggle.checked;
+    renderChalkPreference();
+    persistChalkPreference();
+    window.requestAnimationFrame(() => {
+      renderFormula();
+      packCluster();
+      if (!helpPanel.hidden) positionHelpPanel();
+    });
   });
-  helpPanel.addEventListener('mouseenter', () => {
-    cancelHelpClose();
+
+  helpButton.addEventListener('mouseenter', () => {
+    showHelpIntro();
     openHelpPanel();
   });
-  helpPanel.addEventListener('mouseleave', scheduleHelpClose);
-  helpPanel.addEventListener('focusin', openHelpPanel);
-  helpPanel.addEventListener('focusout', scheduleHelpClose);
+  helpButton.addEventListener('mouseleave', scheduleHelpClose);
+  helpButton.addEventListener('focus', () => {
+    showHelpIntro();
+    openHelpPanel();
+  });
+  helpButton.addEventListener('blur', scheduleHelpClose);
+  const setHelpPanelPinned = (pinned: boolean) => {
+    const wasPinned = helpPanelPinned;
+    helpPanelPinned = pinned;
+    renderHelpPinState();
+    if (helpPanelPinned) {
+      helpClusterRecoveryUntil = 0;
+      helpClusterRecoveryHardStop = 0;
+      openHelpPanel();
+      const mobileLayout = isMobileHelpLayout();
+      states.filter((state) => !state.used && !state.dragging && !state.hovered).forEach((state, index) => {
+        if (mobileLayout) {
+          state.vx += (index % 2 === 0 ? -1 : 1) * .12;
+          state.vy += 1.2 + (index % 4) * .18;
+          return;
+        }
+        state.vx -= 1.2 + (index % 4) * .18;
+        state.vy += (index % 2 === 0 ? -1 : 1) * .12;
+      });
+      clusterEnergy = Math.max(clusterEnergy, 1);
+      requestTick();
+      return;
+    }
 
+    closeHelpPanel(true);
+    if (wasPinned) {
+      helpClusterRecoveryUntil = primeHelpClusterRecovery(states, field.getBoundingClientRect());
+      helpClusterRecoveryHardStop = helpClusterRecoveryUntil + HELP_CLUSTER_RECOVERY_SETTLE_MS;
+      clusterEnergy = Math.max(clusterEnergy, 1);
+    }
+    requestTick();
+  };
+
+  helpButton.addEventListener('click', () => {
+    showHelpIntro();
+    setHelpPanelPinned(!helpPanelPinned);
+  });
+  helpPinButton.addEventListener('click', (event) => {
+    const nextPinned = !helpPanelPinned;
+    if (event.detail > 0) helpPinButton.blur();
+    setHelpPanelPinned(nextPinned);
+  });
+  helpPanel.addEventListener('mouseenter', cancelHelpClose);
+  helpPanel.addEventListener('mouseleave', scheduleHelpClose);
+  helpPanel.addEventListener('focusin', cancelHelpClose);
+  helpPanel.addEventListener('focusout', scheduleHelpClose);
   root.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape' || helpPanel.hidden) return;
-    helpPanelPinned = false;
-    closeHelpPanel(true);
+    setHelpPanelPinned(false);
     helpButton.focus();
   });
 
@@ -1029,6 +1496,27 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
       if (separator) message.append(document.createTextNode(separator));
     });
     status.replaceChildren(message);
+  };
+
+  const clearEmptySubmitWarning = () => {
+    if (emptySubmitWarningTimer) {
+      window.clearTimeout(emptySubmitWarningTimer);
+      emptySubmitWarningTimer = 0;
+    }
+    delete placeholder.dataset.emptySubmitWarning;
+    delete submitButton.dataset.emptySubmitWarning;
+  };
+
+  const showEmptySubmitWarning = () => {
+    clearEmptySubmitWarning();
+    placeholder.dataset.emptySubmitWarning = 'true';
+    submitButton.dataset.emptySubmitWarning = 'true';
+    announce('Add at least one formula piece before submitting.');
+    emptySubmitWarningTimer = window.setTimeout(() => {
+      emptySubmitWarningTimer = 0;
+      delete placeholder.dataset.emptySubmitWarning;
+      delete submitButton.dataset.emptySubmitWarning;
+    }, EMPTY_SUBMIT_WARNING_MS);
   };
 
   const clamp = (value: number, minimum: number, maximum: number) => Math.max(minimum, Math.min(maximum, value));
@@ -1361,11 +1849,66 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
     updateStrings();
   };
 
+  const createFormulaMarker = () => {
+    const marker = document.createElement('button');
+    marker.type = 'button';
+    marker.className = 'formula-token formula-token--marker chalk-piece--syntax';
+    marker.dataset.formulaMarker = '';
+    marker.setAttribute('aria-label', 'Required formula equals sign. Formulas always begin with equals and this marker cannot be removed.');
+    marker.setAttribute('aria-describedby', 'formula-required-marker-help');
+    if (formulaMarkerWarningActive) marker.dataset.markerWarning = 'true';
+
+    marker.append(document.createTextNode('='));
+    const tooltip = document.createElement('span');
+    tooltip.className = 'formula-token__marker-tooltip';
+    tooltip.id = 'formula-required-marker-help';
+    tooltip.setAttribute('role', 'tooltip');
+    tooltip.textContent = 'Formulas always begin with =. This first sign stays in place.';
+    marker.append(tooltip);
+    return marker;
+  };
+
+  const setFormulaMarkerWarning = (active: boolean) => {
+    formulaMarkerWarningActive = active;
+    if (active) {
+      formulaEntry.dataset.markerWarning = 'true';
+      inputCell.dataset.markerWarning = 'true';
+    } else {
+      delete formulaEntry.dataset.markerWarning;
+      delete inputCell.dataset.markerWarning;
+    }
+
+    const marker = formulaOutput.querySelector<HTMLButtonElement>('[data-formula-marker]');
+    if (!marker) return;
+    if (active) marker.dataset.markerWarning = 'true';
+    else delete marker.dataset.markerWarning;
+  };
+
+  const showFormulaMarkerWarning = () => {
+    if (formulaMarkerWarningTimer) window.clearTimeout(formulaMarkerWarningTimer);
+    setFormulaMarkerWarning(true);
+    formulaMarkerWarningTimer = window.setTimeout(() => {
+      formulaMarkerWarningTimer = 0;
+      setFormulaMarkerWarning(false);
+    }, FORMULA_MARKER_WARNING_MS);
+  };
+
   const syncInputHeight = () => {
     const previousTarget = lastAnswerHeight;
-    const nextHeight = Math.max(66, Math.ceil(formulaOutput.scrollHeight + 30));
+    const inputStyle = window.getComputedStyle(inputCell);
+    const minHeight = Number.parseFloat(inputStyle.minHeight) || 0;
+    const verticalChrome =
+      (Number.parseFloat(inputStyle.paddingTop) || 0) +
+      (Number.parseFloat(inputStyle.paddingBottom) || 0) +
+      (Number.parseFloat(inputStyle.borderTopWidth) || 0) +
+      (Number.parseFloat(inputStyle.borderBottomWidth) || 0);
+    // Measure the flex rows themselves. scrollHeight also includes the absolutely
+    // positioned marker tooltip, which can make an otherwise single-row answer
+    // cell appear much taller than its formula tokens.
+    const formulaRowsHeight = formulaOutput.getBoundingClientRect().height;
+    const nextHeight = Math.max(minHeight, Math.ceil(formulaRowsHeight + verticalChrome));
     if (!inputCell.style.height) {
-      inputCell.style.height = `${Math.max(66, Math.round(inputCell.getBoundingClientRect().height))}px`;
+      inputCell.style.height = `${Math.max(minHeight, Math.round(inputCell.getBoundingClientRect().height))}px`;
       void inputCell.offsetHeight;
     }
     inputCell.style.height = `${nextHeight}px`;
@@ -1374,7 +1917,7 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
   };
 
   const renderFormula = () => {
-    formulaOutput.replaceChildren();
+    formulaOutput.replaceChildren(createFormulaMarker());
     placedIds.forEach((id) => {
       const state = states.find((piece) => piece.id === id);
       if (!state) return;
@@ -1393,10 +1936,12 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
       setPieceContent(ghost, preview);
       ghost.setAttribute('aria-hidden', 'true');
       const insertionPoint = Math.max(0, Math.min(previewIndex ?? placedIds.length, placedIds.length));
-      formulaOutput.insertBefore(ghost, formulaOutput.children[insertionPoint] ?? null);
+      const placedTokens = Array.from(formulaOutput.querySelectorAll<HTMLElement>('[data-placed-id]'));
+      formulaOutput.insertBefore(ghost, placedTokens[insertionPoint] ?? null);
     }
     placeholder.hidden = placedIds.length > 0 || Boolean(preview);
-    inputCell.setAttribute('aria-label', `Formula answer for total units sold in East, selected. ${placedIds.length ? placedIds.map((id) => states.find((piece) => piece.id === id)?.value).join('') : 'Empty'}`);
+    const assembledFormula = placedIds.map((id) => states.find((piece) => piece.id === id)?.value).join('');
+    inputCell.setAttribute('aria-label', `Formula answer for total units sold in East, selected. =${assembledFormula || ' empty'}`);
     syncInputHeight();
     scheduleClusterHeight();
   };
@@ -1409,6 +1954,7 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
     state.used = true;
     state.element.hidden = true;
     placedIds.splice(Math.max(0, Math.min(index, placedIds.length)), 0, state.id);
+    clearEmptySubmitWarning();
     renderFormula();
     clearStatus();
   };
@@ -1837,13 +2383,53 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
     return false;
   };
 
+  const getPinnedHelpObstacle = (fieldBounds: DOMRect) => {
+    if (!helpPanelPinned || helpPanel.hidden) return null;
+    const panelBounds = helpPanel.getBoundingClientRect();
+    const gap = 14;
+    return {
+      left: panelBounds.left - fieldBounds.left - gap,
+      right: panelBounds.right - fieldBounds.left + gap,
+      top: panelBounds.top - fieldBounds.top - gap,
+      bottom: panelBounds.bottom - fieldBounds.top + gap,
+      mobile: isMobileHelpLayout(),
+    };
+  };
+
   const tick = (time: number) => {
     animationFrame = 0;
     if (!visible || reducedMotion) return;
     const bounds = field.getBoundingClientRect();
     const active = states.filter((state) => !state.used);
-    const centreX = bounds.width / 2;
-    const centreY = bounds.height / 2;
+    const helpObstacle = getPinnedHelpObstacle(bounds);
+    if (helpObstacle) {
+      helpClusterRecoveryUntil = 0;
+      helpClusterRecoveryHardStop = 0;
+    }
+    let helpRecoveryStrength = 0;
+    if (!helpObstacle && helpClusterRecoveryUntil) {
+      if (time < helpClusterRecoveryUntil) {
+        helpRecoveryStrength = clamp((helpClusterRecoveryUntil - time) / HELP_CLUSTER_RECOVERY_MS, 0, 1);
+      } else {
+        const movable = active.filter((state) => !state.dragging && !state.hovered);
+        const canKeepSettling = helpClusterRecoveryHardStop > time && clusterHasOverlap(movable);
+        if (canKeepSettling) {
+          helpRecoveryStrength = .24;
+        } else {
+          helpClusterRecoveryUntil = 0;
+          helpClusterRecoveryHardStop = 0;
+        }
+      }
+    }
+    const centreX = helpObstacle && !helpObstacle.mobile
+      ? Math.max(CLUSTER_PAD_X, Math.min(bounds.width / 2, helpObstacle.left / 2))
+      : bounds.width / 2;
+    const mobileFreeTop = helpObstacle?.mobile
+      ? Math.max(CLUSTER_PAD_Y, helpObstacle.bottom)
+      : CLUSTER_PAD_Y;
+    const centreY = helpObstacle?.mobile
+      ? clamp(mobileFreeTop + (bounds.height - mobileFreeTop) / 2, bounds.height / 2, Math.max(bounds.height / 2, bounds.height - CLUSTER_PAD_Y))
+      : bounds.height / 2;
 
     // Preserve the current constrained drag/answer mechanics, but use the live
     // build's original loose-label physics for every other piece.
@@ -1868,13 +2454,44 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
       if (state.dragging || state.hovered) return;
       const stateCentreX = state.x + state.width / 2;
       const stateCentreY = state.y + state.height / 2;
-      state.vx += (centreX - stateCentreX) * .0007 + Math.sin(time / 1700 + index * 1.9) * .004;
-      state.vy += (centreY - stateCentreY) * .0007 + Math.cos(time / 1900 + index * 1.3) * .004;
+      const recoveryPullX = HELP_CLUSTER_RECOVERY_PULL_X * helpRecoveryStrength;
+      const recoveryPullY = HELP_CLUSTER_RECOVERY_PULL_Y * helpRecoveryStrength;
+      const recoveryBounce = Math.sin(time / 125 + index * 1.45) * .018 * helpRecoveryStrength;
+      state.vx += (centreX - stateCentreX) * (CLUSTER_GRAVITY_PULL + recoveryPullX)
+        + Math.sin(time / 1700 + index * 1.9) * CLUSTER_WANDER_FORCE;
+      state.vy += (centreY - stateCentreY) * (CLUSTER_GRAVITY_PULL + recoveryPullY)
+        + Math.cos(time / 1900 + index * 1.3) * CLUSTER_WANDER_FORCE
+        + recoveryBounce;
+
+      if (!helpObstacle) return;
+      const collision = getCollisionDimensions(state);
+      const left = stateCentreX - collision.width / 2;
+      const right = stateCentreX + collision.width / 2;
+      const top = stateCentreY - collision.height / 2;
+      const bottom = stateCentreY + collision.height / 2;
+      const overlapsVertically = bottom > helpObstacle.top && top < helpObstacle.bottom;
+      const overlapsHorizontally = right > helpObstacle.left && left < helpObstacle.right;
+      if (!overlapsVertically || !overlapsHorizontally) return;
+      if (helpObstacle.mobile) {
+        const penetration = Math.max(0, helpObstacle.bottom - top);
+        state.vy += Math.min(4.8, .55 + penetration * .075);
+        state.vx += Math.sin(index * 1.7 + time / 280) * .035;
+        return;
+      }
+      const penetration = Math.max(0, right - helpObstacle.left);
+      state.vx -= Math.min(4.8, .55 + penetration * .075);
+      state.vy += Math.sin(index * 1.7 + time / 280) * .035;
     });
 
-    // Original live collision impulse. There is deliberately no positional
-    // overlap resolver here: contacted labels push and slide around one another
-    // rather than being snapped to a mathematically separated position.
+    // Normal play keeps the reviewed soft collision response. While pinned Help
+    // compresses the cluster, and again during the temporary recovery phase,
+    // overlapping labels receive a stronger room-aware impulse so they can
+    // shuffle into available gaps instead of settling on top of one another.
+    const overlapReliefStrength = helpObstacle
+      ? HELP_CLUSTER_OVERLAP_FORCE_PINNED
+      : helpRecoveryStrength > 0
+        ? HELP_CLUSTER_OVERLAP_FORCE_RECOVERY * (.7 + helpRecoveryStrength * .3)
+        : 0;
     for (let first = 0; first < active.length; first += 1) {
       for (let second = first + 1; second < active.length; second += 1) {
         const a = active[first];
@@ -1882,20 +2499,69 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
         const aPinned = a.dragging || a.hovered;
         const bPinned = b.dragging || b.hovered;
         if (aPinned && bPinned) continue;
+        const aCollision = overlapReliefStrength > 0 ? getCollisionDimensions(a) : { width: a.width, height: a.height };
+        const bCollision = overlapReliefStrength > 0 ? getCollisionDimensions(b) : { width: b.width, height: b.height };
         const dx = (b.x + b.width / 2) - (a.x + a.width / 2);
         const dy = (b.y + b.height / 2) - (a.y + a.height / 2);
-        const overlapX = (a.width + b.width) / 2 + 10 - Math.abs(dx);
-        const overlapY = (a.height + b.height) / 2 + 10 - Math.abs(dy);
+        const overlapX = (aCollision.width + bCollision.width) / 2 + CLUSTER_COLLISION_GAP - Math.abs(dx);
+        const overlapY = (aCollision.height + bCollision.height) / 2 + CLUSTER_COLLISION_GAP - Math.abs(dy);
         if (overlapX <= 0 || overlapY <= 0) continue;
-        const force = .035;
-        if (overlapX < overlapY) {
+
+        let separateX = overlapX < overlapY;
+        if (overlapReliefStrength > 0) {
+          const xDirection = dx >= 0 ? 1 : -1;
+          const yDirection = dy >= 0 ? 1 : -1;
+          const rightRoom = (state: PieceState, collision: { width: number; height: number }) => {
+            let rightLimit = bounds.width;
+            if (helpObstacle && !helpObstacle.mobile) {
+              const centreY = state.y + state.height / 2;
+              const top = centreY - collision.height / 2;
+              const bottom = centreY + collision.height / 2;
+              if (bottom > helpObstacle.top && top < helpObstacle.bottom) rightLimit = Math.min(rightLimit, helpObstacle.left);
+            }
+            return Math.max(0, rightLimit - (state.x + state.width));
+          };
+          const topRoom = (state: PieceState, collision: { width: number; height: number }) => {
+            let topLimit = 0;
+            if (helpObstacle?.mobile) {
+              const centreX = state.x + state.width / 2;
+              const left = centreX - collision.width / 2;
+              const right = centreX + collision.width / 2;
+              if (right > helpObstacle.left && left < helpObstacle.right) topLimit = Math.max(topLimit, helpObstacle.bottom);
+            }
+            return Math.max(0, state.y - topLimit);
+          };
+          const aRoomX = xDirection > 0 ? a.x : rightRoom(a, aCollision);
+          const bRoomX = xDirection > 0 ? rightRoom(b, bCollision) : b.x;
+          const aRoomY = yDirection > 0 ? topRoom(a, aCollision) : bounds.height - (a.y + a.height);
+          const bRoomY = yDirection > 0 ? bounds.height - (b.y + b.height) : topRoom(b, bCollision);
+          const roomX = Math.max(0, aRoomX) + Math.max(0, bRoomX);
+          const roomY = Math.max(0, aRoomY) + Math.max(0, bRoomY);
+          const xCost = overlapX / Math.max(8, roomX);
+          const yCost = overlapY / Math.max(8, roomY);
+          separateX = xCost <= yCost;
+        }
+
+        const force = overlapReliefStrength || .035;
+        const pairDirection = (first + second) % 2 === 0 ? 1 : -1;
+        if (separateX) {
           const direction = dx >= 0 ? 1 : -1;
           if (!aPinned) a.vx -= overlapX * force * direction;
           if (!bPinned) b.vx += overlapX * force * direction;
+          if (overlapReliefStrength > 0) {
+            const shuffle = HELP_CLUSTER_OVERLAP_SHUFFLE * (1 + Math.min(1.5, overlapY / 18));
+            if (!aPinned) a.vy -= shuffle * pairDirection;
+            if (!bPinned) b.vy += shuffle * pairDirection;
+          }
         } else {
           const direction = dy >= 0 ? 1 : -1;
           if (!aPinned) a.vy -= overlapY * force * direction;
           if (!bPinned) b.vy += overlapY * force * direction;
+          if (overlapReliefStrength > 0) {
+            const shuffle = HELP_CLUSTER_OVERLAP_SHUFFLE * .65 * (1 + Math.min(1.5, overlapX / 22));
+            if (!aPinned) a.vx -= shuffle * pairDirection;
+            if (!bPinned) b.vx += shuffle * pairDirection;
+          }
         }
       }
     }
@@ -1905,8 +2571,9 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
     // home coordinate.
     active.forEach((state) => {
       if (state.dragging || state.hovered) return;
-      state.vx *= .91;
-      state.vy *= .91;
+      const damping = helpRecoveryStrength > 0 ? HELP_CLUSTER_RECOVERY_DAMPING : CLUSTER_DAMPING;
+      state.vx *= damping;
+      state.vy *= damping;
       state.x = Math.max(0, Math.min(bounds.width - state.width, state.x + state.vx));
       state.y = Math.max(0, Math.min(bounds.height - state.height, state.y + state.vy));
       setPosition(state);
@@ -2105,6 +2772,30 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
   document.addEventListener('pointercancel', (event) => finishDrag(event, true));
 
   formulaOutput.addEventListener('pointerdown', (event) => {
+    const marker = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-formula-marker]');
+    if (!marker) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    showFormulaMarkerWarning();
+  });
+
+  formulaOutput.addEventListener('click', (event) => {
+    const marker = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-formula-marker]');
+    if (!marker) return;
+    event.preventDefault();
+    event.stopPropagation();
+    showFormulaMarkerWarning();
+  });
+
+  formulaOutput.addEventListener('keydown', (event) => {
+    const marker = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-formula-marker]');
+    if (!marker || (event.key !== 'Enter' && event.key !== ' ')) return;
+    event.preventDefault();
+    event.stopPropagation();
+    showFormulaMarkerWarning();
+  });
+
+  formulaOutput.addEventListener('pointerdown', (event) => {
     const token = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-placed-id]');
     const state = states.find((piece) => piece.id === token?.dataset.placedId);
     if (!token || !state || activePointer || activePlacedPointer) return;
@@ -2282,14 +2973,31 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
   });
 
   submitButton.addEventListener('click', () => {
-    attempts += 1;
-    attemptCount.textContent = String(attempts);
-    if (attempts >= 5) {
-      submitButton.disabled = true;
-      announce('Five test submissions recorded. Formula checking comes later.');
+    if (!placedIds.length) {
+      showEmptySubmitWarning();
       return;
     }
-    announce(`Attempt ${attempts} recorded. ${5 - attempts} test submissions remain.`);
+
+    const remainingAttempts = QUESTION_MAX_ATTEMPTS - attempts;
+    if (remainingAttempts <= 0) return;
+
+    // Answer correctness is intentionally not implemented yet, so every non-empty
+    // prototype submission consumes one failed attempt. Dividing the hidden exact
+    // point pool by the attempts remaining guarantees the final attempt reaches 0,
+    // even when a purchase has changed the pool to a fractional value.
+    const attemptPointCost = currentPointsExact / remainingAttempts;
+    currentPointsExact = clampPoints(currentPointsExact - attemptPointCost);
+    attempts += 1;
+    if (attempts >= QUESTION_MAX_ATTEMPTS) currentPointsExact = 0;
+    renderQuestionScore();
+    persistQuestionScore();
+
+    const attemptsLeft = QUESTION_MAX_ATTEMPTS - attempts;
+    if (attemptsLeft <= 0) {
+      announce('Five attempts used. Answer checking comes later.');
+      return;
+    }
+    announce(`Attempt ${attempts} recorded. ${attemptsLeft} attempts remain.`);
   });
 
   const observer = new IntersectionObserver(([entry]) => {
@@ -2303,6 +3011,7 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
   observer.observe(field);
 
   const resizeObserver = new ResizeObserver(() => {
+    if (!helpPanel.hidden) positionHelpPanel();
     const nextWidth = field.getBoundingClientRect().width;
     if (Math.abs(nextWidth - lastFieldWidth) < 2) return;
     populateBoardNotes();
@@ -2312,6 +3021,7 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
 
   const answerResizeObserver = new ResizeObserver(() => {
     syncHoveredPieceToViewport();
+    if (!helpPanel.hidden) positionHelpPanel();
     scheduleClusterHeight();
   });
   answerResizeObserver.observe(inputCell);

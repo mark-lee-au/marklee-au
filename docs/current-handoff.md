@@ -1,12 +1,12 @@
 # Current Handoff
 
-Snapshot date: 2026-09-10
+Snapshot date: 2026-09-11
 
 ## Repository state supplied to ChatGPT
 
 - Latest supplied source snapshot branch: `main`.
-- Base commit: `094e8f7dc859a9f6b76dd30c5acd904bf1062187`.
-- The supplied working tree is recorded as clean.
+- Base commit: `d4dd2985834e5d184a50b0c17d66c713c684d72b`.
+- The supplied working tree is dirty with reviewed Formula Daily changes plus unrelated local-server helper files; this package does not touch the helper files.
 - The snapshot contains the current Ascend Genesis expansion and the local archive/publication helpers.
 - Cloudflare deployment state has not been independently verified from this ChatGPT session.
 
@@ -19,14 +19,13 @@ Snapshot date: 2026-09-10
 
 ## Formula Daily review change prepared in this package
 
-- Adds a muted white `Help` button immediately left of `Test Answer`. It reaches full opacity on hover/focus and opens a compact function-reference popup.
-- The popup derives its links from function pieces present in the current puzzle. The current puzzle exposes `COUNTIF`, `SUMIF`, `SUM`, `AVERAGE` and `COUNT`.
-- Before Help is purchased, hovering/focusing a function shows `Tap to reveal (-50% points)`. The penalty is controlled by the single `HELP_SCORE_PENALTY_PERCENT` constant.
-- The first function reveal purchases Help once for the current question/session and records `data-help-used="true"` plus `data-help-penalty-percent="50"` on the Formula Daily root for later scoring integration. The current prototype still has no final score calculation, so this patch records the score-cap penalty rather than calculating points.
-- Once Help is purchased, hovering/focusing any current function link shows a concise Excel-style signature and argument guidance. The content stays generic and does not reference the current puzzle columns or target answer.
-- Clear does not relock Help or remove its recorded penalty. A later five-question implementation should reset Help state only when advancing to a new question.
-- Help opens on pointer hover, keyboard focus or tap/click. Tap/click can pin the popup, and Escape closes it.
-- Formula validation, Test Answer, Submit, loose-label movement, hidden connector logic, answer wrapping and Sample Data behaviour are unchanged.
+- Added a compact `Chalk` switch below the attempt counter. Chalk is on by default.
+- Chalk mode now uses a broader system stack for desktop and mobile: `Chalkboard SE`, `Marker Felt`, `Segoe Print`, `Comic Sans MS`, `Bradley Hand`, then generic cursive. The previous mobile-only sans override was removed.
+- Turning Chalk off forces a clear system sans-serif family across the full Formula Daily UI, including loose/placed labels, Sample Data, headings, counters, buttons, Help, links, status text and board notes.
+- The Chalk preference persists across refreshes and browser sessions with a Formula Daily preference key in `localStorage`.
+- The full question Reset clears that preference and restores Chalk on, matching a first-load state.
+- Changing the font repacks the loose cluster and rerenders the answer so changed text metrics do not leave stale overlaps or wrapping measurements.
+- Scoring, Help purchase state, attempts, validation and existing cluster physics are otherwise unchanged.
 
 ## Local context archive utility
 
@@ -45,10 +44,12 @@ Snapshot date: 2026-09-10
 
 ## Next action
 
-1. Apply this Help prototype over the latest reviewed Formula Daily files.
-2. Check desktop hover/focus and mobile tap behaviour, including popup placement over the loose labels.
-3. Reveal one function, confirm the `-50%` Help state remains available after Clear, then hover the other function links and review the amount of guidance exposed.
-4. Stop for review before wiring the Help penalty into the final scoring system or adding further function-reference detail.
+1. Apply this patch over the current reviewed Formula Daily files.
+2. Confirm Chalk is on by default on desktop and mobile, with the mobile view now retaining a chalk-like face.
+3. Turn Chalk off and confirm every visible Formula Daily text area switches to the clear sans-serif stack.
+4. Refresh with Chalk off and confirm the choice persists.
+5. Use Help Reset and confirm Chalk returns to on along with the rest of the question state.
+6. Check that loose labels repack cleanly and answer wrapping remains correct after toggling fonts.
 
 ## 2026-09-10 review prototype - Formula Daily Test Answer type checks
 
@@ -350,3 +351,98 @@ Snapshot date: 2026-09-10
 - Test Answer results, the build-a-formula prompt, and Submit/attempt feedback remain in the status live region.
 - Files changed: `src/visualisations/formula-daily/FormulaDaily.astro`, `src/visualisations/formula-daily/formula-daily.css`, `src/visualisations/formula-daily/formula-daily.ts`, `docs/exec-plans/active/005-formula-daily.md`, `docs/current-handoff.md`.
 - Validation: focused strict TypeScript compile, CSS structure/static selector checks, routine-status string checks and package integrity. Full Astro/browser QA remains local because the supplied context snapshot excludes installed dependencies.
+
+## Formula Daily current review state - permanent equals marker
+
+- Base remains `main` at `d4dd2985834e5d184a50b0c17d66c713c684d72b`; this review patch layers on the explicit Function Help pin-state patch.
+- Function Help now uses a grey/red pushpin icon beside the reveal-cost text instead of textual pin/unpin links.
+- The question copy is `Total units sold in East`; a permanent white `=` now occupies the left edge of the answer cell. All user tokens and wrapped continuation rows are laid out to its right.
+- The loose `=` cluster piece remains available as a comparison/red-herring token. It is no longer treated as a leading formula marker by Test Answer because the permanent marker supplies that role.
+- Attempting to manipulate the permanent marker produces a temporary red/black hazard warning and a short `Formulas always begin with =` tooltip. The warning timer is controlled by `FORMULA_MARKER_WARNING_MS` (2200 ms).
+- Local browser review should check answer wrapping on desktop/mobile, permanent-marker warning placement, and Help pin icon clarity.
+
+## Formula Daily current review state - compact answer row
+
+- Base remains `main` at `d4dd2985834e5d184a50b0c17d66c713c684d72b`, with the reviewed permanent `=` and Help pin-icon work layered on top.
+- The permanent-marker warning no longer names Excel; it reads `Formulas always begin with =. This first sign stays in place.`
+- The answer cell now targets a 44px single-row height and grows only from actual wrapped formula rows. The height synchroniser measures the formula flex box instead of `scrollHeight`, so the hidden marker tooltip cannot inflate the cell.
+- The permanent `=` gutter, wrapped-row alignment and existing interaction logic are unchanged.
+- Local review should confirm single-row compactness plus two-row wrapping on desktop and mobile.
+
+### 2026-09-11 Formula Daily review patch - answer layout hierarchy
+
+- Base remains `main` at `d4dd2985834e5d184a50b0c17d66c713c684d72b`, with reviewed Formula Daily patches layered on top.
+- Problem statement now sits above the answer cell with larger chalk text.
+- Answer entry now spans the available inner board width instead of the previous 820px cap.
+- Answer cell uses 10px padding on all sides and a 58px single-row minimum, while existing flex wrapping and permanent `=` gutter continue to control multi-row growth.
+- Changed files: `src/visualisations/formula-daily/formula-daily.css`, `docs/exec-plans/active/005-formula-daily.md`, `docs/current-handoff.md`.
+
+## 2026-09-11 review patch - centred prompt and aligned answer actions
+
+- Branch base: `main`; base commit: `d4dd2985834e5d184a50b0c17d66c713c684d72b`, with the reviewed full-width answer patch as the working baseline.
+- Centred the problem statement above the answer cell, increased its chalk text size slightly, and increased the vertical gap before the answer field.
+- Made the action footer full width instead of retaining the old 820px cap, so Clear aligns with the answer cell's left edge and the Help/Test Answer/Submit group aligns with its right edge.
+- Changed the answer cell's outer green border from solid to a thicker 3px dashed chalk line. The former faint inner dashed line is now a subtle solid inset so the border treatment does not become visually double-dashed.
+- No Astro or TypeScript changes were required. Permanent `=` behaviour, answer wrapping, Help/Test/Submit logic, loose-label physics and scoring state are unchanged.
+- Validation: CSS parse/selector checks, whitespace checks and ZIP integrity. Full Astro/browser QA remains for local review because installed dependencies are absent from the supplied snapshot.
+
+## 2026-09-11 review patch - pinned Help cluster avoidance
+
+- Base remains `main` at `d4dd2985834e5d184a50b0c17d66c713c684d72b`, with the reviewed Formula Daily patches layered on top.
+- Function Help now opens below Help and is clamped into the right side of the loose-label cluster.
+- Only pinned Help affects label movement: loose pieces receive a leftward nudge/soft-obstacle force and drift into the free area left of the panel. Unpinned hover/focus previews leave the cluster untouched.
+- Explicit unpin from Help or the panel pushpin closes immediately. A never-pinned hover preview keeps the existing delayed close behaviour.
+- Changed files: `src/visualisations/formula-daily/formula-daily.css`, `src/visualisations/formula-daily/formula-daily.ts`, `docs/exec-plans/active/005-formula-daily.md`, `docs/current-handoff.md`.
+- Local review should focus on pinned-panel avoidance on desktop and touch/mobile widths, plus the natural return of pieces after unpinning.
+
+## 2026-09-11 Formula Daily current review state - explicit Help purchase
+
+- Base is `main` at `d4dd2985834e5d184a50b0c17d66c713c684d72b`, with reviewed Formula Daily patches layered on top.
+- Before purchase, Function Help links are grey but remain keyboard/touch actionable. Activating one flashes the current purchase prompt rather than buying Help or revealing its guide.
+- The purchase area is centred in the Help panel. It shows the five-second first-use explanation initially, then `Reveal Help? (-50% points)`, with a larger red underlined `Buy` control beneath it.
+- Only `Buy` purchases Help. After purchase, function links return to green and work as guide selectors. The configured percentage still comes from `HELP_SCORE_PENALTY_PERCENT`.
+- Changed files: `src/visualisations/formula-daily/formula-daily.css`, `src/visualisations/formula-daily/formula-daily.ts`, `docs/exec-plans/active/005-formula-daily.md`, `docs/current-handoff.md`.
+- Validation: focused strict TypeScript compilation passed, emitted JavaScript passed `node --check`, CSS parsed with zero syntax errors, focused locked-link/purchase/flash assertions passed. Full Astro build was not run because installed dependencies are absent from the supplied snapshot.
+
+## 2026-09-11 Formula Daily current review state - Help Buy click fix
+
+- Base is `main` at `d4dd2985834e5d184a50b0c17d66c713c684d72b`, with reviewed Formula Daily patches layered on top.
+- `Buy` now binds directly to the existing Help purchase action when the button is rendered. The delegated purchase listener on the Help detail container was removed.
+- No visual, scoring, Help pinning, panel positioning, cluster physics or Test Answer behaviour changed.
+- Validation: strict TypeScript compile and emitted JavaScript syntax check passed. Local desktop/mobile click confirmation remains the next review step.
+## 2026-09-11 review patch - Help Buy focus/rerender fix and score allowance
+
+- Base remains `main` at `d4dd2985834e5d184a50b0c17d66c713c684d72b`, with the reviewed explicit Help purchase and responsive Help patches layered on top.
+- Root cause of the non-working `Buy` control: focusing the dynamically rendered Buy button bubbled `focusin` to the Help panel. The panel's `focusin` handler called `openHelpPanel()`, which rerendered `helpDetail` and replaced the focused Buy element before the subsequent click/tap activation could complete.
+- `openHelpPanel()` no longer rerenders Help detail. Entering or focusing within an already-open Help panel now only cancels the close timer. State-changing actions such as the first-use prompt, function selection and purchase remain responsible for explicit rerenders.
+- The direct native Buy click listener remains. With the focus-triggered rerender removed, mouse, touch and keyboard activation all reach `purchaseHelp()`.
+- Help purchase now applies the configured penalty to a real per-question maximum-score allowance. The question starts at 100% maximum score; buying Help once subtracts `HELP_SCORE_PENALTY_PERCENT` and records the result on `data-max-score-percent` in addition to the existing Help-use/penalty attributes. With the current 50% setting the allowance becomes 50%.
+- The `helpPurchased` guard prevents duplicate deductions, and Clear does not restore the spent Help allowance. The prototype still does not award a final numeric score, so future scoring should consume this maximum-score percentage rather than reapply the Help penalty.
+- Browser regression harness using the emitted current script reproduced the old failure and verified the fix: before the patch, activating Buy left Help locked; after the patch, desktop click and mobile tap set Help used, store a 50% penalty, reduce maximum score to 50%, remove Buy and render the active Help state.
+
+## 2026-09-11 Formula Daily current review state - persistent Help purchase
+
+- Base is `main` at `d4dd2985834e5d184a50b0c17d66c713c684d72b`; the supplied context records the Formula Daily working tree as dirty and the unrelated local-server scripts remain untouched.
+- Current question ID is `total-units-sold-east-v1`. Function Help purchase is stored per question in `localStorage`, including the penalty paid and resulting maximum-score percentage, so refresh no longer refunds Help for this question.
+- Help function selectors are rounded buttons with larger text and mobile touch targets. Buy is also a rounded red button.
+- Purchased Help shows a small grey Reset control in the panel bottom-right. Reset clears only this question's persisted Help state, restores 100% maximum score and relocks Help for prototype testing.
+- Clear still clears only the formula answer and does not refund Help. Future questions must receive their own stable `data-question-id` so their Help state remains independent.
+- Validation completed: strict TypeScript compile, emitted JavaScript syntax, CSS/static selector checks, per-question storage-key assertions, Reset-state assertions, whitespace/EOF checks and package integrity. A full Astro build and real browser refresh cycle were not completed in this environment.
+
+## 2026-09-11 Formula Daily points prototype
+
+- Current Formula Daily working tree now shows `Points 100 / 100` above Attempt and uses a hidden exact 100-point pool per question.
+- Non-empty Submit still does not check answer correctness. For this prototype it consumes a failed attempt and deducts exact points by dividing the remaining pool across the remaining attempts, guaranteeing zero after attempt five.
+- Help purchases deduct the configured percentage from the current point pool. Help, attempts and exact points persist per stable question ID across refreshes.
+- Empty Submit is blocked with no point/attempt loss and briefly flashes the placeholder plus Submit using the error/hazard treatment.
+- Files changed in this patch: `src/visualisations/formula-daily/FormulaDaily.astro`, `src/visualisations/formula-daily/formula-daily.css`, `src/visualisations/formula-daily/formula-daily.ts`, `docs/exec-plans/active/005-formula-daily.md`, `docs/current-handoff.md`.
+- Base branch/commit: `main` / `d4dd2985834e5d184a50b0c17d66c713c684d72b`.
+- Next review: local visual test of the new score line and empty-submit flash, then tune scoring only after the interaction feels right.
+## 2026-09-11 Formula Daily - full question Reset
+
+- Branch/base: `main` at `d4dd2985834e5d184a50b0c17d66c713c684d72b`; current Formula Daily work remains reviewed but uncommitted in the supplied snapshot.
+- Formula Daily starts at 100 points when no per-question storage exists. A restored 50 / 100 state is expected after a previously purchased 50% Help unlock because score and Help are persisted for this question.
+- The Help popup `Reset` now clears this question's Help and score storage and restores first-load state: 100 / 100 points, Attempt 0 / 5, Help locked, empty answer, cleared transient warnings/status, and the loose labels repacked to their initial cluster.
+- Reset no longer preserves attempts and no longer recomputes a partial no-Help score. It removes the stored state entirely so refresh after Reset also starts from 100 / 100.
+- Files changed: `src/visualisations/formula-daily/FormulaDaily.astro`, `src/visualisations/formula-daily/formula-daily.ts`, `docs/exec-plans/active/005-formula-daily.md`, `docs/current-handoff.md`.
+- Unrelated `scripts/start-local-server.ps1` and `start-local-server.bat` in the supplied dirty snapshot remain untouched.

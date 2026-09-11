@@ -634,3 +634,196 @@ Stage 2 authorises the local GAMES structure and non-validating Formula Daily in
 - Pointer hover, keyboard focus and tap/click can open the Help popup. Click/tap can pin it, individual function links are keyboard-accessible buttons, and Escape closes the popup.
 - No changes were made to Test Answer validation, Submit behaviour, formula evaluation, loose-label physics, collision/bouncing, drag boundaries, connector calculations, answer wrapping, Sample Data or board-note behaviour.
 - Validation: focused strict TypeScript compilation passed. Full Astro build and browser/mobile visual QA remain local because the supplied context snapshot excludes installed dependencies; a headless Chromium interaction attempt timed out in the sandbox.
+
+## 2026-09-11 review patch - explicit Function Help pin state
+
+- Branch base: `main`; base commit: `d4dd2985834e5d184a50b0c17d66c713c684d72b`.
+- Kept the existing unpinned hover/focus auto-close timing unchanged. The previously stopped request to change that timing is not included in this patch.
+- Added an explicit pin-state control in the popup heading. Unpinned Help reads `Function help - pin help`; `pin help` is a white italic underlined button. Pinned Help reads `Function help - unpinned`; `unpinned` is a bright-red italic underlined button that removes the pin.
+- Desktop mouse users can hover to preview Help without pinning, then pin either by clicking the Help button or the heading control. A pinned popup ignores pointer-leave auto-close until it is unpinned or Escape is pressed.
+- Touch/non-hover use remains explicit: tapping Help opens it pinned so the popup does not depend on hover. Tapping the red heading control unpins and closes the popup.
+- Keyboard focus continues to open the popup. The heading pin control is a native button with `aria-pressed` and an action-oriented accessible label; Escape unpins, closes and returns focus to Help.
+- The Help heading can wrap on narrow widths so the pin control and score-cost text remain usable on mobile.
+- Help purchase state and its configurable `HELP_SCORE_PENALTY_PERCENT` remain separate from popup pin state. Clear still does not relock purchased Help.
+- No Test Answer logic, Submit behaviour, formula evaluation, loose-label movement, collision physics, answer wrapping, Sample Data or scoring implementation changed.
+
+## 2026-09-11 review patch - explicit Help pin icon and permanent formula marker
+
+- Branch base: `main`; base commit: `d4dd2985834e5d184a50b0c17d66c713c684d72b`, with the reviewed explicit Help pin-state patch as the working baseline.
+- Replaced the textual `pin help` / `unpinned` control with a compact pushpin icon at the top-right of Function Help, immediately after the reveal/help-cost text. The icon is grey while unpinned and bright error-red while pinned. Existing hover, keyboard and touch pin logic remains intact.
+- Removed the trailing `=` from the visible question label. The answer cell now owns a permanent white `=` marker so the displayed construction follows Excel's `=<expression>` model.
+- The permanent marker is not part of `placedIds`, cannot be removed or reordered, and reserves a fixed left gutter inside the wrapping answer flex area. User-placed and preview tokens therefore always start to its right, including wrapped continuation rows.
+- Kept the existing loose `=` piece in the cluster. It remains available as a comparison-operator/red-herring piece. Because the permanent formula marker is now implicit, a loose `=` at the start of the assembled expression is treated as an operator with a missing left operand rather than as another formula-start marker.
+- Attempting to click, tap, drag or keyboard-activate the permanent `=` triggers a short warning state for `FORMULA_MARKER_WARNING_MS` (currently 2200 ms). The marker uses the existing bright-red/black diagonal hazard treatment and shows a concise tooltip explaining that Excel formulas begin with `=` and the first sign stays in place.
+- The marker warning is touch-safe and keyboard-accessible; it does not rely on hover. Under `prefers-reduced-motion`, the hazard state remains visible but the blink animation is disabled.
+- No changes to loose-label movement physics, collision/bouncing, centre seeking, drag boundaries, answer-token reordering, Test Answer multi-error UI, Function Help purchase cost, Sample Data, Submit attempts or final scoring.
+
+## 2026-09-11 review patch - compact answer cell and bordered Help pin
+
+- Branch base: `main`; base commit: `d4dd2985834e5d184a50b0c17d66c713c684d72b`, with the reviewed permanent formula-marker and Help pin-icon patch as the working baseline.
+- Reduced the Formula Daily answer row and input minimum height from 66px to 50px and reduced input vertical padding from 8px to 6px. This restores a compact single-row answer without imposing a fixed height.
+- The answer output remains a wrapping flex container. Additional token rows therefore continue to increase the answer cell height naturally, and the existing left padding keeps every wrapped row to the right of the permanent `=` marker.
+- Added a visible circular border and subtle inset treatment to the Function Help pin icon. Unpinned uses the existing muted grey state; hover/focus strengthens the neutral border; pinned uses the existing bright-red state and a matching red border.
+- Updated the existing answer-height synchroniser so it reads the input cell's computed CSS minimum height, vertical padding and border widths instead of hard-coding the previous 66px minimum and 30px height allowance. This keeps the existing wrap-driven growth and cluster-clearance behaviour aligned with future CSS sizing changes.
+- No Astro change was required. Formula validation, permanent-marker interaction, Help pin/purchase logic, loose-label physics, drag/drop, answer reordering, Sample Data, Submit and scoring are unchanged.
+
+## 2026-09-11 review patch - compact answer row measurement correction
+
+- Branch base: `main`; base commit: `d4dd2985834e5d184a50b0c17d66c713c684d72b`, with the reviewed permanent `=` and Help pin-icon patches layered on top.
+- Shortened the permanent-marker warning copy to `Formulas always begin with =. This first sign stays in place.` and removed the product-name reference from its accessible label as well.
+- Root cause of the still-tall single-row answer cell was the height synchroniser using `formulaOutput.scrollHeight`. The absolutely positioned marker tooltip contributes to scroll overflow even while visually hidden, so that measurement could include the tooltip and inflate the answer cell.
+- The synchroniser now measures the laid-out flex-row box with `getBoundingClientRect().height`, then adds the answer cell's computed vertical padding and borders. Wrapped flex rows therefore still increase the answer height, while overlay tooltips no longer affect it.
+- Reduced the single-row answer shell to a 44px minimum: 34px formula tokens, 3px vertical padding per side, and the existing 2px borders. The permanent `=` gutter and continuation-row wrapping remain unchanged.
+- No changes to formula validation, loose-label physics, drag/reorder behaviour, Help scoring/pinning, error highlighting or Sample Data.
+
+## 2026-09-11 review patch - full-width answer and problem statement hierarchy
+
+- Branch base: `main`; base commit: `d4dd2985834e5d184a50b0c17d66c713c684d72b`, with the reviewed permanent `=` and compact-height patches layered on top.
+- Moved the visible problem statement above the answer cell through layout only. The existing DOM order already places the statement before the input, so no Astro markup change was required.
+- Increased the problem statement size and allowed normal wrapping so the task reads clearly on desktop and narrow screens.
+- Removed the previous 820px answer-entry width cap. The answer cell now fills the available inner chalkboard width.
+- Changed the answer cell to 10px padding on every side, matching its previous left/right padding. With 34px tokens and 2px borders this gives a 58px single-row minimum height.
+- Existing flex wrapping, permanent `=` gutter and computed-height synchronisation remain unchanged. Wrapped formula rows still expand the cell naturally and continue to start to the right of the permanent marker.
+- No formula validation, Help behaviour, loose-label physics, drag/reorder behaviour, Sample Data, Submit or scoring logic changed.
+
+## 2026-09-11 review patch - centred prompt and aligned answer actions
+
+- Branch base: `main`; base commit: `d4dd2985834e5d184a50b0c17d66c713c684d72b`, with the reviewed full-width answer patch layered on top.
+- Centred and slightly enlarged the problem statement, with additional whitespace between the prompt and answer cell.
+- Removed the old 820px cap from the action footer so Clear and the primary action group align to the same left/right edges as the full-width answer cell.
+- Changed the answer cell's outer border to a thicker 3px dashed green chalk line and softened the inset guide to a faint solid line.
+- No formula logic, permanent-marker behaviour, wrapping, Help/Test Answer behaviour, cluster movement or scoring state changed.
+
+## 2026-09-11 review patch - pinned Help occupies cluster right side
+
+- Branch base: `main`; base commit: `d4dd2985834e5d184a50b0c17d66c713c684d72b`, with the reviewed centred-prompt/aligned-actions patch layered on top.
+- Function Help is now positioned from the Help button rather than centred under the whole action row. Its horizontal position is clamped into the right side of the loose-label cluster so the panel opens below Help and overlays the cluster's right side.
+- An unpinned hover/focus preview remains visual only. It does not alter loose-label positions or physics. The existing delayed pointer/focus close path remains for a Help panel that was opened as a preview and never pinned.
+- Pinning Help adds a temporary soft obstacle to the existing loose-label physics. The cluster centre target shifts into the free space left of the Help panel, pieces overlapping the pinned panel receive a leftward collision impulse, and pin activation gives the active loose pieces a small leftward nudge. Existing piece-to-piece collision, damping, drag, hover pinning and centre-seeking equations remain otherwise unchanged.
+- Unpinning from either the Help button or the panel pushpin now closes the panel immediately. It does not wait for the hover-leave delay. Once the panel closes, the Help obstacle disappears and the existing centre pull lets displaced loose labels drift back naturally rather than snapping or repacking them.
+- Touch behaviour remains click/tap based: tapping Help pins the panel and activates cluster avoidance; tapping Help again or the red pin closes it immediately. Escape still unpins/closes and returns focus to Help.
+- Help purchase/scoring state remains independent of panel pin state. Clear still does not remove purchased Help.
+- No changes to Test Answer validation, permanent `=`, answer wrapping, Submit behaviour, connector calculations, label drag boundaries or Sample Data.
+
+## 2026-09-11 review patch - faster cluster recovery after unpinning Help
+
+- Branch base: `main`; base commit: `d4dd2985834e5d184a50b0c17d66c713c684d72b`, with the reviewed pinned-Help cluster-avoidance patch layered on top.
+- Kept the pinned Help obstacle and left-side avoidance behaviour unchanged while the panel is pinned.
+- Added a temporary recovery window that starts only after a real pinned-to-unpinned transition. Active loose labels get a centre-directed horizontal impulse and a small alternating vertical kick so the cluster loosens before returning.
+- During the roughly one-second recovery window, the normal centre attraction is temporarily stronger, vertical attraction is modestly stronger, damping is slightly lighter and a small vertical oscillation fades out with the recovery strength. This makes the labels return toward centre faster without snapping or repacking them.
+- Re-pinning Help cancels the recovery immediately. A Help popup that was only opened as an unpinned hover/focus preview does not trigger recovery when it closes.
+- Recovery constants are isolated near the existing Help configuration so the duration and feel can be tuned after local play testing.
+- No changes to label collision rules, drag boundaries, answer placement/reordering, Help purchase cost, Test Answer, permanent `=`, Sample Data, Submit or scoring.
+
+## 2026-09-11 review patch - Help-state overlap relief
+
+- Base remains `main` at `d4dd2985834e5d184a50b0c17d66c713c684d72b`, with the reviewed pinned-Help avoidance and post-unpin recovery patches layered on top.
+- Reported issue: labels can settle visibly on top of one another in the compressed pinned-Help state and can retain overlaps after the cluster recentres, even when nearby free space exists.
+- Kept normal loose-cluster collision behaviour unchanged. Stronger overlap handling runs only while Help is pinned or while the temporary post-unpin recovery is active.
+- Help-state overlap handling uses rotated collision dimensions, a stronger soft collision impulse and a small perpendicular shuffle. This gives overlapping pairs a way to slide around one another rather than only pushing along one axis.
+- Axis choice is room-aware during those temporary states. The response compares usable horizontal and vertical escape room and chooses the lower-cost direction. When the Help panel is pinned, its occupied right-side area counts as unavailable horizontal room for labels in the panel's vertical span.
+- The main recovery still lasts about 1.05 seconds. If movable labels remain overlapping when that timer ends, a low-strength settling tail may continue for up to 650 ms and stops early when overlaps clear. The hard stop prevents endless motion when the compressed cluster physically cannot fit without overlap.
+- Escape now routes through the same explicit unpin path as the Help button and pin control, so it receives the same recovery/settling behaviour.
+- No positional snapping or full cluster repack was introduced. Help hover previews that were never pinned still leave labels untouched.
+- Local review should compare the pinned compressed state and recovered state shown in the supplied screenshots, with particular attention to persistent overlaps, excessive jitter and narrow mobile widths.
+## 2026-09-11 review patch - responsive Help footprint and restored IFS functions
+
+- Base remains `main` at `d4dd2985834e5d184a50b0c17d66c713c684d72b`, with the reviewed Help obstacle/recovery/overlap patches layered on top.
+- Desktop Function Help now uses the remaining chalkboard height beneath the Help button, ending 18px above the board bottom. Because the pinned obstacle reads the panel's real bounds, the entire right-side vertical strip is unavailable to loose labels while pinned.
+- Mobile Help no longer sizes itself from `100vw`. It is positioned at the left edge of the action row and receives the board-content width from the live action-row bounds, preventing the right side from being clipped by the board frame.
+- Mobile Help heading uses a two-column title/meta layout so `Reveal cost` and the pin stay inside the right edge. Function links explicitly wrap and remain left-aligned.
+- Restored `COUNTIFS(` and `SUMIFS(` to the current puzzle piece set. Help continues to derive its function list from current function pieces, so the restored functions appear automatically when present.
+- Added COUNTIFS and SUMIFS help text using their actual Excel argument order. COUNTIFS is criteria-range/criteria pairs. SUMIFS is `sum_range` followed by criteria-range/criteria pairs; its argument order intentionally differs from SUMIF.
+- Added SUMIFS to the structural/type pre-check: accepted counts are odd values from 3 upward; sum/criteria range positions require references; criteria-range dimensions are checked against the sum range. Existing COUNTIFS even-pair and matching-range-shape validation remains.
+- No change to Help cost, pin/unpin timing, Test Answer presentation, answer-cell wrapping, permanent formula marker, Submit attempts or normal loose-label physics.
+
+## 2026-09-11 review patch - layout-aware pinned Help avoidance and first-use cost notice
+
+- Base remains `main` at `d4dd2985834e5d184a50b0c17d66c713c684d72b`, with the reviewed responsive Help/IFS patch layered on top.
+- Pinned Help avoidance is now layout-aware. Desktop continues to treat the panel as a vertical right-side obstacle and keeps the cluster centre target in the remaining left-side space. Mobile treats the full-width Help panel as a horizontal obstacle, moves the cluster centre target into the free area below it, gives newly pinned labels a downward impulse and pushes labels downward when they intersect the panel.
+- Help-state overlap room calculations also respect that orientation. Desktop overlap relief still treats the panel as unavailable right-side room. Mobile overlap relief treats the panel as unavailable upward room so overlapping pieces prefer valid space beneath it instead of trying to settle inside the panel footprint.
+- Desktop Help positioning is now explicitly right-aligned to the chalkboard content area with an 18px side gap and retains the existing 18px bottom gap. Its height still fills the remaining board space beneath the Help button.
+- Mobile Help keeps content-driven height and board-width clamping. The title/meta grid now gives the cost/pin group the remaining width instead of max-content overflow, allows cost copy to wrap if needed and keeps the pin inside the panel border. Function links continue to wrap and remain left-aligned.
+- Added a first-interaction Help cost notice above the Help button. The first hover, keyboard focus or tap shows a red centred message for about two seconds: `Unlock help for every puzzle function for -50% max points.` It is shown only once per page load and does not itself purchase or pin Help.
+- The notice text is generated from `HELP_SCORE_PENALTY_PERCENT`, so changing the future Help penalty updates the notice, panel cost, locked detail and accessibility copy together.
+- No change to Help purchase persistence, Clear behaviour, Test Answer validation, current function set, answer wrapping, permanent `=`, Submit attempts or normal unpinned cluster physics.
+
+## 2026-09-11 review patch - Help cost notice inside panel
+
+- Base remains `main` at `d4dd2985834e5d184a50b0c17d66c713c684d72b`, with the reviewed layout-aware Help patch layered on top.
+- Removed the separate red first-use notice above the Help button. The first Help hover, keyboard focus or tap now shows the same cost warning inside the Function Help detail area for five seconds, then falls back to the normal locked `Tap to reveal` prompt.
+- The temporary warning and all displayed percentages continue to derive from `HELP_SCORE_PENALTY_PERCENT`, so future Help-cost tuning stays centralised.
+- In the normal locked prompt, only the parenthesised penalty such as `-50% points` is red. The top-right `Reveal cost` / active penalty copy is also red.
+- The pushpin remains grey when unpinned and now uses the existing orange chalk colour when pinned instead of the error red.
+- No Help purchase state, scoring state, panel positioning, responsive avoidance, cluster physics, function list or Test Answer behaviour changed.
+
+## 2026-09-11 review patch - explicit Help purchase control
+
+- Base remains `main` at `d4dd2985834e5d184a50b0c17d66c713c684d72b`, with the reviewed inline Help-cost patch layered on top.
+- Locked function links remain native buttons but now use a grey chalk treatment instead of green. Hovering or focusing a locked function does not reveal or select a guide.
+- Activating a locked function no longer purchases Help. It flashes the currently visible purchase message instead. During the first five-second introduction, that introduction flashes; after it expires, the regular `Reveal Help?` prompt flashes.
+- The locked purchase area now fills the available Help detail space and centres its content horizontally and vertically. The regular prompt is `Reveal Help? (-50% points)` with the percentage sourced from `HELP_SCORE_PENALTY_PERCENT` and shown in red.
+- Added a larger red underlined `Buy` button beneath the prompt. It is the explicit action that purchases Help. Buying clears the temporary intro/flash state, retains the existing per-question penalty flag, restores green function links and shows the guide for the currently selected function.
+- The first-use five-second explanation still reads `Unlock help for every puzzle function for -50% max points.` and now shares the same centred purchase area and Buy control.
+- Kept the existing Help pin state, panel position, responsive cluster avoidance, Clear persistence, Test Answer behaviour and scoring placeholder unchanged.
+
+## 2026-09-11 review patch - Help Buy click wiring
+
+- Base remains `main` at `d4dd2985834e5d184a50b0c17d66c713c684d72b`, with the reviewed explicit Help purchase patch layered on top.
+- Fixed the Help purchase action so each dynamically rendered `Buy` button owns its native click listener directly. The previous delegated click listener on the surrounding Help detail container was removed.
+- The direct button listener uses the existing `purchaseHelp()` path, so mouse, touch and native keyboard button activation all share the same purchase state transition.
+- No Help cost, pin state, panel layout, cluster physics, function links, Clear persistence, Test Answer or scoring placeholder behaviour changed.
+- Validation: strict standalone TypeScript compile passed, emitted JavaScript passed `node --check`, and focused static checks confirm the direct Buy listener is present and the delegated purchase listener is absent. Full Astro/browser QA remains local because installed dependencies are absent from the supplied snapshot.
+
+## 2026-09-11 review patch - Help Buy focus/rerender fix and score allowance
+
+- Base remains `main` at `d4dd2985834e5d184a50b0c17d66c713c684d72b`, with the reviewed explicit Help purchase and responsive Help patches layered on top.
+- Root cause of the non-working `Buy` control: focusing the dynamically rendered Buy button bubbled `focusin` to the Help panel. The panel's `focusin` handler called `openHelpPanel()`, which rerendered `helpDetail` and replaced the focused Buy element before the subsequent click/tap activation could complete.
+- `openHelpPanel()` no longer rerenders Help detail. Entering or focusing within an already-open Help panel now only cancels the close timer. State-changing actions such as the first-use prompt, function selection and purchase remain responsible for explicit rerenders.
+- The direct native Buy click listener remains. With the focus-triggered rerender removed, mouse, touch and keyboard activation all reach `purchaseHelp()`.
+- Help purchase now applies the configured penalty to a real per-question maximum-score allowance. The question starts at 100% maximum score; buying Help once subtracts `HELP_SCORE_PENALTY_PERCENT` and records the result on `data-max-score-percent` in addition to the existing Help-use/penalty attributes. With the current 50% setting the allowance becomes 50%.
+- The `helpPurchased` guard prevents duplicate deductions, and Clear does not restore the spent Help allowance. The prototype still does not award a final numeric score, so future scoring should consume this maximum-score percentage rather than reapply the Help penalty.
+- Browser regression harness using the emitted current script reproduced the old failure and verified the fix: before the patch, activating Buy left Help locked; after the patch, desktop click and mobile tap set Help used, store a 50% penalty, reduce maximum score to 50%, remove Buy and render the active Help state.
+
+## 2026-09-11 review patch - touch-friendly Help controls and per-question persistence
+
+- Base remains `main` at `d4dd2985834e5d184a50b0c17d66c713c684d72b`, using the current dirty Formula Daily working tree plus the reviewed Buy focus/rerender fix.
+- Added a stable question identifier, `total-units-sold-east-v1`, to the current Formula Daily question. Help persistence keys are namespaced by that question ID so future questions can maintain independent Help purchases and score penalties.
+- Help purchase now persists in `localStorage` as a small versioned record containing the penalty percentage paid and the resulting maximum-score percentage. Reloading or reopening the site on the same origin restores Help as purchased and restores the reduced score allowance instead of refunding the player.
+- Purchase persistence uses the penalty that was paid at purchase time. If the tuning constant changes later, an existing purchase does not silently change its historical cost. The temporary Reset control can clear the stored purchase during prototype testing.
+- Added a grey `Reset` control at the bottom-right of purchased Function Help. Reset removes only this question's stored Help purchase, restores its maximum score to 100%, relocks the function guides and returns the Help purchase state to the initial prototype state. It does not clear the current formula answer.
+- Function guide selectors are now rounded rectangular buttons rather than underlined text links. Locked buttons remain grey and actionable so mouse, keyboard and touch activation can still flash the purchase prompt. Purchased buttons use the existing green Help state, with a stronger selected treatment.
+- Function guide buttons use larger text and larger touch targets, reaching 44px minimum height on the mobile layout. The Buy control is now also a rounded red button instead of link-styled text and reaches 44px minimum height on mobile.
+- No changes to the Help penalty percentage, Test Answer, formula validation, answer wrapping, permanent `=`, cluster physics, Help obstacle/pinning or Submit attempt logic.
+
+## 2026-09-11 review prototype - per-question points and submission penalties
+
+- Base remains `main` at `d4dd2985834e5d184a50b0c17d66c713c684d72b`, using the current reviewed Formula Daily working tree.
+- Added a visible `Points 100 / 100` line above the existing attempt counter. The current value is the bright/white value and updates as the question spends points.
+- Added a per-question hidden exact point pool with `QUESTION_MAX_POINTS = 100` and `QUESTION_MAX_ATTEMPTS = 5`. Visible points are rounded only for display; deductions use the exact value so the final available attempt always reaches exactly zero.
+- Non-empty Submit remains a prototype failed submission because answer correctness is not implemented yet. A failed submission deducts `current exact points / attempts remaining before this submission`, then consumes one attempt. With no purchases this is 20 points per attempt. If Help is bought after two attempts, 60 points becomes 30 and the three remaining attempts cost 10 points each.
+- Help now deducts its configured percentage from the player's current exact points, rather than from a separate maximum-score allowance. The current `HELP_SCORE_PENALTY_PERCENT = 50` therefore halves whatever points remain at purchase time.
+- Question attempts and exact points persist in `localStorage` under the stable question ID, alongside the existing Help-purchase persistence. Refreshing cannot refund attempt losses or Help spend. Legacy Help-only persistence is migrated by restoring the previously stored post-purchase point allowance if no score record exists yet.
+- The temporary Help Reset control removes Help for this prototype while preserving attempts. Because Help is currently the only purchase, Reset recomputes the no-Help score baseline for the attempts already used and persists that restored state.
+- Submit with no placed puzzle labels no longer consumes an attempt or points. It flashes `Drop formula here` red and slightly larger, flashes Submit with the existing red/black hazard treatment, then returns both to normal. A concise live-region message asks the player to add a formula piece.
+- Test Answer remains separate from scoring. No answer-correctness check or successful-question completion flow is implemented in this stage.
+## 2026-09-11 review patch - full per-question Reset
+
+- Base remains `main` at `d4dd2985834e5d184a50b0c17d66c713c684d72b`, using the current reviewed Formula Daily working tree.
+- Confirmed the question initializes at 100 points when no stored state exists. A 50 / 100 start is expected when this question already has a persisted 50% Help purchase or score state from the same browser origin.
+- The Help-panel `Reset` control now restores the full current-question first-load state rather than refunding Help only. It clears both the per-question Help purchase record and per-question score record from `localStorage`.
+- Reset restores `Points 100 / 100`, `Attempt 0 / 5`, unpurchased Help, the initial Help prompt state, no placed answer pieces, no active Test/Submit warning, and a freshly packed loose-label cluster. It also closes/unpins Help without starting the post-Help recovery animation.
+- Reset removes the stored state instead of persisting a new default record, so a subsequent refresh also starts this question at 100 points with Help locked.
+- The Reset control's accessible name now describes resetting the question rather than only the Help purchase.
+- No scoring percentages, Help purchase cost, attempt deduction model, validator rules, cluster physics, or visual styling changed.
+
+## 2026-09-11 review patch - persistent Chalk font toggle
+
+- Base remains `main` at `d4dd2985834e5d184a50b0c17d66c713c684d72b`, using the current reviewed Formula Daily working tree.
+- Added a `Chalk` switch below the attempt counter. It defaults on and is a native checkbox exposed as a switch for keyboard/touch accessibility.
+- Replaced the desktop-only chalk stack with a broader cross-platform system stack: `Chalkboard SE`, `Marker Felt`, `Segoe Print`, `Comic Sans MS`, `Bradley Hand`, then generic cursive. Removed the mobile media-query override that previously forced Trebuchet/system sans and made mobile appear non-chalk.
+- Chalk Off applies one clear system sans-serif stack throughout the Formula Daily component, overriding chalk and monospace families in labels, Sample Data, headings, controls, Help, status/error text and decorative board notes.
+- The font preference persists through `localStorage` under `formula-daily:chalk-enabled:v1`, independent of the per-question score/Help records.
+- Full question Reset removes the stored font preference and restores Chalk on.
+- Toggling the font rerenders the answer and repacks the loose cluster so changed text metrics update wrapping and collision dimensions immediately.
+- Existing scoring, attempts, Help purchase persistence, validation, drag/drop and cluster motion logic are otherwise unchanged.
