@@ -5,27 +5,24 @@ Snapshot date: 2026-09-11
 ## Repository state supplied to ChatGPT
 
 - Latest supplied source snapshot branch: `main`.
-- Base commit: `d4dd2985834e5d184a50b0c17d66c713c684d72b`.
-- The supplied working tree is dirty with reviewed Formula Daily changes plus unrelated local-server helper files; this package does not touch the helper files.
-- The snapshot contains the current Ascend Genesis expansion and the local archive/publication helpers.
+- Base commit: `b03044876f67df46cac05a160aeaf5854d64e828`.
+- The supplied Project context snapshot records a clean working tree.
+- This package layers only the current Formula Daily Options highlight refinement and UX/accessibility documentation update over that source and does not touch unrelated site projects or publication helpers.
 - Cloudflare deployment state has not been independently verified from this ChatGPT session.
 
 ## Current product state
 
 - South Australian Name Curve is published in LAB.
-- Formula Daily is published as a GAMES prototype and remains in Stage 2 review work. Formula evaluation, the complete five-question loop, persistence and daily behaviour remain deferred.
+- Formula Daily is published as a GAMES prototype and remains in Stage 2 review work. Per-question Tips/score/display preferences now persist, while answer correctness, the complete five-question loop and daily puzzle behaviour remain deferred.
 - Ascend is present as a GAMES prototype with the expanded Genesis implementation in the current `main` snapshot.
 - Pulse of Adelaide remains blocked on a suitable public fuel source with confirmed reuse terms.
 
 ## Formula Daily review change prepared in this package
 
-- Added a compact `Chalk` switch below the attempt counter. Chalk is on by default.
-- Chalk mode now uses a broader system stack for desktop and mobile: `Chalkboard SE`, `Marker Felt`, `Segoe Print`, `Comic Sans MS`, `Bradley Hand`, then generic cursive. The previous mobile-only sans override was removed.
-- Turning Chalk off forces a clear system sans-serif family across the full Formula Daily UI, including loose/placed labels, Sample Data, headings, counters, buttons, Help, links, status text and board notes.
-- The Chalk preference persists across refreshes and browser sessions with a Formula Daily preference key in `localStorage`.
-- The full question Reset clears that preference and restores Chalk on, matching a first-load state.
-- Changing the font repacks the loose cluster and rerenders the answer so changed text metrics do not leave stale overlaps or wrapping measurements.
-- Scoring, Help purchase state, attempts, validation and existing cluster physics are otherwise unchanged.
+- Correct the Touch Mode deep-link highlight in Options so it no longer changes the row width. The temporary emphasis now targets only the `Touch Mode` text and switch track, with the normal switch-row geometry preserved.
+- Add `docs/ux-accessibility-features.md`, a project-by-project UX/accessibility inventory intended to support future case-study/storyboard pages and ongoing review. The Formula Daily section consolidates the interaction and accessibility work recorded across the execution plan, current implementation and review history.
+- Add the new document to `docs/index.md` and add a repository instruction requiring future material UX/accessibility changes to update the relevant project section.
+- No Formula Daily TypeScript, scoring, touch behaviour, validation, puzzle content or physics logic changed in this package.
 
 ## Local context archive utility
 
@@ -44,12 +41,11 @@ Snapshot date: 2026-09-11
 
 ## Next action
 
-1. Apply this patch over the current reviewed Formula Daily files.
-2. Confirm Chalk is on by default on desktop and mobile, with the mobile view now retaining a chalk-like face.
-3. Turn Chalk off and confirm every visible Formula Daily text area switches to the clear sans-serif stack.
-4. Refresh with Chalk off and confirm the choice persists.
-5. Use Help Reset and confirm Chalk returns to on along with the rest of the question state.
-6. Check that loose labels repack cleanly and answer wrapping remains correct after toggling fonts.
+1. Apply this patch over `main` at `b03044876f67df46cac05a160aeaf5854d64e828` plus the reviewed Formula Daily patches already in the local working version.
+2. Open the cluster Touch Mode troubleshooting link and confirm the Options panel keeps the same width as normal.
+3. Confirm only the `Touch Mode` text and switch receive the temporary orange emphasis, with no orange box changing row geometry.
+4. Close Options and confirm the highlight clears. Open Options normally and confirm no Touch Mode highlight appears.
+5. Review `docs/ux-accessibility-features.md` as the new source inventory for the future Formula Daily project/case-study page.
 
 ## 2026-09-10 review prototype - Formula Daily Test Answer type checks
 
@@ -446,3 +442,108 @@ Snapshot date: 2026-09-11
 - Reset no longer preserves attempts and no longer recomputes a partial no-Help score. It removes the stored state entirely so refresh after Reset also starts from 100 / 100.
 - Files changed: `src/visualisations/formula-daily/FormulaDaily.astro`, `src/visualisations/formula-daily/formula-daily.ts`, `docs/exec-plans/active/005-formula-daily.md`, `docs/current-handoff.md`.
 - Unrelated `scripts/start-local-server.ps1` and `start-local-server.bat` in the supplied dirty snapshot remain untouched.
+
+## 2026-09-11 Formula Daily scroll/drag input fix
+
+- Base: `main` at `b03044876f67df46cac05a160aeaf5854d64e828`; supplied snapshot was clean.
+- Loose labels no longer stay viewport-pinned when desktop wheel/page scrolling starts. Scroll releases the hover lock/preview, and non-primary mouse buttons cannot start a label drag.
+- Mobile loose-label/cluster surfaces now allow native vertical page panning with `touch-action: pan-y`. Touch label dragging waits for a clear horizontal-leading gesture before pointer capture/preventDefault; vertical-leading gestures remain page scrolls and cannot accidentally place the label.
+- Existing cluster physics and game systems are unchanged.
+- Files changed: `src/visualisations/formula-daily/formula-daily.ts`, `src/visualisations/formula-daily/formula-daily.css`, `docs/exec-plans/active/005-formula-daily.md`, `docs/current-handoff.md`.
+- Validation: strict standalone TypeScript compilation passed for both baseline and patch; focused static/CSS checks passed. Full Astro build not run because dependency installation timed out in this environment.
+- Next local check: desktop wheel scrolling with the pointer resting on a loose label; mobile vertical swipe beginning directly on a loose label; deliberate mobile label drag beginning with a sideways movement.
+
+## 2026-09-11 review patch - mobile touch drag tuning and active-drag highlight
+
+- Base remains `main` at `b03044876f67df46cac05a160aeaf5854d64e828`, with the reviewed cluster scroll-versus-drag patch layered on top.
+- Mobile loose-label drag activation is slightly more eager: the touch drag threshold is reduced from 10px to 8px. Native vertical scrolling still claims clear vertical gestures from 6px, but now requires a modest 1.2x vertical-over-horizontal bias before the game locks the gesture as scroll intent.
+- This keeps ordinary vertical swipes available while making short sideways/diagonal label gestures enter drag mode sooner.
+- The existing desktop hover glow is now also applied while a loose label is actively dragging. Because `data-dragging` is set only after touch arbitration has committed to a label drag, a normal touch scroll does not show the label highlight.
+- No answer placement, collision, centre-seeking, Help, scoring, validator, Sample Data or Chalk behaviour changed.
+- Local review should focus on repeated mobile gestures: vertical swipes over labels should scroll without glow, while short intentional label moves should activate sooner and show the glow as soon as drag mode begins.
+
+## 2026-09-11 Formula Daily - mobile drag-ready feedback
+
+- Base: `main` at `b03044876f67df46cac05a160aeaf5854d64e828`, with the reviewed scroll/drag fixes layered on top.
+- Mobile loose labels now show a pre-drag glow at a small horizontal-leading movement threshold before the label itself begins moving. Vertical page-scroll gestures remain unhighlighted.
+- Drag-ready threshold is 4px; actual touch drag begins at 7px; clear vertical scroll intent still starts from 6px.
+- No scroll-lock fallback UI was added.
+- Changed files: `src/visualisations/formula-daily/formula-daily.ts`, `src/visualisations/formula-daily/formula-daily.css`, `docs/exec-plans/active/005-formula-daily.md`, `docs/current-handoff.md`.
+- Next review: real-device feel of the ready threshold and false-positive rate while scrolling.
+
+## 2026-09-11 Formula Daily current review state - live mobile scroll thumb
+
+- Base remains `main` at `b03044876f67df46cac05a160aeaf5854d64e828`, with the reviewed direct mobile drag and temporary page-scroll thumb patch layered on top.
+- Root cause of the laggy custom thumb was the site-wide `html { scroll-behavior: smooth; }`. The thumb used `window.scrollTo(..., behavior: 'auto')`, so each pointer movement inherited smooth scrolling and the viewport chased the finger instead of tracking it immediately.
+- Thumb dragging now uses `behavior: 'instant'`, so each pointer movement maps directly to the corresponding page position without starting a smooth-scroll animation.
+- While the thumb is actively dragged, its pointer position is authoritative. The normal `scrollY` synchroniser no longer repositions the thumb mid-drag, preventing feedback/jitter between pointer movement and scroll events.
+- On release, the thumb performs one final sync from the actual page position, then keeps the existing roughly three-second visibility timeout.
+- Left-handed placement, direct loose-label dragging, desktop wheel-scroll handling, scoring, Help, Test Answer and cluster physics are unchanged.
+
+## 2026-09-11 Formula Daily - touch capability, Options and Tips patch
+
+- Base branch/commit: `main` at `b03044876f67df46cac05a160aeaf5854d64e828` with the reviewed live touch-scroll-thumb patch layered on top.
+- Touch-specific controls now use detected touch capability/input rather than the 720px viewport breakpoint. Automatic detection uses `navigator.maxTouchPoints`, `(any-pointer: coarse)`, and observed touch pointer input. Width remains responsible only for responsive layout decisions.
+- Added a persistent Touch Mode override. Default state follows automatic detection; forcing it on keeps touch controls active at wide viewport sizes; forcing it off suppresses touch-only controls. Reset clears the override and returns to automatic detection.
+- Added an Options popup above Points/Attempt containing Chalk, Left, Touch Mode and an always-visible full-question Reset. Left and Chalk persistence remain unchanged.
+- Player-facing Help terminology is now Tips / Function Tips / Tips active. Existing Help storage keys remain in place so previous purchases continue to restore correctly.
+- Reset moved from the Tips panel into Options and still resets the full current question, now including Touch Mode override.
+- Intended changed files: `FormulaDaily.astro`, `formula-daily.css`, `formula-daily.ts`, this handoff and `005-formula-daily.md`.
+- Local review focus: wide touch emulation should retain the custom scroll thumb and direct touch drag; non-touch wide desktop should keep Touch Mode off by default; Options should fit inside the board at narrow widths; Tips purchase persistence should survive the terminology change.
+## 2026-09-11 Formula Daily - touch tip and global scroll-thumb availability
+
+- Base branch/commit: `main` at `b03044876f67df46cac05a160aeaf5854d64e828`, using the reviewed Touch Mode / Options / Tips patch as the working baseline.
+- Added a low-emphasis touch troubleshooting tip in the cluster. Its Options link scrolls to and opens Options, then highlights Touch Mode. That highlight is cleared whenever Options closes and is not shown when Options is opened normally.
+- The touch scroll thumb now appears for any touch interaction on the page when Touch Mode is active, not only touches that start in the cluster.
+- Scroll-thumb opacity is now stateful: 50% idle, 100% while dragged, then a gradual return to 50% across the existing three-second cooldown before hide.
+- No scoring, Tips purchase, answer validation, label physics or page-scroll ratio logic changed.
+- Files changed: `FormulaDaily.astro`, `formula-daily.css`, `formula-daily.ts`, this handoff and `005-formula-daily.md`.
+- Local review focus: tap around the page at wide and narrow touch viewports, verify the thumb appears consistently, verify the fade after thumb use, and verify only the cluster-tip Options link highlights Touch Mode.
+
+## 2026-09-11 review patch - touch tip visibility and scroll-thumb states
+
+- Base remains `main` at `b03044876f67df46cac05a160aeaf5854d64e828`, with the reviewed Touch Mode / Options and global touch-scroll-thumb patches layered on top.
+- The cluster troubleshooting tip is now shown only while effective Touch Mode is off. Automatic touch detection or a player-forced Touch Mode setting hides it; forcing Touch Mode off makes it available again.
+- Added visible spacing before the inline `Options` link so the tip reads naturally.
+- Touch scroll thumb idle opacity is now 30%. Hover, keyboard focus, or active dragging transitions it to 100% over 500ms.
+- The thumb now uses a solid pastel-orange fill at full prominence rather than a transparent dark fill. Its grip SVG is explicitly centred with grid layout and block SVG rendering.
+- After hover/use ends, the existing three-second cooldown fades the thumb from 100% toward 30% before hiding. Hovering it cancels the pending hide; leaving it restarts the cooldown when no touch/drag remains.
+- Reduced-motion mode disables the new thumb transitions. Scroll mapping, Left mode, Touch Mode detection and label-drag behaviour are unchanged.
+
+## 2026-09-11 Formula Daily - Options preferences and scroll-thumb fade fix
+
+- Base remains `main` at `b03044876f67df46cac05a160aeaf5854d64e828`, with the reviewed Touch Mode / Options / Tips and touch-scroll patches layered on top.
+- Options labels are now `Chalk Font` and `Left Handed Mode`. Added persistent `Disable Touch Mode Tip` and `Clean Background` switches, both defaulting off. Full question Reset clears both preferences back to off.
+- `Disable Touch Mode Tip` suppresses the cluster troubleshooting tip even when Touch Mode is off. The tip remains automatically hidden whenever effective Touch Mode is on.
+- `Clean Background` hides the faint board-note tips and removes the inner chalkboard texture/glare so the board surface is plain black while retaining the wooden frame.
+- Reset now sits below the switch list, and the Options panel/switch rows were widened/aligned for the longer labels.
+- Touch scroll thumb width is reduced from 46px to 35px. Idle opacity is 30%; active hover/focus/drag reaches 100% over 500ms with a lighter pastel-orange fill. The three-second cooldown fades back to 30% before hide.
+- Removed sticky touch-hover as an active-state source. Non-touch hover is tracked explicitly in JavaScript, and touch release clears focus, fixing the state where the thumb could remain at 100% for the rest of the session.
+- Any page scroll while Touch Mode is active wakes a hidden thumb at its idle 30% state and restarts the existing dismissal timing.
+- Files changed: `src/visualisations/formula-daily/FormulaDaily.astro`, `src/visualisations/formula-daily/formula-daily.css`, `src/visualisations/formula-daily/formula-daily.ts`, `docs/exec-plans/active/005-formula-daily.md`, `docs/current-handoff.md`.
+
+## 2026-09-11 Formula Daily - dependent Touch Mode tip option
+
+- Base: `main` at `b03044876f67df46cac05a160aeaf5854d64e828`, with the reviewed Formula Daily touch/Options patches layered on top.
+- `Disable Touch Mode Tip` is now enabled only when effective Touch Mode is off. While Touch Mode is active, the switch is forced off, disabled and greyed out.
+- If Touch Mode turns on while the tip-disable preference is stored as on, the preference is cleared from local storage. Turning Touch Mode off makes the option usable again in its off state.
+- Automatic Touch Mode activation from real touch input now uses the same rendering path as capability detection and manual override so dependent Options remain synchronized.
+- Files changed: `src/visualisations/formula-daily/formula-daily.ts`, `src/visualisations/formula-daily/formula-daily.css`, `docs/ux-accessibility-features.md`, `docs/exec-plans/active/005-formula-daily.md`, `docs/current-handoff.md`.
+
+## 2026-09-11 Formula Daily - Touch option nesting and Tips layout safeguards
+
+- Base remains `main` at `b03044876f67df46cac05a160aeaf5854d64e828`, with the reviewed Formula Daily Options/touch patches layered on top.
+- Options now orders Touch Mode before its dependent controls. Left Handed Mode and Disable Touch Mode Tip are indented beneath it; Chalk Font and Clean Background remain top-level.
+- Left Handed Mode is enabled only while Touch Mode is active. Turning Touch Mode off forces Left Handed Mode off, disables/greys it and clears the persisted left-side preference. Turning Touch Mode back on leaves Left Handed Mode off until the player enables it again.
+- Stacked/vertical pinned Tips now expands the loose-label canvas vertically so labels retain their normal cluster room below the panel.
+- Horizontal pinned Tips now lets the cluster use the wider board area and caps the Tips width when necessary so loose labels retain at least half of the available canvas width.
+- Changed files: `FormulaDaily.astro`, `formula-daily.css`, `formula-daily.ts`, `docs/ux-accessibility-features.md`, `005-formula-daily.md`, and this handoff.
+- Local review focus: toggle Touch Mode on/off with Left Handed Mode enabled; pin Tips around the 720px layout boundary; verify stacked mode gains vertical canvas space and horizontal mode never leaves the loose cluster narrower than roughly half the available width.
+
+## 2026-09-11 Formula Daily - progress HUD and answer-token removal fix
+
+- Base: `main` at `b03044876f67df46cac05a160aeaf5854d64e828`, with the reviewed Touch Mode/Tips layout patch layered on top.
+- Sample Data now starts lower in the board, leaving a dedicated header gutter for Options and progress so the spreadsheet no longer overlaps the top-right controls.
+- Progress is consolidated into one line: `Question 1 / 5 | Attempt 0 / 5 | Points 100 / 100`, with the changing values in bright chalk. The current question value is wired as explicit state but remains 1 until the five-question loop is implemented.
+- Placed-token pointer removal now suppresses the browser's immediate follow-up click regardless of which newly rendered token ends up under the pointer. This prevents one click, especially on a leading function token, from cascading into removal of additional answer pieces.
+- Files changed: `FormulaDaily.astro`, `formula-daily.css`, `formula-daily.ts`, `docs/ux-accessibility-features.md`, `005-formula-daily.md`, and `docs/current-handoff.md`.

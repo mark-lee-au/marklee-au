@@ -42,6 +42,7 @@ Only one writer may change a given file set at a time. Codex and a ChatGPT Proje
 Before editing, state the intended file paths. If another active task may touch them, stop and let the user choose which task proceeds first. Never resolve concurrent changes by silently replacing the newer file.
 
 After material work, update `docs/current-handoff.md` with the branch, base commit, state, files changed, validation and next decision. Keep the relevant execution plan as the detailed history.
+When a project gains, removes, or materially changes a user-facing UX or accessibility feature, also update that project section in `docs/ux-accessibility-features.md`. Keep that file as the cross-project feature inventory used for case studies; keep implementation chronology in the execution plan.
 
 ## ChatGPT Project file delivery
 

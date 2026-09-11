@@ -75,6 +75,10 @@ const HELP_SCORE_PENALTY_PERCENT = 50;
 const HELP_PURCHASE_STORAGE_PREFIX = 'formula-daily:question-help:v1:';
 const QUESTION_SCORE_STORAGE_PREFIX = 'formula-daily:question-score:v1:';
 const CHALK_PREFERENCE_STORAGE_KEY = 'formula-daily:chalk-enabled:v1';
+const LEFT_SCROLL_PREFERENCE_STORAGE_KEY = 'formula-daily:left-scroll:v1';
+const TOUCH_MODE_OVERRIDE_STORAGE_KEY = 'formula-daily:touch-mode-override:v1';
+const DISABLE_TOUCH_TIP_STORAGE_KEY = 'formula-daily:disable-touch-mode-tip:v1';
+const CLEAN_BACKGROUND_STORAGE_KEY = 'formula-daily:clean-background:v1';
 const EMPTY_SUBMIT_WARNING_MS = 1500;
 const HELP_CLUSTER_RECOVERY_MS = 1050;
 const HELP_CLUSTER_RECOVERY_PULL_X = .0031;
@@ -87,7 +91,13 @@ const HELP_CLUSTER_OVERLAP_FORCE_RECOVERY = .068;
 const HELP_CLUSTER_OVERLAP_SHUFFLE = .11;
 const HELP_PANEL_DESKTOP_BOTTOM_GAP = 18;
 const HELP_PANEL_DESKTOP_SIDE_GAP = 18;
+const HELP_PANEL_DESKTOP_WIDTH = 360;
+const HELP_CLUSTER_OBSTACLE_GAP = 14;
+const HELP_CLUSTER_MIN_FREE_RATIO = .5;
 const HELP_INTRO_NOTICE_MS = 5000;
+const TOUCH_SCROLL_CONTROL_HIDE_MS = 3000;
+const LEFT_HANDED_NOTICE_MS = 2000;
+const TOUCH_SCROLL_CONTROL_EDGE_GAP = 10;
 
 const primeHelpClusterRecovery = (states: PieceState[], bounds: DOMRect) => {
   const targetX = bounds.width / 2;
@@ -713,6 +723,7 @@ type HoverLock = {
 type ClusterPointer = {
   state: PieceState;
   id: number;
+  started: boolean;
   moved: boolean;
   startX: number;
   startY: number;
@@ -770,9 +781,21 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
   const formulaOutput = root.querySelector<HTMLElement>('[data-formula-output]');
   const placeholder = root.querySelector<HTMLElement>('[data-placeholder]');
   const strings = root.querySelector<SVGSVGElement>('[data-strings]');
+  const questionCurrent = root.querySelector<HTMLElement>('[data-question-current]');
   const pointsCurrent = root.querySelector<HTMLElement>('[data-points-current]');
   const attemptCount = root.querySelector<HTMLElement>('[data-attempt-count]');
+  const optionsButton = root.querySelector<HTMLButtonElement>('[data-options-button]');
+  const optionsPanel = root.querySelector<HTMLElement>('[data-options-panel]');
+  const questionResetButton = root.querySelector<HTMLButtonElement>('[data-question-reset]');
   const chalkToggle = root.querySelector<HTMLInputElement>('[data-chalk-toggle]');
+  const leftScrollToggle = root.querySelector<HTMLInputElement>('[data-left-scroll-toggle]');
+  const touchModeToggle = root.querySelector<HTMLInputElement>('[data-touch-mode-toggle]');
+  const disableTouchTipToggle = root.querySelector<HTMLInputElement>('[data-disable-touch-tip-toggle]');
+  const cleanBackgroundToggle = root.querySelector<HTMLInputElement>('[data-clean-background-toggle]');
+  const touchModeOption = root.querySelector<HTMLElement>('[data-touch-mode-option]');
+  const touchOptionsLink = root.querySelector<HTMLButtonElement>('[data-touch-options-link]');
+  const touchScrollControl = root.querySelector<HTMLButtonElement>('[data-touch-scroll-control]');
+  const leftHandedNotice = root.querySelector<HTMLElement>('[data-left-handed-notice]');
   const status = root.querySelector<HTMLElement>('[data-status]');
   const clearButton = root.querySelector<HTMLButtonElement>('[data-clear]');
   const actions = root.querySelector<HTMLElement>('.formula-daily__actions');
@@ -782,7 +805,6 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
   const helpDetail = root.querySelector<HTMLElement>('[data-help-detail]');
   const helpCost = root.querySelector<HTMLElement>('[data-help-cost]');
   const helpPinButton = root.querySelector<HTMLButtonElement>('[data-help-pin]');
-  const helpResetButton = root.querySelector<HTMLButtonElement>('[data-help-reset]');
   const testAnswerButton = root.querySelector<HTMLButtonElement>('[data-test-answer]');
   const submitButton = root.querySelector<HTMLButtonElement>('[data-submit]');
   const sampleDataButton = root.querySelector<HTMLButtonElement>('[data-sample-data-open]');
@@ -796,7 +818,7 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
     canvas.prepend(boardNotes);
   }
 
-  if (!canvas || !field || !cluster || !formulaEntry || !inputCell || !formulaOutput || !placeholder || !strings || !pointsCurrent || !attemptCount || !chalkToggle || !status || !clearButton || !actions || !helpButton || !helpPanel || !helpFunctions || !helpDetail || !helpCost || !helpPinButton || !helpResetButton || !testAnswerButton || !submitButton) return;
+  if (!canvas || !field || !cluster || !formulaEntry || !inputCell || !formulaOutput || !placeholder || !strings || !questionCurrent || !pointsCurrent || !attemptCount || !optionsButton || !optionsPanel || !questionResetButton || !chalkToggle || !leftScrollToggle || !touchModeToggle || !disableTouchTipToggle || !cleanBackgroundToggle || !touchModeOption || !touchOptionsLink || !touchScrollControl || !leftHandedNotice || !status || !clearButton || !actions || !helpButton || !helpPanel || !helpFunctions || !helpDetail || !helpCost || !helpPinButton || !testAnswerButton || !submitButton) return;
 
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const placedIds: string[] = [];
@@ -819,9 +841,22 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
     dragAngle: 0,
   }));
 
+  let currentQuestion = 1;
   let attempts = 0;
   let currentPointsExact = QUESTION_MAX_POINTS;
   let chalkEnabled = true;
+  let leftScrollEnabled = false;
+  let touchModeOverride: boolean | null = null;
+  let touchModeEnabled = false;
+  let observedTouchInput = false;
+  let disableTouchTip = false;
+  let cleanBackground = false;
+  let touchScrollHideTimer = 0;
+  let leftHandedNoticeTimer = 0;
+  let touchScrollPointerId: number | null = null;
+  let touchScrollGrabOffsetY = 0;
+  let touchScrollHovered = false;
+  const activeTouchIds = new Set<number>();
   let selectedCell = true;
   let previewId: string | null = null;
   let previewIndex: number | null = null;
@@ -832,12 +867,15 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
   let activePlacedPointer: PlacedPointer | null = null;
   let hoverLock: HoverLock | null = null;
   let suppressClickId: string | null = null;
-  let suppressPlacedClickId: string | null = null;
+  let suppressNextPlacedClick = false;
+  let suppressPlacedClickTimer = 0;
   let clusterLayoutFrame = 0;
   let lastFieldWidth = 0;
   let lastAnswerHeight = 50;
   let clusterEnergy = 0;
   let clusterBreathingInset = 32;
+  let clusterNaturalHeight = 190;
+  let clusterHelpOccupiedDepth = 0;
   let helpPurchased = false;
   let helpPenaltyPercent = 0;
   let helpPanelPinned = false;
@@ -859,9 +897,11 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
   const clampPoints = (value: number) => Math.max(0, Math.min(QUESTION_MAX_POINTS, value));
   const renderQuestionScore = () => {
     const visiblePoints = Math.max(0, Math.round(currentPointsExact));
+    questionCurrent.textContent = String(currentQuestion);
     pointsCurrent.textContent = String(visiblePoints);
     attemptCount.textContent = String(attempts);
     submitButton.disabled = attempts >= QUESTION_MAX_ATTEMPTS;
+    root.dataset.currentQuestion = String(currentQuestion);
     root.dataset.currentPoints = String(visiblePoints);
     root.dataset.currentPointsExact = currentPointsExact.toFixed(6);
     root.dataset.attemptsUsed = String(attempts);
@@ -971,9 +1011,117 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
     root.dataset.chalk = chalkEnabled ? 'on' : 'off';
     chalkToggle.checked = chalkEnabled;
   };
+  const readStoredLeftScrollPreference = () => {
+    try {
+      return window.localStorage.getItem(LEFT_SCROLL_PREFERENCE_STORAGE_KEY) === '1';
+    } catch {
+      return false;
+    }
+  };
+  const persistLeftScrollPreference = () => {
+    try {
+      window.localStorage.setItem(LEFT_SCROLL_PREFERENCE_STORAGE_KEY, leftScrollEnabled ? '1' : '0');
+    } catch {
+      // The side preference still works for the current session if storage is unavailable.
+    }
+  };
+  const clearStoredLeftScrollPreference = () => {
+    try {
+      window.localStorage.removeItem(LEFT_SCROLL_PREFERENCE_STORAGE_KEY);
+    } catch {
+      // Keep the in-memory reset usable even when storage is unavailable.
+    }
+  };
+  const renderLeftScrollPreference = () => {
+    if (!touchModeEnabled && leftScrollEnabled) {
+      leftScrollEnabled = false;
+      clearStoredLeftScrollPreference();
+    }
+    leftScrollToggle.checked = leftScrollEnabled;
+    leftScrollToggle.disabled = !touchModeEnabled;
+    const option = leftScrollToggle.closest<HTMLElement>('.formula-canvas__option-toggle');
+    if (option) option.dataset.disabled = String(!touchModeEnabled);
+    touchScrollControl.dataset.side = leftScrollEnabled ? 'left' : 'right';
+  };
+  const readStoredBooleanPreference = (key: string) => {
+    try {
+      return window.localStorage.getItem(key) === '1';
+    } catch {
+      return false;
+    }
+  };
+  const persistBooleanPreference = (key: string, enabled: boolean) => {
+    try {
+      window.localStorage.setItem(key, enabled ? '1' : '0');
+    } catch {
+      // Keep the in-memory preference usable when storage is unavailable.
+    }
+  };
+  const clearStoredBooleanPreference = (key: string) => {
+    try {
+      window.localStorage.removeItem(key);
+    } catch {
+      // Keep reset usable when storage is unavailable.
+    }
+  };
+  const renderDisableTouchTipPreference = () => {
+    if (touchModeEnabled && disableTouchTip) {
+      disableTouchTip = false;
+      persistBooleanPreference(DISABLE_TOUCH_TIP_STORAGE_KEY, false);
+    }
+    disableTouchTipToggle.checked = disableTouchTip;
+    disableTouchTipToggle.disabled = touchModeEnabled;
+    const option = disableTouchTipToggle.closest<HTMLElement>('.formula-canvas__option-toggle');
+    if (option) option.dataset.disabled = String(touchModeEnabled);
+    root.dataset.touchTipDisabled = String(disableTouchTip);
+  };
+  const renderCleanBackgroundPreference = () => {
+    cleanBackgroundToggle.checked = cleanBackground;
+    root.dataset.cleanBackground = String(cleanBackground);
+  };
+  const touchCapabilityMedia = window.matchMedia('(any-pointer: coarse)');
+  const detectTouchCapability = () => observedTouchInput || navigator.maxTouchPoints > 0 || touchCapabilityMedia.matches;
+  const readStoredTouchModeOverride = (): boolean | null => {
+    try {
+      const stored = window.localStorage.getItem(TOUCH_MODE_OVERRIDE_STORAGE_KEY);
+      if (stored === 'on') return true;
+      if (stored === 'off') return false;
+    } catch {
+      // Fall back to automatic touch detection when storage is unavailable.
+    }
+    return null;
+  };
+  const persistTouchModeOverride = () => {
+    try {
+      if (touchModeOverride === null) window.localStorage.removeItem(TOUCH_MODE_OVERRIDE_STORAGE_KEY);
+      else window.localStorage.setItem(TOUCH_MODE_OVERRIDE_STORAGE_KEY, touchModeOverride ? 'on' : 'off');
+    } catch {
+      // Touch Mode still works for the current session if storage is unavailable.
+    }
+  };
+  const clearStoredTouchModeOverride = () => {
+    try {
+      window.localStorage.removeItem(TOUCH_MODE_OVERRIDE_STORAGE_KEY);
+    } catch {
+      // Keep the in-memory reset usable even when storage is unavailable.
+    }
+  };
+  const renderTouchModePreference = () => {
+    touchModeEnabled = touchModeOverride ?? detectTouchCapability();
+    touchModeToggle.checked = touchModeEnabled;
+    root.dataset.touchMode = touchModeEnabled ? 'on' : 'off';
+    renderLeftScrollPreference();
+    renderDisableTouchTipPreference();
+  };
 
   chalkEnabled = readStoredChalkPreference();
+  leftScrollEnabled = readStoredLeftScrollPreference();
+  touchModeOverride = readStoredTouchModeOverride();
+  disableTouchTip = readStoredBooleanPreference(DISABLE_TOUCH_TIP_STORAGE_KEY);
+  cleanBackground = readStoredBooleanPreference(CLEAN_BACKGROUND_STORAGE_KEY);
   renderChalkPreference();
+  renderTouchModePreference();
+  renderCleanBackgroundPreference();
 
   const storedQuestionScore = readStoredQuestionScore();
   if (storedQuestionScore) {
@@ -1041,9 +1189,8 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
   const renderHelpDetail = () => {
     helpDetail.replaceChildren();
     helpDetail.dataset.locked = String(!helpPurchased);
-    helpResetButton.hidden = !helpPurchased;
     helpCost.textContent = helpPurchased
-      ? `Help active · -${helpPenaltyPercent}% points`
+      ? `Tips active · -${helpPenaltyPercent}% points`
       : `Reveal cost: -${HELP_SCORE_PENALTY_PERCENT}%`;
 
     helpFunctions.querySelectorAll<HTMLButtonElement>('[data-help-function]').forEach((button) => {
@@ -1051,11 +1198,14 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
       button.dataset.locked = String(!helpPurchased);
       button.dataset.active = String(helpPurchased && active);
       button.setAttribute('aria-label', helpPurchased
-        ? `${button.dataset.helpFunction} function help`
-        : `${button.dataset.helpFunction} help is locked. Activate to show the help purchase prompt.`);
+        ? `${button.dataset.helpFunction} function tips`
+        : `${button.dataset.helpFunction} tips are locked. Activate to show the Tips purchase prompt.`);
     });
 
-    if (!activeHelpFunction) return;
+    if (!activeHelpFunction) {
+      if (!helpPanel.hidden) requestAnimationFrame(positionHelpPanel);
+      return;
+    }
     if (!helpPurchased) {
       const locked = document.createElement('span');
       locked.className = helpIntroActive
@@ -1066,9 +1216,9 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
       prompt.className = 'formula-daily__help-lock-prompt';
 
       if (helpIntroActive) {
-        prompt.textContent = `Unlock help for every puzzle function for -${HELP_SCORE_PENALTY_PERCENT}% points.`;
+        prompt.textContent = `Unlock tips for every puzzle function for -${HELP_SCORE_PENALTY_PERCENT}% points.`;
       } else {
-        prompt.append(document.createTextNode('Reveal Help? ('));
+        prompt.append(document.createTextNode('Reveal Tips? ('));
         const penalty = document.createElement('span');
         penalty.className = 'formula-daily__help-penalty';
         penalty.textContent = `-${HELP_SCORE_PENALTY_PERCENT}% points`;
@@ -1080,11 +1230,12 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
       buy.className = 'formula-daily__help-buy';
       buy.dataset.helpBuy = '';
       buy.textContent = 'Buy';
-      buy.setAttribute('aria-label', `Buy function help for ${HELP_SCORE_PENALTY_PERCENT} percent of your current points`);
+      buy.setAttribute('aria-label', `Buy function tips for ${HELP_SCORE_PENALTY_PERCENT} percent of your current points`);
       buy.addEventListener('click', purchaseHelp);
 
       locked.append(prompt, buy);
       helpDetail.append(locked);
+      if (!helpPanel.hidden) requestAnimationFrame(positionHelpPanel);
       return;
     }
 
@@ -1102,6 +1253,7 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
       copy.textContent = line;
       helpDetail.append(copy);
     });
+    if (!helpPanel.hidden) requestAnimationFrame(positionHelpPanel);
   };
 
   const setActiveHelpFunction = (name: string) => {
@@ -1141,7 +1293,59 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
     }, 560);
   };
 
-  const isMobileHelpLayout = () => window.matchMedia('(max-width: 720px)').matches;
+  const isNarrowLayout = () => window.matchMedia('(max-width: 720px)').matches;
+  const clearTouchScrollHideTimer = () => {
+    if (!touchScrollHideTimer) return;
+    window.clearTimeout(touchScrollHideTimer);
+    touchScrollHideTimer = 0;
+  };
+  const getPageScrollRatio = () => {
+    const maxScroll = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+    if (maxScroll <= 0) return 0;
+    return Math.max(0, Math.min(1, window.scrollY / maxScroll));
+  };
+  const updateTouchScrollControlPosition = () => {
+    if (touchScrollControl.hidden || !touchModeEnabled) return;
+    const controlHeight = touchScrollControl.offsetHeight || 58;
+    const trackStart = TOUCH_SCROLL_CONTROL_EDGE_GAP;
+    const trackEnd = Math.max(trackStart, window.innerHeight - TOUCH_SCROLL_CONTROL_EDGE_GAP - controlHeight);
+    const top = trackStart + (trackEnd - trackStart) * getPageScrollRatio();
+    touchScrollControl.style.top = `${Math.round(top)}px`;
+  };
+  const showTouchScrollControl = () => {
+    if (!touchModeEnabled) return;
+    clearTouchScrollHideTimer();
+    delete touchScrollControl.dataset.cooling;
+    touchScrollControl.hidden = false;
+    renderLeftScrollPreference();
+    updateTouchScrollControlPosition();
+  };
+  const hideTouchScrollControl = () => {
+    clearTouchScrollHideTimer();
+    touchScrollControl.hidden = true;
+    delete touchScrollControl.dataset.dragging;
+    delete touchScrollControl.dataset.cooling;
+    delete touchScrollControl.dataset.hovered;
+    touchScrollPointerId = null;
+    touchScrollHovered = false;
+  };
+  const scheduleTouchScrollControlHide = () => {
+    if (touchScrollControl.hidden || touchScrollPointerId !== null || activeTouchIds.size > 0 || touchScrollHovered) return;
+    clearTouchScrollHideTimer();
+    touchScrollControl.dataset.cooling = 'true';
+    touchScrollHideTimer = window.setTimeout(() => {
+      touchScrollHideTimer = 0;
+      if (touchScrollPointerId === null && activeTouchIds.size === 0 && !touchScrollHovered) hideTouchScrollControl();
+    }, TOUCH_SCROLL_CONTROL_HIDE_MS);
+  };
+  const showLeftHandedNotice = () => {
+    if (leftHandedNoticeTimer) window.clearTimeout(leftHandedNoticeTimer);
+    leftHandedNotice.hidden = false;
+    leftHandedNoticeTimer = window.setTimeout(() => {
+      leftHandedNotice.hidden = true;
+      leftHandedNoticeTimer = 0;
+    }, LEFT_HANDED_NOTICE_MS);
+  };
 
   const positionHelpPanel = () => {
     if (helpPanel.hidden) return;
@@ -1149,20 +1353,42 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
     const helpBounds = helpButton.getBoundingClientRect();
     const canvasBounds = canvas.getBoundingClientRect();
     const top = helpBounds.bottom - actionsBounds.top + 9;
-    const mobileLayout = isMobileHelpLayout();
+    const narrowLayout = isNarrowLayout();
 
+    helpPanel.dataset.layout = narrowLayout ? 'vertical' : 'horizontal';
+    cluster.dataset.helpLayout = narrowLayout ? 'vertical' : 'horizontal';
+    cluster.dataset.helpPinned = String(helpPanelPinned);
     helpPanel.style.width = '';
     helpPanel.style.height = '';
     helpPanel.style.maxWidth = '';
 
-    if (mobileLayout) {
+    if (narrowLayout) {
       helpPanel.style.left = '0px';
       helpPanel.style.top = `${Math.round(top)}px`;
       helpPanel.style.width = `${Math.max(0, Math.floor(actionsBounds.width))}px`;
+
+      if (helpPanelPinned) {
+        const panelBounds = helpPanel.getBoundingClientRect();
+        const fieldBounds = field.getBoundingClientRect();
+        const occupiedDepth = Math.max(0, panelBounds.bottom - fieldBounds.top + HELP_CLUSTER_OBSTACLE_GAP);
+        clusterHelpOccupiedDepth = Math.ceil(occupiedDepth);
+      } else {
+        clusterHelpOccupiedDepth = 0;
+      }
+      syncClusterHeight();
       return;
     }
 
-    const panelWidth = helpPanel.offsetWidth;
+    clusterHelpOccupiedDepth = 0;
+    syncClusterHeight();
+
+    const fieldBounds = field.getBoundingClientRect();
+    const maxPanelWidth = Math.max(0, Math.floor(
+      fieldBounds.width * (1 - HELP_CLUSTER_MIN_FREE_RATIO) - HELP_CLUSTER_OBSTACLE_GAP,
+    ));
+    const panelWidth = Math.min(HELP_PANEL_DESKTOP_WIDTH, maxPanelWidth);
+    helpPanel.style.width = `${panelWidth}px`;
+
     const panelRight = canvasBounds.right - actionsBounds.left - HELP_PANEL_DESKTOP_SIDE_GAP;
     const left = Math.max(0, panelRight - panelWidth);
     const panelBottom = canvasBounds.bottom - actionsBounds.top - HELP_PANEL_DESKTOP_BOTTOM_GAP;
@@ -1174,7 +1400,7 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
   };
 
   const renderHelpPinState = () => {
-    const actionLabel = helpPanelPinned ? 'Unpin function help' : 'Pin function help';
+    const actionLabel = helpPanelPinned ? 'Unpin function tips' : 'Pin function tips';
     helpPinButton.dataset.pinned = String(helpPanelPinned);
     helpPinButton.setAttribute('aria-pressed', String(helpPanelPinned));
     helpPinButton.setAttribute('aria-label', actionLabel);
@@ -1233,6 +1459,25 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
     renderHelpDetail();
   };
 
+  const clearTouchModeOptionHighlight = () => {
+    delete touchModeOption.dataset.tipHighlight;
+  };
+  const highlightTouchModeOption = () => {
+    delete touchModeOption.dataset.tipHighlight;
+    void touchModeOption.offsetWidth;
+    touchModeOption.dataset.tipHighlight = 'true';
+  };
+  const setOptionsPanelOpen = (open: boolean, highlightTouch = false) => {
+    optionsPanel.hidden = !open;
+    optionsButton.setAttribute('aria-expanded', String(open));
+    if (!open) {
+      clearTouchModeOptionHighlight();
+      return;
+    }
+    if (highlightTouch) highlightTouchModeOption();
+    else clearTouchModeOptionHighlight();
+  };
+
   const resetQuestionState = () => {
     cancelHelpClose();
     if (helpIntroTimer) {
@@ -1252,11 +1497,28 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
     clearStoredHelpPurchase();
     clearStoredQuestionScore();
     clearStoredChalkPreference();
+    clearStoredLeftScrollPreference();
+    clearStoredTouchModeOverride();
+    clearStoredBooleanPreference(DISABLE_TOUCH_TIP_STORAGE_KEY);
+    clearStoredBooleanPreference(CLEAN_BACKGROUND_STORAGE_KEY);
 
+    currentQuestion = 1;
     attempts = 0;
     currentPointsExact = QUESTION_MAX_POINTS;
     chalkEnabled = true;
+    leftScrollEnabled = false;
+    touchModeOverride = null;
+    disableTouchTip = false;
+    cleanBackground = false;
     renderChalkPreference();
+    renderTouchModePreference();
+    renderCleanBackgroundPreference();
+    hideTouchScrollControl();
+    if (leftHandedNoticeTimer) {
+      window.clearTimeout(leftHandedNoticeTimer);
+      leftHandedNoticeTimer = 0;
+    }
+    leftHandedNotice.hidden = true;
     helpPurchased = false;
     helpPenaltyPercent = 0;
     helpIntroShown = false;
@@ -1269,8 +1531,13 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
     previewIndex = null;
     selectedCell = true;
     suppressClickId = null;
-    suppressPlacedClickId = null;
+    suppressNextPlacedClick = false;
+    if (suppressPlacedClickTimer) {
+      window.clearTimeout(suppressPlacedClickTimer);
+      suppressPlacedClickTimer = 0;
+    }
     activePointer = null;
+    activeTouchIds.clear();
     if (activePlacedPointer?.ghost.isConnected) activePlacedPointer.ghost.remove();
     activePlacedPointer = null;
     clusterEnergy = 0;
@@ -1296,6 +1563,7 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
     renderHelpPinState();
     renderHelpDetail();
     closeHelpPanel(true);
+    setOptionsPanelOpen(false);
     clearStatus();
     renderFormula();
     packCluster();
@@ -1327,7 +1595,35 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
   renderQuestionScore();
   renderHelpDetail();
   renderHelpPinState();
-  helpResetButton.addEventListener('click', resetQuestionState);
+
+  document.addEventListener('pointerdown', (event) => {
+    if (event.pointerType !== 'touch') return;
+    observedTouchInput = true;
+    if (touchModeOverride === null) renderTouchModePreference();
+    if (!touchModeEnabled) return;
+    activeTouchIds.add(event.pointerId);
+    showTouchScrollControl();
+  }, { capture: true });
+
+  optionsButton.addEventListener('click', () => {
+    setOptionsPanelOpen(optionsPanel.hidden);
+  });
+  touchOptionsLink.addEventListener('click', () => {
+    setOptionsPanelOpen(true, true);
+    optionsButton.scrollIntoView({
+      behavior: reducedMotion ? 'auto' : 'smooth',
+      block: 'center',
+      inline: 'nearest',
+    });
+  });
+  document.addEventListener('pointerdown', (event) => {
+    if (optionsPanel.hidden) return;
+    const target = event.target as Node | null;
+    if (target && (optionsPanel.contains(target) || optionsButton.contains(target))) return;
+    setOptionsPanelOpen(false);
+  });
+  questionResetButton.addEventListener('click', resetQuestionState);
+
   chalkToggle.addEventListener('change', () => {
     chalkEnabled = chalkToggle.checked;
     renderChalkPreference();
@@ -1337,6 +1633,116 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
       packCluster();
       if (!helpPanel.hidden) positionHelpPanel();
     });
+  });
+
+  leftScrollToggle.addEventListener('change', () => {
+    leftScrollEnabled = leftScrollToggle.checked;
+    renderLeftScrollPreference();
+    persistLeftScrollPreference();
+    if (!touchScrollControl.hidden) updateTouchScrollControlPosition();
+    if (leftScrollEnabled) showLeftHandedNotice();
+  });
+
+  touchModeToggle.addEventListener('change', () => {
+    touchModeOverride = touchModeToggle.checked;
+    persistTouchModeOverride();
+    renderTouchModePreference();
+    if (!touchModeEnabled) hideTouchScrollControl();
+  });
+
+  disableTouchTipToggle.addEventListener('change', () => {
+    disableTouchTip = disableTouchTipToggle.checked;
+    renderDisableTouchTipPreference();
+    persistBooleanPreference(DISABLE_TOUCH_TIP_STORAGE_KEY, disableTouchTip);
+  });
+
+  cleanBackgroundToggle.addEventListener('change', () => {
+    cleanBackground = cleanBackgroundToggle.checked;
+    renderCleanBackgroundPreference();
+    persistBooleanPreference(CLEAN_BACKGROUND_STORAGE_KEY, cleanBackground);
+  });
+
+  const movePageFromTouchScrollControl = (clientY: number) => {
+    const controlHeight = touchScrollControl.offsetHeight || 58;
+    const trackStart = TOUCH_SCROLL_CONTROL_EDGE_GAP;
+    const trackEnd = Math.max(trackStart, window.innerHeight - TOUCH_SCROLL_CONTROL_EDGE_GAP - controlHeight);
+    const desiredTop = Math.max(trackStart, Math.min(trackEnd, clientY - touchScrollGrabOffsetY));
+    const ratio = trackEnd > trackStart ? (desiredTop - trackStart) / (trackEnd - trackStart) : 0;
+    const maxScroll = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+    touchScrollControl.style.top = `${Math.round(desiredTop)}px`;
+    window.scrollTo({ top: maxScroll * ratio, left: window.scrollX, behavior: 'instant' });
+  };
+  const finishTouchScrollControlDrag = (event: PointerEvent) => {
+    if (touchScrollPointerId !== event.pointerId) return;
+    try {
+      if (touchScrollControl.hasPointerCapture(event.pointerId)) touchScrollControl.releasePointerCapture(event.pointerId);
+    } catch { /* capture may already be released */ }
+    touchScrollPointerId = null;
+    delete touchScrollControl.dataset.dragging;
+    if (event.pointerType === 'touch') touchScrollControl.blur();
+    updateTouchScrollControlPosition();
+    scheduleTouchScrollControlHide();
+  };
+
+  touchScrollControl.addEventListener('pointerdown', (event) => {
+    if (!event.isPrimary || (event.pointerType === 'mouse' && event.button !== 0) || !touchModeEnabled) return;
+    event.preventDefault();
+    event.stopPropagation();
+    showTouchScrollControl();
+    touchScrollPointerId = event.pointerId;
+    const bounds = touchScrollControl.getBoundingClientRect();
+    touchScrollGrabOffsetY = event.clientY - bounds.top;
+    touchScrollControl.dataset.dragging = 'true';
+    try { touchScrollControl.setPointerCapture(event.pointerId); } catch { /* pointer capture is best effort */ }
+  });
+  touchScrollControl.addEventListener('pointermove', (event) => {
+    if (touchScrollPointerId !== event.pointerId) return;
+    event.preventDefault();
+    movePageFromTouchScrollControl(event.clientY);
+  });
+  touchScrollControl.addEventListener('pointerenter', (event) => {
+    if (event.pointerType === 'touch' || !touchModeEnabled || touchScrollControl.hidden) return;
+    touchScrollHovered = true;
+    touchScrollControl.dataset.hovered = 'true';
+    showTouchScrollControl();
+  });
+  touchScrollControl.addEventListener('pointerleave', (event) => {
+    if (event.pointerType === 'touch') return;
+    touchScrollHovered = false;
+    delete touchScrollControl.dataset.hovered;
+    if (touchScrollPointerId !== null || activeTouchIds.size > 0) return;
+    scheduleTouchScrollControlHide();
+  });
+  touchScrollControl.addEventListener('pointerup', finishTouchScrollControlDrag);
+  touchScrollControl.addEventListener('pointercancel', finishTouchScrollControlDrag);
+
+  const finishTouchActivity = (event: PointerEvent) => {
+    if (event.pointerType !== 'touch' || !activeTouchIds.delete(event.pointerId)) return;
+    scheduleTouchScrollControlHide();
+  };
+  document.addEventListener('pointerup', finishTouchActivity);
+  document.addEventListener('pointercancel', finishTouchActivity);
+  window.addEventListener('scroll', () => {
+    if (!touchModeEnabled) return;
+    if (touchScrollControl.hidden) showTouchScrollControl();
+    // While the custom thumb is under the player's finger, its pointer position is
+    // authoritative. Do not let scroll events reposition it from scrollY mid-drag.
+    if (touchScrollPointerId !== null) return;
+    updateTouchScrollControlPosition();
+    if (activeTouchIds.size === 0) scheduleTouchScrollControlHide();
+  }, { passive: true });
+  window.addEventListener('resize', () => {
+    if (touchModeOverride === null) renderTouchModePreference();
+    if (!touchModeEnabled) {
+      hideTouchScrollControl();
+      return;
+    }
+    if (!touchScrollControl.hidden) updateTouchScrollControlPosition();
+  }, { passive: true });
+  touchCapabilityMedia.addEventListener('change', () => {
+    if (touchModeOverride !== null) return;
+    renderTouchModePreference();
+    if (!touchModeEnabled) hideTouchScrollControl();
   });
 
   helpButton.addEventListener('mouseenter', () => {
@@ -1357,9 +1763,9 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
       helpClusterRecoveryUntil = 0;
       helpClusterRecoveryHardStop = 0;
       openHelpPanel();
-      const mobileLayout = isMobileHelpLayout();
+      const narrowLayout = helpPanel.dataset.layout === 'vertical';
       states.filter((state) => !state.used && !state.dragging && !state.hovered).forEach((state, index) => {
-        if (mobileLayout) {
+        if (narrowLayout) {
           state.vx += (index % 2 === 0 ? -1 : 1) * .12;
           state.vy += 1.2 + (index % 4) * .18;
           return;
@@ -1373,6 +1779,9 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
     }
 
     closeHelpPanel(true);
+    cluster.dataset.helpPinned = 'false';
+    clusterHelpOccupiedDepth = 0;
+    syncClusterHeight();
     if (wasPinned) {
       helpClusterRecoveryUntil = primeHelpClusterRecovery(states, field.getBoundingClientRect());
       helpClusterRecoveryHardStop = helpClusterRecoveryUntil + HELP_CLUSTER_RECOVERY_SETTLE_MS;
@@ -1395,7 +1804,13 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
   helpPanel.addEventListener('focusin', cancelHelpClose);
   helpPanel.addEventListener('focusout', scheduleHelpClose);
   root.addEventListener('keydown', (event) => {
-    if (event.key !== 'Escape' || helpPanel.hidden) return;
+    if (event.key !== 'Escape') return;
+    if (!optionsPanel.hidden) {
+      setOptionsPanelOpen(false);
+      optionsButton.focus();
+      return;
+    }
+    if (helpPanel.hidden) return;
     setHelpPanelPinned(false);
     helpButton.focus();
   });
@@ -1718,7 +2133,8 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
     const bottom = available.length
       ? Math.max(...available.map((state) => state.homeY + state.height))
       : 0;
-    const nextHeight = Math.max(18, Math.ceil(bottom + CLUSTER_PAD_Y + clusterBreathingInset));
+    clusterNaturalHeight = Math.max(18, Math.ceil(bottom + CLUSTER_PAD_Y + clusterBreathingInset));
+    const nextHeight = clusterNaturalHeight + clusterHelpOccupiedDepth;
     cluster.style.setProperty('--cluster-height', `${nextHeight}px`);
   };
 
@@ -1845,7 +2261,8 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
       y += packedRow.height + CLUSTER_GAP_Y;
     });
 
-    cluster.style.setProperty('--cluster-height', `${Math.max(18, Math.ceil(y - CLUSTER_GAP_Y + CLUSTER_PAD_Y + clusterBreathingInset))}px`);
+    clusterNaturalHeight = Math.max(18, Math.ceil(y - CLUSTER_GAP_Y + CLUSTER_PAD_Y + clusterBreathingInset));
+    cluster.style.setProperty('--cluster-height', `${clusterNaturalHeight + clusterHelpOccupiedDepth}px`);
     updateStrings();
   };
 
@@ -2386,13 +2803,13 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
   const getPinnedHelpObstacle = (fieldBounds: DOMRect) => {
     if (!helpPanelPinned || helpPanel.hidden) return null;
     const panelBounds = helpPanel.getBoundingClientRect();
-    const gap = 14;
+    const narrow = helpPanel.dataset.layout === 'vertical';
     return {
-      left: panelBounds.left - fieldBounds.left - gap,
-      right: panelBounds.right - fieldBounds.left + gap,
-      top: panelBounds.top - fieldBounds.top - gap,
-      bottom: panelBounds.bottom - fieldBounds.top + gap,
-      mobile: isMobileHelpLayout(),
+      left: panelBounds.left - fieldBounds.left - HELP_CLUSTER_OBSTACLE_GAP,
+      right: panelBounds.right - fieldBounds.left + HELP_CLUSTER_OBSTACLE_GAP,
+      top: panelBounds.top - fieldBounds.top - HELP_CLUSTER_OBSTACLE_GAP,
+      bottom: panelBounds.bottom - fieldBounds.top + HELP_CLUSTER_OBSTACLE_GAP,
+      narrow,
     };
   };
 
@@ -2421,20 +2838,20 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
         }
       }
     }
-    const centreX = helpObstacle && !helpObstacle.mobile
+    const centreX = helpObstacle && !helpObstacle.narrow
       ? Math.max(CLUSTER_PAD_X, Math.min(bounds.width / 2, helpObstacle.left / 2))
       : bounds.width / 2;
-    const mobileFreeTop = helpObstacle?.mobile
+    const narrowFreeTop = helpObstacle?.narrow
       ? Math.max(CLUSTER_PAD_Y, helpObstacle.bottom)
       : CLUSTER_PAD_Y;
-    const centreY = helpObstacle?.mobile
-      ? clamp(mobileFreeTop + (bounds.height - mobileFreeTop) / 2, bounds.height / 2, Math.max(bounds.height / 2, bounds.height - CLUSTER_PAD_Y))
+    const centreY = helpObstacle?.narrow
+      ? clamp(narrowFreeTop + (bounds.height - narrowFreeTop) / 2, bounds.height / 2, Math.max(bounds.height / 2, bounds.height - CLUSTER_PAD_Y))
       : bounds.height / 2;
 
     // Preserve the current constrained drag/answer mechanics, but use the live
     // build's original loose-label physics for every other piece.
     syncHoveredPieceToViewport(bounds);
-    if (activePointer) advanceClusterPointer(activePointer);
+    if (activePointer?.started) advanceClusterPointer(activePointer);
     if (activePlacedPointer) {
       advancePlacedPointer(activePlacedPointer);
       if (activePlacedPointer.moved) {
@@ -2472,7 +2889,7 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
       const overlapsVertically = bottom > helpObstacle.top && top < helpObstacle.bottom;
       const overlapsHorizontally = right > helpObstacle.left && left < helpObstacle.right;
       if (!overlapsVertically || !overlapsHorizontally) return;
-      if (helpObstacle.mobile) {
+      if (helpObstacle.narrow) {
         const penetration = Math.max(0, helpObstacle.bottom - top);
         state.vy += Math.min(4.8, .55 + penetration * .075);
         state.vx += Math.sin(index * 1.7 + time / 280) * .035;
@@ -2513,7 +2930,7 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
           const yDirection = dy >= 0 ? 1 : -1;
           const rightRoom = (state: PieceState, collision: { width: number; height: number }) => {
             let rightLimit = bounds.width;
-            if (helpObstacle && !helpObstacle.mobile) {
+            if (helpObstacle && !helpObstacle.narrow) {
               const centreY = state.y + state.height / 2;
               const top = centreY - collision.height / 2;
               const bottom = centreY + collision.height / 2;
@@ -2523,7 +2940,7 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
           };
           const topRoom = (state: PieceState, collision: { width: number; height: number }) => {
             let topLimit = 0;
-            if (helpObstacle?.mobile) {
+            if (helpObstacle?.narrow) {
               const centreX = state.x + state.width / 2;
               const left = centreX - collision.width / 2;
               const right = centreX + collision.width / 2;
@@ -2588,6 +3005,30 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
     if (!animationFrame && visible && !reducedMotion) animationFrame = window.requestAnimationFrame(tick);
   };
 
+  const beginClusterDrag = (pointer: ClusterPointer) => {
+    if (pointer.started) return;
+    const state = pointer.state;
+    pointer.started = true;
+    state.dragging = true;
+    state.dragAngle = getBaseTilt(state);
+    state.vx = 0;
+    state.vy = 0;
+    state.element.dataset.dragging = 'true';
+    cluster.dataset.dragging = 'true';
+    try { state.element.setPointerCapture(pointer.id); } catch { /* pointer capture is best effort */ }
+    requestTick();
+  };
+
+  const releaseHoverForViewportScroll = () => {
+    if (!hoverLock) return;
+    const releasedId = hoverLock.state.id;
+    releaseHoverLock();
+    if (previewId === releasedId) previewPiece(null);
+  };
+
+  field.addEventListener('wheel', releaseHoverForViewportScroll, { passive: true });
+  window.addEventListener('scroll', releaseHoverForViewportScroll, { passive: true });
+
   field.addEventListener('click', (event) => {
     const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-piece-id]');
     if (!button) return;
@@ -2597,7 +3038,7 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
   });
 
   field.addEventListener('pointerover', (event) => {
-    if (activePointer || activePlacedPointer) return;
+    if (event.pointerType === 'touch' || activePointer || activePlacedPointer) return;
     const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-piece-id]');
     const state = states.find((piece) => piece.id === button?.dataset.pieceId);
     if (!state) return;
@@ -2606,6 +3047,7 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
   });
 
   field.addEventListener('pointerout', (event) => {
+    if (event.pointerType === 'touch') return;
     const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-piece-id]');
     if (!button || button.contains(event.relatedTarget as Node | null) || activePointer) return;
     const state = states.find((piece) => piece.id === button.dataset.pieceId);
@@ -2632,24 +3074,21 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
   });
 
   field.addEventListener('pointerdown', (event) => {
+    if (!event.isPrimary || (event.pointerType === 'mouse' && event.button !== 0)) return;
+    if (event.pointerType === 'touch' && !touchModeEnabled) return;
+
     const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-piece-id]');
-    if (!button) return;
+    if (!button || activePointer || activePlacedPointer) return;
     const state = states.find((piece) => piece.id === button.dataset.pieceId);
     if (!state) return;
-    event.preventDefault();
+
     releaseHoverLock(state);
     previewPiece(null);
     const bounds = button.getBoundingClientRect();
-    state.dragging = true;
-    state.dragAngle = getBaseTilt(state);
-    state.vx = 0;
-    state.vy = 0;
-    state.element.dataset.dragging = 'true';
-    cluster.dataset.dragging = 'true';
-    try { button.setPointerCapture(event.pointerId); } catch { /* pointer capture is best effort */ }
     activePointer = {
       state,
       id: event.pointerId,
+      started: false,
       moved: false,
       startX: event.clientX,
       startY: event.clientY,
@@ -2657,10 +3096,14 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
       grabOffsetY: event.clientY - bounds.top,
       targetX: state.x,
       targetY: state.y,
-      targetAngle: state.dragAngle,
+      targetAngle: getBaseTilt(state),
       edge: null,
     };
-    requestTick();
+
+    // Loose labels are direct-manipulation controls in Touch Mode. Empty cluster space
+    // remains available for native page panning, while a touched label grabs at once.
+    event.preventDefault();
+    beginClusterDrag(activePointer);
   });
 
   document.addEventListener('pointermove', (event) => {
@@ -2671,10 +3114,16 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
     }
 
     if (activePointer && activePointer.id === event.pointerId) {
-      event.preventDefault();
       const pointer = activePointer;
       const state = pointer.state;
-      if (Math.hypot(event.clientX - pointer.startX, event.clientY - pointer.startY) > 5) pointer.moved = true;
+      const deltaX = event.clientX - pointer.startX;
+      const deltaY = event.clientY - pointer.startY;
+      const distance = Math.hypot(deltaX, deltaY);
+
+      if (!pointer.started) beginClusterDrag(pointer);
+
+      event.preventDefault();
+      if (distance > 5) pointer.moved = true;
       const target = getClusterDragTarget(state, event.clientX, event.clientY, pointer.grabOffsetX, pointer.grabOffsetY);
       pointer.targetX = target.x;
       pointer.targetY = target.y;
@@ -2738,7 +3187,8 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
     if (!activePointer || activePointer.id !== event.pointerId) return;
     const pointer = activePointer;
     const { state, moved } = pointer;
-    const droppedOnCell = !cancelled && moved && stateOverAnswer(state);
+    const gestureCancelled = cancelled;
+    const droppedOnCell = !gestureCancelled && moved && stateOverAnswer(state);
     const insertionIndex = previewIndex ?? placedIds.length;
     try {
       if (state.element.hasPointerCapture(event.pointerId)) state.element.releasePointerCapture(event.pointerId);
@@ -2750,11 +3200,11 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
     delete state.element.dataset.dragging;
     delete cluster.dataset.dragging;
 
-    if (!cancelled && (!moved || droppedOnCell)) {
+    if (!gestureCancelled && (!moved || droppedOnCell)) {
       placePiece(state, insertionIndex);
     } else {
       previewPiece(null);
-      if (moved && !cancelled) {
+      if (moved && !gestureCancelled) {
         state.vx = 0;
         state.vy = 0;
         syncClusterHeight();
@@ -2799,6 +3249,11 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
     const token = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-placed-id]');
     const state = states.find((piece) => piece.id === token?.dataset.placedId);
     if (!token || !state || activePointer || activePlacedPointer) return;
+    suppressNextPlacedClick = false;
+    if (suppressPlacedClickTimer) {
+      window.clearTimeout(suppressPlacedClickTimer);
+      suppressPlacedClickTimer = 0;
+    }
     event.preventDefault();
     measureLoosePiece(state);
     const bounds = token.getBoundingClientRect();
@@ -2903,8 +3358,20 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
       ghost.remove();
     }
     if (cancelled) previewPiece(null);
-    suppressPlacedClickId = !cancelled ? state.id : null;
-    window.setTimeout(() => { suppressPlacedClickId = null; }, 0);
+    // A pointer click on a placed token is already handled above on pointerup.
+    // renderFormula() replaces the token DOM when it returns a piece, so the
+    // browser's follow-up click can otherwise retarget a newly rendered token
+    // now sitting beneath the same coordinates and remove a second piece. Consume
+    // that one follow-up click regardless of which token receives it. A new
+    // pointerdown clears the guard immediately, with a timeout only as backup.
+    if (!cancelled) {
+      suppressNextPlacedClick = true;
+      if (suppressPlacedClickTimer) window.clearTimeout(suppressPlacedClickTimer);
+      suppressPlacedClickTimer = window.setTimeout(() => {
+        suppressNextPlacedClick = false;
+        suppressPlacedClickTimer = 0;
+      }, 600);
+    }
     activePlacedPointer = null;
   };
 
@@ -2914,7 +3381,15 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
   inputCell.addEventListener('click', (event) => {
     const placed = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-placed-id]');
     if (placed?.dataset.placedId) {
-      if (suppressPlacedClickId === placed.dataset.placedId) return;
+      if (suppressNextPlacedClick) {
+        suppressNextPlacedClick = false;
+        if (suppressPlacedClickTimer) {
+          window.clearTimeout(suppressPlacedClickTimer);
+          suppressPlacedClickTimer = 0;
+        }
+        event.preventDefault();
+        return;
+      }
       returnPiece(placed.dataset.placedId);
       return;
     }
@@ -3016,6 +3491,7 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
     if (Math.abs(nextWidth - lastFieldWidth) < 2) return;
     populateBoardNotes();
     packCluster();
+    if (!helpPanel.hidden) positionHelpPanel();
   });
   resizeObserver.observe(canvas);
 

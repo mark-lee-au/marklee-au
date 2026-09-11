@@ -19,6 +19,7 @@ This directory is the project knowledge base for `marklee.au`.
 - [`data-governance.md`](data-governance.md): public-data policy, source notes, metadata, validation and updates
 - [`data-project-contract.md`](data-project-contract.md): required source, transformation, browser and release decisions per project
 - [`accessibility-performance.md`](accessibility-performance.md): accessibility and performance requirements
+- [`ux-accessibility-features.md`](ux-accessibility-features.md): project-by-project UX and accessibility feature history for case studies and ongoing review
 - [`deployment-workflow.md`](deployment-workflow.md): verified static build and existing Cloudflare Worker deployment boundary
 - [`git-workflow.md`](git-workflow.md): branch, commit, and change management conventions
 - [`roadmap.md`](roadmap.md): staged development roadmap

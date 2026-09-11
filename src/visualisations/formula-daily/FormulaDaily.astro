@@ -2,6 +2,8 @@
 import './formula-daily.css';
 
 const questionId = 'total-units-sold-east-v1';
+const currentQuestion = 1;
+const totalQuestions = 5;
 
 const rows = [
   ['Region', 'Units', 'Rate', ''],
@@ -41,7 +43,7 @@ const pieces = [
 ];
 ---
 
-<section class="formula-daily" data-formula-daily data-question-id={questionId} data-chalk="on" aria-labelledby="formula-question">
+<section class="formula-daily" data-formula-daily data-question-id={questionId} data-chalk="on" data-touch-mode="off" aria-labelledby="formula-question">
   <div
     class="formula-canvas"
     data-formula-canvas
@@ -53,14 +55,63 @@ const pieces = [
 
     <header class="formula-canvas__heading">
       <h2 id="formula-question">Build the formula.</h2>
-      <div class="formula-canvas__progress" aria-label="Question score, attempts, and display options">
-        <p class="formula-canvas__points">Points <strong data-points-current>100</strong> / 100</p>
-        <p>Attempt <strong data-attempt-count>0</strong> / 5</p>
-        <label class="formula-canvas__chalk-toggle">
-          <span>Chalk</span>
-          <input type="checkbox" data-chalk-toggle role="switch" aria-label="Use chalk font" checked />
-          <span class="formula-canvas__chalk-track" aria-hidden="true"></span>
-        </label>
+      <div class="formula-canvas__progress" aria-label="Question score, attempts, and options">
+        <div class="formula-canvas__options-anchor">
+          <button
+            class="formula-canvas__options-button"
+            type="button"
+            data-options-button
+            aria-expanded="false"
+            aria-controls="formula-options-panel"
+          >Options</button>
+          <div
+            class="formula-canvas__options-panel"
+            id="formula-options-panel"
+            data-options-panel
+            role="group"
+            aria-label="Formula Daily options"
+            hidden
+          >
+            <label class="formula-canvas__option-toggle">
+              <span>Chalk Font</span>
+              <input type="checkbox" data-chalk-toggle role="switch" aria-label="Use chalk font" checked />
+              <span class="formula-canvas__chalk-track" aria-hidden="true"></span>
+            </label>
+            <label class="formula-canvas__option-toggle" data-touch-mode-option>
+              <span>Touch Mode</span>
+              <input type="checkbox" data-touch-mode-toggle role="switch" aria-label="Use touch controls" />
+              <span class="formula-canvas__chalk-track" aria-hidden="true"></span>
+            </label>
+            <label class="formula-canvas__option-toggle formula-canvas__option-toggle--touch-child">
+              <span>Left Handed Mode</span>
+              <input type="checkbox" data-left-scroll-toggle role="switch" aria-label="Use left-side touch scroll control" />
+              <span class="formula-canvas__chalk-track" aria-hidden="true"></span>
+            </label>
+            <label class="formula-canvas__option-toggle formula-canvas__option-toggle--touch-child">
+              <span>Disable Touch Mode Tip</span>
+              <input type="checkbox" data-disable-touch-tip-toggle role="switch" aria-label="Hide the Touch Mode troubleshooting tip" />
+              <span class="formula-canvas__chalk-track" aria-hidden="true"></span>
+            </label>
+            <label class="formula-canvas__option-toggle">
+              <span>Clean Background</span>
+              <input type="checkbox" data-clean-background-toggle role="switch" aria-label="Use a plain black chalkboard background" />
+              <span class="formula-canvas__chalk-track" aria-hidden="true"></span>
+            </label>
+            <button
+              class="formula-canvas__options-reset"
+              type="button"
+              data-question-reset
+              aria-label="Reset this question to its initial state"
+            >Reset</button>
+          </div>
+        </div>
+        <p class="formula-canvas__progress-line">
+          <span>Question <strong data-question-current>{currentQuestion}</strong> / {totalQuestions}</span>
+          <span class="formula-canvas__progress-separator" aria-hidden="true">|</span>
+          <span>Attempt <strong data-attempt-count>0</strong> / 5</span>
+          <span class="formula-canvas__progress-separator" aria-hidden="true">|</span>
+          <span>Points <strong data-points-current>100</strong> / 100</span>
+        </p>
       </div>
     </header>
 
@@ -139,21 +190,21 @@ const pieces = [
             type="button"
             data-help-button
             aria-expanded="false"
-            aria-controls="formula-function-help"
+            aria-controls="formula-function-tips"
           >
-            Help
+            Tips
           </button>
         </span>
         <div
           class="formula-daily__help-panel"
-          id="formula-function-help"
+          id="formula-function-tips"
           data-help-panel
           role="group"
-          aria-label="Formula function help"
+          aria-label="Formula function tips"
           hidden
         >
           <div class="formula-daily__help-heading">
-            <span class="formula-daily__help-title">Function help</span>
+            <span class="formula-daily__help-title">Function Tips</span>
             <span class="formula-daily__help-meta">
               <span data-help-cost></span>
               <button
@@ -161,8 +212,8 @@ const pieces = [
                 type="button"
                 data-help-pin
                 aria-pressed="false"
-                aria-label="Pin function help"
-                title="Pin function help"
+                aria-label="Pin function tips"
+                title="Pin function tips"
               >
                 <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
                   <path d="M6 2.25h4l-.55 2.7 2.05 2.05v1.1H8.7v4.45L8 13.7l-.7-1.15V8.1H4.5V7l2.05-2.05L6 2.25Z" />
@@ -172,9 +223,6 @@ const pieces = [
           </div>
           <div class="formula-daily__help-functions" data-help-functions></div>
           <div class="formula-daily__help-detail" data-help-detail aria-live="polite"></div>
-          <div class="formula-daily__help-footer">
-            <button class="formula-daily__help-reset" type="button" data-help-reset aria-label="Reset this question to its initial state" hidden>Reset</button>
-          </div>
         </div>
         <button class="formula-daily__test" type="button" data-test-answer>Test Answer</button>
         <button class="formula-daily__submit" type="button" data-submit>Submit</button>
@@ -203,8 +251,32 @@ const pieces = [
           </button>
         ))}
       </div>
+      <p class="formula-cluster__touch-tip">
+        Tip: Touch not responding? Turn on Touch Mode in
+        <button class="formula-cluster__touch-options-link" type="button" data-touch-options-link>Options</button>.
+      </p>
     </div>
   </div>
+
+  <button
+    class="formula-daily__touch-scroll"
+    type="button"
+    data-touch-scroll-control
+    data-side="right"
+    aria-label="Scroll page"
+    hidden
+  >
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M6 8h12M6 12h12M6 16h12" />
+    </svg>
+  </button>
+  <div
+    class="formula-daily__left-notice"
+    data-left-handed-notice
+    role="status"
+    aria-live="polite"
+    hidden
+  >Left Handed Activated</div>
 </section>
 
 <script>

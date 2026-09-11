@@ -827,3 +827,125 @@ Stage 2 authorises the local GAMES structure and non-validating Formula Daily in
 - Full question Reset removes the stored font preference and restores Chalk on.
 - Toggling the font rerenders the answer and repacks the loose cluster so changed text metrics update wrapping and collision dimensions immediately.
 - Existing scoring, attempts, Help purchase persistence, validation, drag/drop and cluster motion logic are otherwise unchanged.
+
+## 2026-09-11 review patch - cluster scroll versus drag arbitration
+
+- Base: `main` at `b03044876f67df46cac05a160aeaf5854d64e828`, clean Project context snapshot.
+- Fixed desktop wheel scrolling over a loose label. Hover-lock previously anchored the active label to viewport coordinates on each physics tick, which made the label appear grabbed while the page moved underneath it. Wheel or viewport scroll now releases the hover lock and answer preview before scrolling continues.
+- Loose-label pointerdown now ignores non-primary mouse buttons, preventing middle-button/wheel presses from starting a drag.
+- Mobile cluster interaction now gives vertical gestures to native page scrolling. The cluster field and loose labels use `touch-action: pan-y`, and touch pointerdown remains pending instead of immediately entering drag state or calling `preventDefault()`.
+- A touch drag starts only after at least 10px of movement with a horizontal-leading gesture. Once started, the existing two-axis constrained drag behaviour resumes. A vertical-leading gesture is recorded as scroll intent and cannot become a tap/placement if the browser does not emit `pointercancel`.
+- Touch pointer hover events no longer create the desktop hover lock/preview state. Tap-to-place and keyboard interaction remain available.
+- No loose-label force equations, collision behaviour, Help obstacle behaviour, answer drag/reorder logic, scoring, validation, Sample Data or Chalk behaviour changed.
+- Validation: baseline and patched Formula Daily TypeScript both pass strict standalone compilation; CSS/static assertions confirm `pan-y`, delayed touch drag, vertical scroll intent, primary-button filtering and wheel/scroll hover release. Full Astro build was not available because `npm ci` timed out before dependencies installed.
+
+### Stage 2 review iteration - mobile touch intent tuning
+
+- Follow-up to the cluster scroll-versus-drag arbitration patch. The mobile drag-start movement threshold is reduced from 10px to 8px so deliberate label moves engage slightly sooner.
+- Scroll intent still becomes available from 6px, but requires vertical movement to exceed horizontal movement by a 1.2x bias. This keeps clear vertical swipes as page scrolling while giving short sideways or near-diagonal gestures more chance to become label drags.
+- Active loose-label dragging now reuses the same brightness/glow treatment as desktop hover. The highlight begins only when drag state actually starts, so ordinary touch scrolling over a label remains visually neutral.
+- Existing `touch-action: pan-y`, pointer-cancel handling, tap-to-place and all cluster physics remain unchanged.
+
+## 2026-09-11 review patch - mobile drag-ready feedback
+
+- Base remains `main` at `b03044876f67df46cac05a160aeaf5854d64e828`, with the reviewed scroll-versus-drag and mobile drag-tuning patches layered on top.
+- Kept native vertical page scrolling available across the loose-label field. No mobile scroll-lock mode or dedicated up/down scroll controls were added.
+- Added a touch-only drag-ready stage before a loose label actually starts moving. A small horizontal-leading gesture now marks the label ready at 4px and applies the same glow/plus treatment used for desktop hover. Actual label movement begins at 7px.
+- Clear vertical-leading gestures still become page-scroll intent from 6px and never show the ready highlight. If a gesture briefly arms horizontally but turns clearly vertical before drag begins, the ready state is cleared and scrolling wins.
+- The ready state is removed when drag begins, when scroll intent wins, and when the pointer ends/cancels. Existing drag physics and answer placement remain unchanged.
+- Local review should compare repeated vertical swipes over labels against short sideways/diagonal drag gestures.
+
+## 2026-09-11 review patch - mobile direct drag and temporary page-scroll thumb
+
+- Base: `main` at `b03044876f67df46cac05a160aeaf5854d64e828`, with the reviewed desktop wheel-scroll fix retained.
+- Supersedes the experimental mobile drag-ready threshold behaviour. Loose labels on mobile now use direct manipulation: touching a label immediately starts its existing drag path.
+- The mobile cluster field itself keeps native vertical panning, so swipes begun in empty cluster space can still scroll the page. Loose label buttons switch to `touch-action: none` only at the mobile breakpoint so their touches belong to label dragging rather than browser panning.
+- Added a temporary viewport-edge page-scroll thumb that appears when the mobile cluster is touched. It remains visible for about three seconds after the interaction/scroll ends.
+- The thumb position is proportional to `scrollY / (documentHeight - viewportHeight)`. Dragging the thumb maps the available thumb track back to the document scroll range, producing a compact custom scrollbar without changing desktop scrolling.
+- Added a mobile-only `Left` switch beneath Chalk. The preference is stored in `localStorage`, defaults off/right, and moves the thumb to the left when enabled. Enabling it shows a two-second `Left Handed Activated` notice.
+- Full question Reset clears the Left preference and restores the right-side default.
+- Existing desktop wheel/scroll hover-lock release stays in place. No cluster force equations, scoring, Help purchase, Test Answer, answer correctness or daily-loop logic changed.
+
+## 2026-09-11 review patch - live mobile scroll-thumb tracking
+
+- Base remains `main` at `b03044876f67df46cac05a160aeaf5854d64e828`, with the reviewed direct mobile drag and temporary page-scroll thumb patch layered on top.
+- Fixed lag where the custom mobile scroll thumb moved under the finger but the page often completed its movement only after finger motion stopped.
+- The site shell sets `html { scroll-behavior: smooth; }`. The thumb previously called `window.scrollTo(..., behavior: 'auto')`, which inherits that computed smooth behavior. Repeated pointer moves therefore restarted or retargeted smooth-scroll animations instead of producing direct manipulation.
+- Thumb-driven page movement now uses `behavior: 'instant'`, so page position updates immediately with each pointer event.
+- During active thumb drag, the thumb's pointer-derived top position is authoritative and scroll events do not run the normal page-ratio thumb synchroniser. This prevents the scroll listener from fighting the finger position.
+- Releasing the thumb performs one final scroll-ratio sync before the existing hide timer resumes.
+- No changes to Left preference, direct mobile label dragging, cluster forces, Help, scoring, validation or desktop scrolling.
+
+## 2026-09-11 review patch - touch capability, Options, and Tips terminology
+
+- Base: `main` at `b03044876f67df46cac05a160aeaf5854d64e828`, with the reviewed direct-drag and live touch-scroll-thumb patches layered on top.
+- Separated responsive layout from touch capability. `isNarrowLayout()` now exists only for width-dependent composition such as the Tips panel orientation. Touch controls no longer turn off when the viewport grows beyond 720px.
+- Automatic Touch Mode uses feature detection rather than device or user-agent detection: `navigator.maxTouchPoints > 0` or `(any-pointer: coarse)`. A real `pointerType === "touch"` interaction can also activate automatic Touch Mode when no player override exists.
+- Added a persistent Touch Mode override under Options. With no override, the switch reflects automatic detection. A player can force Touch Mode on or off. Full Reset removes the override and returns to automatic detection.
+- The temporary page-scroll thumb, direct loose-label touch dragging, and Left-side scroll preference are now gated by effective Touch Mode rather than the 720px breakpoint. The scroll thumb can therefore remain available on wide tablets, landscape phones, touch laptops, and Chrome touch emulation at wider widths.
+- Kept width-based CSS and Tips panel geometry responsive. Narrow layout still controls the across-board Tips panel versus the desktop right-side panel because that is a layout concern rather than an input concern.
+- Renamed the player-facing Help feature to Tips. The button is `Tips`, the panel heading is `Function Tips`, active/cost/purchase copy uses Tips terminology, and pin accessibility labels now refer to function tips. Existing storage/data names remain unchanged for backwards compatibility with purchases already saved under the old Help keys.
+- Added an `Options` button above Points/Attempt. Its popup opens to the left and contains Chalk, Left, Touch Mode, and an always-visible Reset control.
+- Moved Reset out of the Tips panel. Reset still restores the entire current question, clears Tips/score/font/Left state, and now also clears the Touch Mode override so automatic touch detection resumes.
+- No changes to scoring maths, Test Answer validation, formula correctness, puzzle pieces, Tips purchase percentage, cluster force equations, or desktop mouse behaviour.
+## 2026-09-11 review patch - touch troubleshooting tip and global scroll-thumb wake
+
+- Base remains `main` at `b03044876f67df46cac05a160aeaf5854d64e828`, with the reviewed Touch Mode / Options / Tips patch layered on top.
+- Added a subdued touch troubleshooting tip at the bottom-right of the loose-label cluster: `Tip: Touch not responding? Turn on Touch Mode in Options.` The inline Options control opens the Options panel, scrolls the Options button into view and highlights the Touch Mode row.
+- Touch Mode highlighting is exclusive to that cluster-tip Options control. Closing Options removes the highlight; reopening Options normally does not restore it. Reduced-motion mode removes the pulse animation while retaining the static highlight.
+- The temporary touch page-scroll thumb now wakes on any touch pointerdown anywhere in the document while Touch Mode is enabled, rather than requiring the first touch to occur inside the Formula Daily cluster. Actual touch input can still activate automatic Touch Mode when there is no stored override.
+- The scroll thumb is 50% opaque while idle, 100% opaque while actively dragged, and fades back toward 50% during the existing three-second cooldown before disappearing. Any new touch cancels that cooldown and makes the thumb available again.
+- Existing left/right placement, proportional page mapping, direct label drag, Tips, scoring, validation and cluster physics are unchanged.
+
+## 2026-09-11 review patch - touch tip visibility and scroll-thumb visual states
+
+- Show the touch troubleshooting tip only when effective Touch Mode is off; hide it whenever Touch Mode is active through detection or player override.
+- Keep the dedicated Options deep-link behaviour, with corrected spacing before the link.
+- Change the touch scroll thumb to 30% idle opacity and a solid pastel-orange fill. Hover/focus/drag reaches 100% over 500ms.
+- Preserve the existing three-second dismissal window, using it to fade back toward 30% before hiding. Pointer hover temporarily cancels that dismissal and restarts it on leave when idle.
+- Centre the three-line grip icon explicitly within the thumb.
+- Preserve current proportional scrolling, live finger tracking, Touch Mode detection, Left mode, and direct label dragging.
+
+## 2026-09-11 review patch - Options preference expansion and touch-scroll fade correction
+
+- Rename Options labels to `Chalk Font` and `Left Handed Mode`. Add `Disable Touch Mode Tip` and `Clean Background`, persisted independently in local storage and reset to off by the full question Reset.
+- `Disable Touch Mode Tip` is an explicit player override for the cluster troubleshooting copy. The existing effective Touch Mode state still hides that tip automatically.
+- `Clean Background` keeps the frame but removes the board-note layer and chalkboard texture/glare, leaving a plain black board surface.
+- Reflow the Options popup so switches use the full row width and Reset appears beneath the switches instead of occupying the right-side whitespace.
+- Reduce the custom touch-scroll thumb width by about 25% to 35px while retaining its 58px vertical target. Base visibility is 30% opacity. Hover/focus/drag transitions to 100% in 500ms with an opaque pastel-orange fill.
+- Fix the thumb remaining at 100% after touch by removing unconditional CSS `:hover` from the active visual state. Explicit non-touch pointer hover and actual drag state now control prominence; touch release also clears retained focus.
+- During cooldown the thumb transitions back to 30% across the existing three-second interval, then hides. New touch/page scroll activity wakes it again without changing the proportional page-scroll mapping.
+- No changes to puzzle scoring, Tips purchase, Test Answer, answer correctness, loose-label force equations, or Touch Mode detection.
+
+## 2026-09-11 review patch - Touch Mode deep-link highlight and UX/accessibility feature log
+
+- Keep the Options popup row geometry unchanged when the cluster troubleshooting link opens Options and highlights Touch Mode. The prior orange row box added margin, padding and a border, which made the highlighted row visibly narrower than the normal switch rows.
+- Replace that row box with targeted emphasis on the `Touch Mode` label and switch track only. The text and switch pulse orange while the row retains its normal width and spacing. Closing Options still removes the deep-link highlight, and normal Options opening still does not apply it.
+- Add `docs/ux-accessibility-features.md` as the cross-project UX/accessibility inventory. Formula Daily now has a detailed feature history covering semantic controls, keyboard/focus support, reduced motion, responsive answer construction, cluster physics, Test Answer, Function Tips, scoring/persistence, touch handling, left-handed support, font/background options, custom touch scrolling, status-message reduction, and current project-page story angles.
+- Add the new document to `docs/index.md` and add an `AGENTS.md` maintenance rule so future project UX/accessibility changes update the relevant project section.
+- No Formula Daily TypeScript, scoring, touch logic, validation, puzzle content, or physics equations changed in this patch.
+
+## 2026-09-11 review patch - Touch Mode tip-option dependency
+
+- Keep `Disable Touch Mode Tip` available only when effective Touch Mode is off. When Touch Mode is active through automatic detection or a player override, the option is forced off, disabled and visually greyed because the troubleshooting tip is already hidden.
+- If the stored tip-disable preference is on when Touch Mode becomes active, clear it immediately in memory and local storage rather than leaving a stale hidden preference.
+- Turning Touch Mode off re-enables the option in its default off state. Full Reset continues to clear the preference and return Touch Mode to automatic detection.
+- Actual touch input that activates automatic Touch Mode now goes through the same Touch Mode render path, so dependent option state stays synchronized with capability changes.
+- No scoring, Tips purchase, formula validation, cluster physics, touch-scroll mapping or responsive layout behaviour changed.
+
+## 2026-09-11 review patch - Touch option hierarchy and pinned Tips space guarantees
+
+- Reorder Options so Touch Mode appears before its dependent controls. Left Handed Mode and Disable Touch Mode Tip are visually indented beneath Touch Mode; Chalk Font and Clean Background remain top-level options.
+- Left Handed Mode is now available only while effective Touch Mode is on. If Touch Mode turns off through detection or player override, Left Handed Mode is forced off, disabled, greyed, and its persisted preference is cleared.
+- Keep the inverse dependency for Disable Touch Mode Tip: it is available only while Touch Mode is off and is forced off while Touch Mode is active.
+- In stacked/vertical Tips layout, a pinned Tips panel now increases the loose-label canvas minimum height by the depth of the overlapping Tips panel, preserving the cluster's normal packed height below it instead of compressing labels into a shallow strip.
+- In horizontal Tips layout, a pinned cluster can expand beyond its former 820px maximum. The Tips panel keeps its 360px target width when space allows, but shrinks as needed so at least 50% of the loose-label canvas width remains free.
+- No scoring, formula validation, Tips purchase cost, touch-scroll mapping, or general loose-label force model changes.
+
+## 2026-09-11 review patch - progress HUD, Sample Data clearance, and single-token removal
+
+- Keep the latest Touch Mode option hierarchy and pinned Tips space guarantees as the working baseline.
+- Reserve a taller board-header gutter before Sample Data so the centred Sample Data disclosure and spreadsheet cannot overlap Options or question progress.
+- Consolidate progress into one line: `Question 1 / 5 | Attempt 0 / 5 | Points 100 / 100`. The three changing values use bright chalk and the question value is now explicitly represented in the DOM for the future five-question loop.
+- Fix placed-token click removal so one click removes exactly one answer token. A pointer interaction already removes its token on pointerup; the short follow-up browser click is now suppressed globally for that interaction so rerendering cannot retarget a newly created neighbouring token under the same pointer coordinates.
+- Preserve drag-to-reorder, drag-back-to-cluster, keyboard removal, answer wrapping, scoring, Tips, and cluster physics.
