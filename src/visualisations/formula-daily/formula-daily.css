@@ -394,17 +394,6 @@
   opacity: 0;
 }
 .formula-daily[data-clean-background="true"] .formula-canvas__notes { display: none; }
-.formula-canvas[data-edge-active="true"] {
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 236, 218, .14),
-    inset 0 0 64px rgba(109, 67, 38, .16),
-    inset 0 16px 40px rgba(255,255,255,.022),
-    0 2px 0 #2b170f,
-    0 7px 0 rgba(43, 23, 15, .86),
-    0 20px 46px rgba(0,0,0,.34),
-    0 0 14px rgba(141, 90, 53, .18);
-}
-
 .formula-canvas__sample-toggle {
   position: absolute;
   top: 72px;
@@ -777,9 +766,66 @@
   max-width: none;
 }
 .formula-cluster__field,
-.formula-cluster__strings { position: absolute; inset: 0; width: 100%; height: 100%; }
+.formula-cluster__strings,
+.formula-cluster__hearts { position: absolute; inset: 0; width: 100%; height: 100%; }
 .formula-cluster__field { z-index: 1; touch-action: pan-y; }
 .formula-cluster__strings { z-index: 0; overflow: visible; pointer-events: none; opacity: 0; }
+.formula-cluster__hearts { z-index: 6; overflow: visible; pointer-events: none; }
+.formula-cluster__heart {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 15px;
+  height: 15px;
+  opacity: 0;
+  transform: translate3d(var(--heart-start-x, 0px), var(--heart-start-y, 0px), 0) scale(.64);
+  transform-origin: center;
+  animation: formula-cluster-heart-flight var(--heart-duration, 1220ms) cubic-bezier(.22, .7, .26, 1) forwards;
+  will-change: transform, opacity;
+}
+.formula-cluster__heart-pixel {
+  position: absolute;
+  left: 3px;
+  top: 0;
+  width: 3px;
+  height: 3px;
+  background: #ff7ba6;
+  box-shadow:
+    6px 0 0 #ff7ba6,
+    -3px 3px 0 #ff7ba6,
+    0 3px 0 #ff7ba6,
+    3px 3px 0 #ff7ba6,
+    6px 3px 0 #ff7ba6,
+    9px 3px 0 #ff7ba6,
+    -3px 6px 0 #ff7ba6,
+    0 6px 0 #ff7ba6,
+    3px 6px 0 #ff7ba6,
+    6px 6px 0 #ff7ba6,
+    9px 6px 0 #ff7ba6,
+    0 9px 0 #ff7ba6,
+    3px 9px 0 #ff7ba6,
+    6px 9px 0 #ff7ba6,
+    3px 12px 0 #ff7ba6;
+  filter: drop-shadow(0 0 4px rgba(255, 123, 166, .34));
+}
+@keyframes formula-cluster-heart-flight {
+  0% {
+    opacity: 0;
+    transform: translate3d(var(--heart-start-x, 0px), var(--heart-start-y, 0px), 0) scale(.64);
+  }
+  22% {
+    opacity: 1;
+    transform: translate3d(var(--heart-mid-x, 0px), var(--heart-mid-y, 0px), 0) scale(1);
+  }
+  62% {
+    opacity: 1;
+    transform: translate3d(var(--heart-end-x, 0px), var(--heart-end-y, 0px), 0) scale(.92);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--heart-end-x, 0px), var(--heart-end-y, 0px), 0) scale(.82);
+  }
+}
 .formula-cluster__strings line {
   stroke: rgba(180, 220, 196, .58);
   stroke-width: 1.25;
@@ -884,9 +930,6 @@
   pointer-events: none;
   cursor: grabbing;
   box-shadow: 0 12px 24px rgba(0,0,0,.45);
-}
-.chalk-piece[data-edge] {
-  filter: brightness(1.18) drop-shadow(0 4px 6px rgba(0,0,0,.42));
 }
 .chalk-piece--function {
   display: inline-flex;
@@ -1505,6 +1548,10 @@
   .formula-entry { transition: none; }
   .formula-cluster { transition: none; }
   .formula-cluster__strings { display: none; }
+  .formula-cluster__heart {
+    animation-duration: 340ms;
+    will-change: auto;
+  }
   .chalk-piece { will-change: auto; }
   .chalk-piece::before { transition: none; }
   .formula-daily__touch-scroll { transition: none; }

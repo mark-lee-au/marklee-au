@@ -1,13 +1,13 @@
 # Current Handoff
 
-Snapshot date: 2026-09-11
+Snapshot date: 2026-09-12
 
 ## Repository state supplied to ChatGPT
 
 - Latest supplied source snapshot branch: `main`.
-- Base commit: `b03044876f67df46cac05a160aeaf5854d64e828`.
+- Base commit: `b9f4ae9a8c41e11eaaeebf37f80c05be0e71bfee`.
 - The supplied Project context snapshot records a clean working tree.
-- This package layers only the current Formula Daily Options highlight refinement and UX/accessibility documentation update over that source and does not touch unrelated site projects or publication helpers.
+- Working baseline is the previously prepared Formula Daily mass-and-release-inertia package, layered after the answer-cell drag-ceiling and silent-wall-collision updates on this clean snapshot. This package adds the same-label heart interaction and updates only Formula Daily plus project documentation.
 - Cloudflare deployment state has not been independently verified from this ChatGPT session.
 
 ## Current product state
@@ -19,10 +19,11 @@ Snapshot date: 2026-09-11
 
 ## Formula Daily review change prepared in this package
 
-- Correct the Touch Mode deep-link highlight in Options so it no longer changes the row width. The temporary emphasis now targets only the `Touch Mode` text and switch track, with the normal switch-row geometry preserved.
-- Add `docs/ux-accessibility-features.md`, a project-by-project UX/accessibility inventory intended to support future case-study/storyboard pages and ongoing review. The Formula Daily section consolidates the interaction and accessibility work recorded across the execution plan, current implementation and review history.
-- Add the new document to `docs/index.md` and add a repository instruction requiring future material UX/accessibility changes to update the relevant project section.
-- No Formula Daily TypeScript, scoring, touch behaviour, validation, puzzle content or physics logic changed in this package.
+- Add a playful same-label interaction inside the loose cluster: when two active labels of the same type touch, one can send a small heart to the other.
+- Matching is based on the current piece value and kind, so pairs such as `(` and `(` or `SUM(` and `SUM(` can trigger it.
+- The heart uses a lightweight pixel-art treatment and fades in from transparent, floats in a small arc from one label to the other, then fades back out.
+- Each matching pair has its own cooldown of about 10 seconds. That pair cannot repeat immediately, but other matching pairs can still trigger while it is cooling down.
+- Keep the current answer-cell drag ceiling, silent wall collisions, answer behaviour, scoring, validation, Tips, Touch Mode logic, and mass/inertia cluster physics unchanged.
 
 ## Local context archive utility
 
@@ -41,11 +42,24 @@ Snapshot date: 2026-09-11
 
 ## Next action
 
-1. Apply this patch over `main` at `b03044876f67df46cac05a160aeaf5854d64e828` plus the reviewed Formula Daily patches already in the local working version.
-2. Open the cluster Touch Mode troubleshooting link and confirm the Options panel keeps the same width as normal.
-3. Confirm only the `Touch Mode` text and switch receive the temporary orange emphasis, with no orange box changing row geometry.
-4. Close Options and confirm the highlight clears. Open Options normally and confirm no Touch Mode highlight appears.
-5. Review `docs/ux-accessibility-features.md` as the new source inventory for the future Formula Daily project/case-study page.
+1. Apply the answer-cell drag-ceiling, silent-wall-collision, and mass-and-release-inertia packages first if they are not already present, then apply this package.
+2. Throw labels around the loose cluster and confirm the current mass/inertia feel still works as before.
+3. Bring two matching labels together, such as `(` with `(` or `SUM(` with `SUM(`, and confirm one sends a small heart to the other.
+4. Confirm the heart fades in, travels across, and fades out, then does not repeat for that same pair for about 10 seconds while other matching pairs can still react.
+5. Confirm answer behaviour, Tips, Test Answer, Touch Mode, and wall collisions remain unchanged.
+
+## 2026-09-12 review patch - same-label heart interactions
+
+- Branch base: `main`
+- Base commit: `b9f4ae9a8c41e11eaaeebf37f80c05be0e71bfee`
+- Working baseline for this patch is the previously prepared mass-and-release-inertia package layered after the answer-cell drag-ceiling and silent-wall-collision updates.
+- Added a lightweight heart overlay to the loose-label cluster. When two active labels with the same value and kind touch, one can send a small pixel-art heart to the other.
+- Matching-pair cooldown is stored per pair for about 10 seconds, so one pair cannot spam the effect while other matching pairs remain eligible.
+- The heart fades in, travels in a small arc, then fades back out. Reduced-motion users receive the same feedback with shorter and simpler movement.
+- No scoring, validation, Tips, Touch Mode settings, drag boundaries, or mass/inertia tuning changed.
+- Files changed: `src/visualisations/formula-daily/formula-daily.ts`, `src/visualisations/formula-daily/formula-daily.css`, `docs/exec-plans/active/005-formula-daily.md`, `docs/ux-accessibility-features.md`, `docs/current-handoff.md`.
+- Validation: focused strict TypeScript compile passed with `tsc --target es2022 --module esnext --lib dom,es2022 --strict --noEmit src/visualisations/formula-daily/formula-daily.ts`; emitted JavaScript passed `node --check`; ZIP integrity passed. Full Astro build was not run because the supplied snapshot does not include dependencies.
+
 
 ## 2026-09-10 review prototype - Formula Daily Test Answer type checks
 
@@ -547,3 +561,16 @@ Snapshot date: 2026-09-11
 - Progress is consolidated into one line: `Question 1 / 5 | Attempt 0 / 5 | Points 100 / 100`, with the changing values in bright chalk. The current question value is wired as explicit state but remains 1 until the five-question loop is implemented.
 - Placed-token pointer removal now suppresses the browser's immediate follow-up click regardless of which newly rendered token ends up under the pointer. This prevents one click, especially on a leading function token, from cascading into removal of additional answer pieces.
 - Files changed: `FormulaDaily.astro`, `formula-daily.css`, `formula-daily.ts`, `docs/ux-accessibility-features.md`, `005-formula-daily.md`, and `docs/current-handoff.md`.
+
+
+## 2026-09-12 Formula Daily - mass and release inertia review patch
+
+- Base branch/commit remains `main` at `b9f4ae9a8c41e11eaaeebf37f80c05be0e71bfee`, with the approved answer-cell drag ceiling and silent wall visuals layered on top in this ChatGPT workstream.
+- Loose labels now keep release momentum after a drag instead of resetting velocity to zero. Pointer movement is sampled and smoothed during the drag, then transferred to the released loose label with a capped throw speed.
+- Rendered label width controls bounded mass. Wider labels react less to attraction, Help displacement and collision forces, while mass-aware damping lets them retain motion longer.
+- Label collisions now transfer momentum with mass-weighted response. Loose labels also rebound softly from cluster walls, with heavier labels bouncing less. Wall contact remains visually silent.
+- A placed token dragged back into the cluster receives the same inertia model after it returns to loose-label size. Answer placement and answer reordering do not add inertial movement.
+- Reduced-motion behaviour remains direct and functional without post-release glide.
+- Changed files: `src/visualisations/formula-daily/formula-daily.ts`, `docs/exec-plans/active/005-formula-daily.md`, `docs/ux-accessibility-features.md`, `docs/current-handoff.md`.
+- Validation: focused strict DOM TypeScript compilation passes, emitted JavaScript passes `node --check`, and static tuning checks confirm width increases mass and damping while reducing throw transfer and wall rebound. `npm run build` was attempted but Astro is unavailable because the supplied context snapshot excludes installed dependencies. Final package still needs local browser feel testing for mouse and Touch Mode, especially throw distance, heavy-versus-light feel, chain collisions and wall rebound.
+- Next review decision: tune the four physics feel controls only if needed after play-testing. Do not add spin or new visual effects until this translational physics pass is accepted.

@@ -949,3 +949,40 @@ Stage 2 authorises the local GAMES structure and non-validating Formula Daily in
 - Consolidate progress into one line: `Question 1 / 5 | Attempt 0 / 5 | Points 100 / 100`. The three changing values use bright chalk and the question value is now explicitly represented in the DOM for the future five-question loop.
 - Fix placed-token click removal so one click removes exactly one answer token. A pointer interaction already removes its token on pointerup; the short follow-up browser click is now suppressed globally for that interaction so rerendering cannot retarget a newly created neighbouring token under the same pointer coordinates.
 - Preserve drag-to-reorder, drag-back-to-cluster, keyboard removal, answer wrapping, scoring, Tips, and cluster physics.
+
+## 2026-09-12 review patch - answer-cell drag ceiling
+
+- Base: `main` at `b9f4ae9a8c41e11eaaeebf37f80c05be0e71bfee`, clean supplied Project context snapshot.
+- Restrict loose-label dragging so the top boundary follows the live top edge of the answer cell instead of the top of the chalkboard. Labels can still be dragged into and dropped on the answer cell, but they cannot be moved into the question, Sample Data, Options, or progress area above it.
+- Keep the existing left, right, and bottom board boundaries unchanged. The new top ceiling is not drawn; it reuses the existing drag clamp, edge selection, overshoot tilt, hover pinning, and placed-token drag-back boundary logic.
+- The normal loose-label force model remains unchanged because idle labels already move within the cluster field below the answer. Scoring, validation, Tips, Touch Mode, answer wrapping, and token-removal behaviour are unchanged.
+
+## 2026-09-12 review patch - silent wall collisions
+
+- Working baseline is the answer-cell drag-ceiling package layered on `main` at `b9f4ae9a8c41e11eaaeebf37f80c05be0e71bfee`.
+- Remove the board-level edge highlight that appeared while a dragged label pressed against any drag wall.
+- Remove the extra edge-contact brightness/drop-shadow from the dragged label itself, so wall contact has no separate visual indicator.
+- Keep the existing drag clamp, collision boundary, overshoot tilt, answer-cell ceiling, left/right/bottom walls, drag/drop logic and cluster physics unchanged.
+
+
+## 2026-09-12 review patch - mass and release inertia
+
+- Working baseline is the answer-cell drag ceiling and silent-wall-collision patches layered on `main` at `b9f4ae9a8c41e11eaaeebf37f80c05be0e71bfee`.
+- Loose labels now retain a smoothed portion of pointer velocity when the player releases a drag in the cluster, so a quick throw continues into a short glide instead of stopping immediately. Dropping into the answer still places the token normally rather than carrying momentum into the formula row.
+- A label's rendered width now determines a bounded physics mass. Wider labels accelerate less under centre attraction, wandering, Help displacement and collision forces, while smaller labels respond more readily.
+- Normal damping is now mass-aware. Wider labels start a throw a little more slowly but retain motion for longer, giving them a heavier feel without making short syntax labels sluggish.
+- Label-to-label impacts now include a mass-weighted momentum impulse before the existing overlap-separation force. A moving label can therefore transfer motion into another label, with lighter pieces reacting more than heavier pieces.
+- Loose-label wall contact now uses a low restitution rebound while preserving the existing silent visual treatment. Wider labels rebound slightly less than small labels.
+- Dragging a placed answer token back into the loose cluster transfers the same release momentum after the token returns to loose-label size. Click-to-return keeps only its existing small regrouping movement.
+- `prefers-reduced-motion` keeps direct dragging and placement but does not add post-release inertial movement.
+- This is deliberately a first tuning pass. Local play-testing should decide if throw distance, mass spread, wall rebound or collision transfer need adjustment before adding any extra effects such as spin.
+
+## 2026-09-12 review patch - same-label heart interactions
+
+- Working baseline is the answer-cell drag ceiling, silent-wall-collision, and mass-and-release-inertia patches layered on `main` at `b9f4ae9a8c41e11eaaeebf37f80c05be0e71bfee`.
+- Add a small ambient mini-game interaction inside the loose-label cluster: when two currently active labels of the same type touch, one can send a tiny heart to the other.
+- Matching is value- and kind-based, so `(` matches `(` and `SUM(` matches `SUM(` while different labels do not trigger the effect.
+- The heart effect is rendered as a lightweight pixel-art overlay created in TypeScript, so no Astro markup change is required.
+- Each matching pair has its own cooldown of about 10 seconds. That specific pair cannot repeat immediately, but other matching pairs can still trigger their own hearts.
+- The heart fades in from transparent, travels in a small arc from one label toward the other, then fades back out. `prefers-reduced-motion` keeps the interaction but shortens and simplifies the movement.
+- No scoring, answer logic, validation, Tips, Touch Mode settings, drag boundaries, or mass/inertia physics constants changed.

@@ -92,13 +92,15 @@ Formula Daily has been developed through repeated play-testing rather than a sin
 
 - The loose cluster was deliberately tuned to feel physical rather than like a static list of buttons.
 - Labels respond to weak centre gravity, collision impulses, damping, board boundaries, and direct dragging.
+- Drag release now carries smoothed pointer momentum into a short glide. Rendered label width acts as bounded mass, so wider labels resist forces and collisions more strongly, retain motion longer, and rebound less from walls than small syntax labels. Label-to-label impacts transfer momentum using the same mass model.
 - Collision work focused on allowing labels to bump and transfer movement without permanent overlap at rest.
 - The cluster gained extra vertical breathing room so labels have space to escape when a dragged piece compresses the centre.
 - Hovered labels are pinned so board movement and answer resizing do not move the active label away from the pointer.
 - Hover activation uses a stable captured hit boundary so the glow does not flicker at label edges.
 - The visible nearest-neighbour connector lines used during tuning were removed while the underlying relationship logic remained available.
 - Text selection is suppressed inside the canvas so repeated dragging does not select page text.
-- Labels remain bounded to the board during drag and return behaviour.
+- Loose labels remain bounded by the board on the left, right, and bottom. The drag ceiling follows the live top edge of the answer cell, so labels can enter the answer but cannot be dragged into the question, Sample Data, Options, or progress area above it. Drag walls are visually silent: labels collide and clamp without a board-border highlight or an edge-contact highlight on the label.
+- Matching loose labels also have a playful ambient interaction: when two active labels of the same type touch, one can send a small pixel-art heart to the other. Each pair has its own cooldown, so the effect stays occasional instead of constant.
 - Cluster movement continues to pause when the relevant area is off-screen where practical.
 
 ### 7. Desktop pointer and wheel behaviour

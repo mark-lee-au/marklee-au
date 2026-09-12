@@ -20,6 +20,13 @@ type PieceState = {
   dragAngle: number;
 };
 
+
+type PairHeartSender = {
+  x: number;
+  y: number;
+  value: string;
+};
+
 type FormulaStructureToken = Pick<PieceState, 'id' | 'value' | 'kind'>;
 
 type FormulaIssue = {
@@ -733,6 +740,11 @@ type ClusterPointer = {
   targetY: number;
   targetAngle: number;
   edge: DragEdge;
+  sampleX: number;
+  sampleY: number;
+  sampleTime: number;
+  throwVx: number;
+  throwVy: number;
 };
 
 type PlacedPointer = {
@@ -767,6 +779,11 @@ type PlacedPointer = {
   targetY: number;
   targetAngle: number;
   edge: DragEdge;
+  sampleX: number;
+  sampleY: number;
+  sampleTime: number;
+  throwVx: number;
+  throwVy: number;
 };
 
 let testFeedbackSequence = 0;
@@ -775,6 +792,7 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
   const canvas = root.querySelector<HTMLElement>('[data-formula-canvas]');
   let boardNotes = root.querySelector<HTMLElement>('[data-board-notes]');
   const field = root.querySelector<HTMLElement>('[data-cluster-field]');
+  let heartLayer = root.querySelector<HTMLDivElement>('[data-heart-layer]');
   const cluster = root.querySelector<HTMLElement>('[data-cluster]');
   const formulaEntry = root.querySelector<HTMLElement>('.formula-entry');
   const inputCell = root.querySelector<HTMLElement>('[data-input-cell]');
@@ -818,7 +836,15 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
     canvas.prepend(boardNotes);
   }
 
-  if (!canvas || !field || !cluster || !formulaEntry || !inputCell || !formulaOutput || !placeholder || !strings || !questionCurrent || !pointsCurrent || !attemptCount || !optionsButton || !optionsPanel || !questionResetButton || !chalkToggle || !leftScrollToggle || !touchModeToggle || !disableTouchTipToggle || !cleanBackgroundToggle || !touchModeOption || !touchOptionsLink || !touchScrollControl || !leftHandedNotice || !status || !clearButton || !actions || !helpButton || !helpPanel || !helpFunctions || !helpDetail || !helpCost || !helpPinButton || !testAnswerButton || !submitButton) return;
+  if (field && !heartLayer) {
+    heartLayer = document.createElement('div');
+    heartLayer.className = 'formula-cluster__hearts';
+    heartLayer.dataset.heartLayer = '';
+    heartLayer.setAttribute('aria-hidden', 'true');
+    field.append(heartLayer);
+  }
+
+  if (!canvas || !field || !cluster || !formulaEntry || !inputCell || !formulaOutput || !placeholder || !strings || !questionCurrent || !pointsCurrent || !attemptCount || !optionsButton || !optionsPanel || !questionResetButton || !chalkToggle || !leftScrollToggle || !touchModeToggle || !disableTouchTipToggle || !cleanBackgroundToggle || !touchModeOption || !touchOptionsLink || !touchScrollControl || !leftHandedNotice || !status || !clearButton || !actions || !helpButton || !helpPanel || !helpFunctions || !helpDetail || !helpCost || !helpPinButton || !testAnswerButton || !submitButton || !heartLayer) return;
 
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const placedIds: string[] = [];
@@ -876,6 +902,7 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
   let clusterBreathingInset = 32;
   let clusterNaturalHeight = 190;
   let clusterHelpOccupiedDepth = 0;
+  const pairHeartCooldowns = new Map<string, number>();
   let helpPurchased = false;
   let helpPenaltyPercent = 0;
   let helpPanelPinned = false;
@@ -1765,13 +1792,14 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
       openHelpPanel();
       const narrowLayout = helpPanel.dataset.layout === 'vertical';
       states.filter((state) => !state.used && !state.dragging && !state.hovered).forEach((state, index) => {
+        const inverseMass = 1 / getPieceMass(state);
         if (narrowLayout) {
-          state.vx += (index % 2 === 0 ? -1 : 1) * .12;
-          state.vy += 1.2 + (index % 4) * .18;
+          state.vx += (index % 2 === 0 ? -1 : 1) * .12 * inverseMass;
+          state.vy += (1.2 + (index % 4) * .18) * inverseMass;
           return;
         }
-        state.vx -= 1.2 + (index % 4) * .18;
-        state.vy += (index % 2 === 0 ? -1 : 1) * .12;
+        state.vx -= (1.2 + (index % 4) * .18) * inverseMass;
+        state.vy += (index % 2 === 0 ? -1 : 1) * .12 * inverseMass;
       });
       clusterEnergy = Math.max(clusterEnergy, 1);
       requestTick();
@@ -1940,6 +1968,7 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
 
   const getCanvasDragBounds = () => {
     const bounds = canvas.getBoundingClientRect();
+    const answerBounds = inputCell.getBoundingClientRect();
     const style = getComputedStyle(canvas);
     const leftInset = Number.parseFloat(style.borderLeftWidth) + 5;
     const rightInset = Number.parseFloat(style.borderRightWidth) + 5;
@@ -1948,7 +1977,7 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
     return {
       left: bounds.left + leftInset,
       right: bounds.right - rightInset,
-      top: bounds.top + topInset,
+      top: Math.max(bounds.top + topInset, answerBounds.top),
       bottom: bounds.bottom - bottomInset,
     };
   };
@@ -2118,11 +2147,103 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
   const CLUSTER_COLLISION_GAP = 10;
   const CLUSTER_GRAVITY_PULL = .0007;
   const CLUSTER_WANDER_FORCE = .004;
-  const CLUSTER_DAMPING = .91;
+  const CLUSTER_DAMPING = .95;
+  const CLUSTER_MIN_MASS = .85;
+  const CLUSTER_MAX_MASS = 2.15;
+  const CLUSTER_MASS_WIDTH_SCALE = 95;
+  const CLUSTER_THROW_SAMPLE_BLEND = .42;
+  const CLUSTER_THROW_SAMPLE_MAX_SPEED = 42;
+  const CLUSTER_THROW_MAX_SPEED = 32;
+  const CLUSTER_COLLISION_RESTITUTION = .34;
+  const CLUSTER_WALL_RESTITUTION = .36;
   const CLUSTER_SLEEP_SPEED = .035;
-  const CLUSTER_MAX_SPEED = 7.5;
+  const CLUSTER_MAX_SPEED = 32;
   const CLUSTER_ENERGY_DECAY = .982;
   const CLUSTER_ENERGY_SLEEP = .025;
+  const CLUSTER_PAIR_HEART_COOLDOWN_MS = 10000;
+  const CLUSTER_PAIR_HEART_DURATION_MS = 1220;
+  const CLUSTER_PAIR_HEART_SIZE = 15;
+  const CLUSTER_PAIR_HEART_ARC = 26;
+
+  const getPieceMass = (state: PieceState) => (
+    clamp(.58 + Math.max(1, state.width) / CLUSTER_MASS_WIDTH_SCALE, CLUSTER_MIN_MASS, CLUSTER_MAX_MASS)
+  );
+
+  const getPieceDamping = (state: PieceState) => {
+    const mass = getPieceMass(state);
+    return clamp(CLUSTER_DAMPING + (mass - 1) * .017, .946, .972);
+  };
+
+  const getWallRestitution = (state: PieceState) => {
+    const mass = getPieceMass(state);
+    return clamp(CLUSTER_WALL_RESTITUTION - (mass - 1) * .055, .27, .4);
+  };
+
+  const limitVelocity = (vx: number, vy: number, maxSpeed: number) => {
+    const speed = Math.hypot(vx, vy);
+    if (speed <= maxSpeed || speed <= 0) return { vx, vy };
+    const scale = maxSpeed / speed;
+    return { vx: vx * scale, vy: vy * scale };
+  };
+
+  const getPairHeartKey = (a: PieceState, b: PieceState) => (
+    [a.id, b.id].sort((left, right) => left.localeCompare(right)).join('::')
+  );
+
+  const isSameHeartType = (a: PieceState, b: PieceState) => a.kind === b.kind && a.value === b.value;
+
+  const getPairHeartSender = (a: PieceState, b: PieceState, time: number): [PairHeartSender, PairHeartSender] => {
+    const first = { x: a.x + a.width / 2, y: a.y + a.height * .24, value: a.value };
+    const second = { x: b.x + b.width / 2, y: b.y + b.height * .24, value: b.value };
+    if (a.id === b.id) return [first, second];
+    const selector = (Math.round(time / 300) + a.id.length + b.id.length + a.value.length) % 2;
+    return selector === 0 ? [first, second] : [second, first];
+  };
+
+  const launchPairHeart = (a: PieceState, b: PieceState, time: number) => {
+    if (!isSameHeartType(a, b)) return;
+    const pairKey = getPairHeartKey(a, b);
+    const cooldownUntil = pairHeartCooldowns.get(pairKey) ?? 0;
+    if (time < cooldownUntil) return;
+    pairHeartCooldowns.set(pairKey, time + CLUSTER_PAIR_HEART_COOLDOWN_MS);
+
+    while (heartLayer.childElementCount > 14) heartLayer.firstElementChild?.remove();
+
+    const [sender, receiver] = getPairHeartSender(a, b, time);
+    const heart = document.createElement('span');
+    heart.className = 'formula-cluster__heart';
+    heart.dataset.value = sender.value;
+    const pixel = document.createElement('span');
+    pixel.className = 'formula-cluster__heart-pixel';
+    heart.append(pixel);
+
+    const startX = sender.x - CLUSTER_PAIR_HEART_SIZE / 2;
+    const startY = sender.y - CLUSTER_PAIR_HEART_SIZE / 2;
+    const endX = receiver.x - CLUSTER_PAIR_HEART_SIZE / 2;
+    const endY = receiver.y - CLUSTER_PAIR_HEART_SIZE / 2;
+    const duration = reducedMotion ? 340 : CLUSTER_PAIR_HEART_DURATION_MS + (pairKey.length % 5) * 40;
+
+    let midX = (startX + endX) / 2;
+    let midY = Math.min(startY, endY) - CLUSTER_PAIR_HEART_ARC - Math.min(16, Math.abs(endX - startX) * .1);
+    let finalX = endX;
+    let finalY = endY;
+    if (reducedMotion) {
+      midX = (startX + endX) / 2;
+      midY = (startY + endY) / 2 - 4;
+      finalX = midX;
+      finalY = midY;
+    }
+
+    heart.style.setProperty('--heart-start-x', `${startX}px`);
+    heart.style.setProperty('--heart-start-y', `${startY}px`);
+    heart.style.setProperty('--heart-mid-x', `${midX}px`);
+    heart.style.setProperty('--heart-mid-y', `${midY}px`);
+    heart.style.setProperty('--heart-end-x', `${finalX}px`);
+    heart.style.setProperty('--heart-end-y', `${finalY}px`);
+    heart.style.setProperty('--heart-duration', `${duration}ms`);
+    heartLayer.append(heart);
+    heart.addEventListener('animationend', () => heart.remove(), { once: true });
+  };
 
   const getClusterBreathingInset = (pieceCount: number, rowCount: number) => (
     clamp(18 + pieceCount * .8 + Math.max(0, rowCount - 2) * 5, 28, 52)
@@ -2151,8 +2272,9 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
     const strength = Math.min(3.2, .8 + amount * .055);
     states.filter((state) => !state.used && !state.dragging && !state.hovered).forEach((state, index) => {
       const direction = index % 2 === 0 ? 1 : -1;
-      state.vx += direction * strength * (.2 + (index % 3) * .08);
-      state.vy += strength * (.45 + (index % 4) * .08);
+      const inverseMass = 1 / getPieceMass(state);
+      state.vx += direction * strength * (.2 + (index % 3) * .08) * inverseMass;
+      state.vy += strength * (.45 + (index % 4) * .08) * inverseMass;
     });
     clusterEnergy = Math.max(clusterEnergy, 1);
     requestTick();
@@ -2397,7 +2519,7 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
     state.x = clamp(state.x, 0, Math.max(0, bounds.width - state.width));
     state.y = clamp(state.y, 0, Math.max(0, bounds.height - state.height));
     state.element.hidden = false;
-    state.vx = (Math.random() - .5) * .5;
+    state.vx = (Math.random() - .5) * .5 / getPieceMass(state);
     state.vy = 0;
     setPosition(state);
     renderFormula();
@@ -2459,8 +2581,7 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
       state.dragAngle = getBaseTilt(state);
       state.used = false;
       state.element.hidden = false;
-      state.vx = 0;
-      state.vy = 0;
+      applyReleaseMomentum(state, pointer.throwVx, pointer.throwVy, pointer.vx, pointer.vy);
       setPosition(state);
       pushPiecesFromBody(fieldBounds.left + state.x, fieldBounds.top + state.y, state.width, state.height);
       syncClusterHeight();
@@ -2615,6 +2736,56 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
 
   const angularDelta = (from: number, to: number) => ((to - from + 540) % 360) - 180;
 
+  const recordThrowVelocity = (
+    pointer: { sampleX: number; sampleY: number; sampleTime: number; throwVx: number; throwVy: number },
+    clientX: number,
+    clientY: number,
+    timeStamp: number,
+  ) => {
+    const elapsed = timeStamp - pointer.sampleTime;
+    if (elapsed <= 0) return;
+    const deltaX = clientX - pointer.sampleX;
+    const deltaY = clientY - pointer.sampleY;
+    const distance = Math.hypot(deltaX, deltaY);
+    if (distance < .25 && elapsed < 50) return;
+    if (elapsed < 4) return;
+    if (elapsed <= 80) {
+      const frameDuration = 1000 / 60;
+      const sampled = limitVelocity(
+        deltaX / elapsed * frameDuration,
+        deltaY / elapsed * frameDuration,
+        CLUSTER_THROW_SAMPLE_MAX_SPEED,
+      );
+      pointer.throwVx = pointer.throwVx * (1 - CLUSTER_THROW_SAMPLE_BLEND) + sampled.vx * CLUSTER_THROW_SAMPLE_BLEND;
+      pointer.throwVy = pointer.throwVy * (1 - CLUSTER_THROW_SAMPLE_BLEND) + sampled.vy * CLUSTER_THROW_SAMPLE_BLEND;
+    } else {
+      const staleScale = clamp(.25 * (1 - (elapsed - 80) / 120), 0, .25);
+      pointer.throwVx *= staleScale;
+      pointer.throwVy *= staleScale;
+    }
+    pointer.sampleX = clientX;
+    pointer.sampleY = clientY;
+    pointer.sampleTime = timeStamp;
+  };
+
+  const applyReleaseMomentum = (state: PieceState, throwVx: number, throwVy: number, carriedVx = 0, carriedVy = 0) => {
+    if (reducedMotion) {
+      state.vx = 0;
+      state.vy = 0;
+      return;
+    }
+    const mass = getPieceMass(state);
+    const transfer = clamp(1.05 / Math.sqrt(mass), .68, 1.05);
+    const released = limitVelocity(
+      (throwVx * .82 + carriedVx * .18) * transfer,
+      (throwVy * .82 + carriedVy * .18) * transfer,
+      CLUSTER_THROW_MAX_SPEED,
+    );
+    state.vx = Math.abs(released.vx) < CLUSTER_SLEEP_SPEED ? 0 : released.vx;
+    state.vy = Math.abs(released.vy) < CLUSTER_SLEEP_SPEED ? 0 : released.vy;
+    if (state.vx || state.vy) clusterEnergy = Math.max(clusterEnergy, 1);
+  };
+
   const advanceClusterPointer = (pointer: ClusterPointer) => {
     const state = pointer.state;
     const dx = pointer.targetX - state.x;
@@ -2713,7 +2884,7 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
       const overlapX = (state.width + width) / 2 + 10 - Math.abs(dx);
       const overlapY = (state.height + height) / 2 + 10 - Math.abs(dy);
       if (overlapX <= 0 || overlapY <= 0) return;
-      const force = .055;
+      const force = .055 / getPieceMass(state);
       if (overlapX < overlapY) {
         state.vx += overlapX * force * (dx >= 0 ? 1 : -1);
       } else {
@@ -2753,10 +2924,12 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
           const separateX = overlapX <= overlapY;
           const direction = separateX ? (dx >= 0 ? 1 : -1) : (dy >= 0 ? 1 : -1);
           const penetration = (separateX ? overlapX : overlapY) + .25;
-          const movable = Number(!aPinned) + Number(!bPinned);
-          if (!movable) continue;
-          const aShare = aPinned ? 0 : penetration / movable;
-          const bShare = bPinned ? 0 : penetration / movable;
+          const inverseMassA = aPinned ? 0 : 1 / getPieceMass(a);
+          const inverseMassB = bPinned ? 0 : 1 / getPieceMass(b);
+          const inverseMassTotal = inverseMassA + inverseMassB;
+          if (inverseMassTotal <= 0) continue;
+          const aShare = penetration * inverseMassA / inverseMassTotal;
+          const bShare = penetration * inverseMassB / inverseMassTotal;
 
           if (separateX) {
             a.x -= aShare * direction;
@@ -2848,8 +3021,8 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
       ? clamp(narrowFreeTop + (bounds.height - narrowFreeTop) / 2, bounds.height / 2, Math.max(bounds.height / 2, bounds.height - CLUSTER_PAD_Y))
       : bounds.height / 2;
 
-    // Preserve the current constrained drag/answer mechanics, but use the live
-    // build's original loose-label physics for every other piece.
+    // Preserve the current constrained drag/answer mechanics while the loose
+    // cluster uses the mass-aware attraction, collision, and inertia model below.
     syncHoveredPieceToViewport(bounds);
     if (activePointer?.started) advanceClusterPointer(activePointer);
     if (activePlacedPointer) {
@@ -2864,21 +3037,22 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
       }
     }
 
-    // Original live movement model: a weak centre pull plus tiny organic drift.
-    // Hovered pieces are the only current-version exception because they are
-    // intentionally pinned to prevent answer-wrap hover flicker.
+    // Keep the reviewed weak centre pull and tiny organic drift, but scale their
+    // acceleration by inverse mass. Hovered pieces stay pinned to prevent
+    // answer-wrap hover flicker.
     active.forEach((state, index) => {
       if (state.dragging || state.hovered) return;
       const stateCentreX = state.x + state.width / 2;
       const stateCentreY = state.y + state.height / 2;
+      const inverseMass = 1 / getPieceMass(state);
       const recoveryPullX = HELP_CLUSTER_RECOVERY_PULL_X * helpRecoveryStrength;
       const recoveryPullY = HELP_CLUSTER_RECOVERY_PULL_Y * helpRecoveryStrength;
       const recoveryBounce = Math.sin(time / 125 + index * 1.45) * .018 * helpRecoveryStrength;
-      state.vx += (centreX - stateCentreX) * (CLUSTER_GRAVITY_PULL + recoveryPullX)
-        + Math.sin(time / 1700 + index * 1.9) * CLUSTER_WANDER_FORCE;
-      state.vy += (centreY - stateCentreY) * (CLUSTER_GRAVITY_PULL + recoveryPullY)
+      state.vx += ((centreX - stateCentreX) * (CLUSTER_GRAVITY_PULL + recoveryPullX)
+        + Math.sin(time / 1700 + index * 1.9) * CLUSTER_WANDER_FORCE) * inverseMass;
+      state.vy += ((centreY - stateCentreY) * (CLUSTER_GRAVITY_PULL + recoveryPullY)
         + Math.cos(time / 1900 + index * 1.3) * CLUSTER_WANDER_FORCE
-        + recoveryBounce;
+        + recoveryBounce) * inverseMass;
 
       if (!helpObstacle) return;
       const collision = getCollisionDimensions(state);
@@ -2891,13 +3065,13 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
       if (!overlapsVertically || !overlapsHorizontally) return;
       if (helpObstacle.narrow) {
         const penetration = Math.max(0, helpObstacle.bottom - top);
-        state.vy += Math.min(4.8, .55 + penetration * .075);
-        state.vx += Math.sin(index * 1.7 + time / 280) * .035;
+        state.vy += Math.min(4.8, .55 + penetration * .075) * inverseMass;
+        state.vx += Math.sin(index * 1.7 + time / 280) * .035 * inverseMass;
         return;
       }
       const penetration = Math.max(0, right - helpObstacle.left);
-      state.vx -= Math.min(4.8, .55 + penetration * .075);
-      state.vy += Math.sin(index * 1.7 + time / 280) * .035;
+      state.vx -= Math.min(4.8, .55 + penetration * .075) * inverseMass;
+      state.vy += Math.sin(index * 1.7 + time / 280) * .035 * inverseMass;
     });
 
     // Normal play keeps the reviewed soft collision response. While pinned Help
@@ -2923,6 +3097,7 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
         const overlapX = (aCollision.width + bCollision.width) / 2 + CLUSTER_COLLISION_GAP - Math.abs(dx);
         const overlapY = (aCollision.height + bCollision.height) / 2 + CLUSTER_COLLISION_GAP - Math.abs(dy);
         if (overlapX <= 0 || overlapY <= 0) continue;
+        launchPairHeart(a, b, time);
 
         let separateX = overlapX < overlapY;
         if (overlapReliefStrength > 0) {
@@ -2961,38 +3136,80 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
 
         const force = overlapReliefStrength || .035;
         const pairDirection = (first + second) % 2 === 0 ? 1 : -1;
+        const inverseMassA = aPinned ? 0 : 1 / getPieceMass(a);
+        const inverseMassB = bPinned ? 0 : 1 / getPieceMass(b);
+        const inverseMassTotal = inverseMassA + inverseMassB;
+        if (inverseMassTotal <= 0) continue;
+        const responseScale = Number(!aPinned) + Number(!bPinned);
+        const responseA = inverseMassA / inverseMassTotal * responseScale;
+        const responseB = inverseMassB / inverseMassTotal * responseScale;
         if (separateX) {
           const direction = dx >= 0 ? 1 : -1;
-          if (!aPinned) a.vx -= overlapX * force * direction;
-          if (!bPinned) b.vx += overlapX * force * direction;
+          const relativeVelocity = (b.vx - a.vx) * direction;
+          if (relativeVelocity < 0) {
+            const impulse = -(1 + CLUSTER_COLLISION_RESTITUTION) * relativeVelocity / inverseMassTotal;
+            if (!aPinned) a.vx -= impulse * inverseMassA * direction;
+            if (!bPinned) b.vx += impulse * inverseMassB * direction;
+          }
+          if (!aPinned) a.vx -= overlapX * force * direction * responseA;
+          if (!bPinned) b.vx += overlapX * force * direction * responseB;
           if (overlapReliefStrength > 0) {
             const shuffle = HELP_CLUSTER_OVERLAP_SHUFFLE * (1 + Math.min(1.5, overlapY / 18));
-            if (!aPinned) a.vy -= shuffle * pairDirection;
-            if (!bPinned) b.vy += shuffle * pairDirection;
+            if (!aPinned) a.vy -= shuffle * pairDirection * responseA;
+            if (!bPinned) b.vy += shuffle * pairDirection * responseB;
           }
         } else {
           const direction = dy >= 0 ? 1 : -1;
-          if (!aPinned) a.vy -= overlapY * force * direction;
-          if (!bPinned) b.vy += overlapY * force * direction;
+          const relativeVelocity = (b.vy - a.vy) * direction;
+          if (relativeVelocity < 0) {
+            const impulse = -(1 + CLUSTER_COLLISION_RESTITUTION) * relativeVelocity / inverseMassTotal;
+            if (!aPinned) a.vy -= impulse * inverseMassA * direction;
+            if (!bPinned) b.vy += impulse * inverseMassB * direction;
+          }
+          if (!aPinned) a.vy -= overlapY * force * direction * responseA;
+          if (!bPinned) b.vy += overlapY * force * direction * responseB;
           if (overlapReliefStrength > 0) {
             const shuffle = HELP_CLUSTER_OVERLAP_SHUFFLE * .65 * (1 + Math.min(1.5, overlapX / 22));
-            if (!aPinned) a.vx -= shuffle * pairDirection;
-            if (!bPinned) b.vx += shuffle * pairDirection;
+            if (!aPinned) a.vx -= shuffle * pairDirection * responseA;
+            if (!bPinned) b.vx += shuffle * pairDirection * responseB;
           }
         }
       }
     }
 
-    // Original live damping and boundary clamp. Continuous centre gravity means
-    // displaced labels glide back toward the group instead of targeting a saved
-    // home coordinate.
+    // Mass-aware damping preserves a thrown label's momentum for a short glide.
+    // Wider pieces retain motion longer, resist forces more strongly, and rebound
+    // a little less from the cluster walls so they read as heavier objects.
     active.forEach((state) => {
       if (state.dragging || state.hovered) return;
-      const damping = helpRecoveryStrength > 0 ? HELP_CLUSTER_RECOVERY_DAMPING : CLUSTER_DAMPING;
+      const damping = helpRecoveryStrength > 0 ? HELP_CLUSTER_RECOVERY_DAMPING : getPieceDamping(state);
       state.vx *= damping;
       state.vy *= damping;
-      state.x = Math.max(0, Math.min(bounds.width - state.width, state.x + state.vx));
-      state.y = Math.max(0, Math.min(bounds.height - state.height, state.y + state.vy));
+      const limited = limitVelocity(state.vx, state.vy, CLUSTER_MAX_SPEED);
+      state.vx = limited.vx;
+      state.vy = limited.vy;
+
+      const maxX = Math.max(0, bounds.width - state.width);
+      const maxY = Math.max(0, bounds.height - state.height);
+      let nextX = state.x + state.vx;
+      let nextY = state.y + state.vy;
+      const restitution = getWallRestitution(state);
+      if (nextX < 0) {
+        nextX = 0;
+        if (state.vx < 0) state.vx = -state.vx * restitution;
+      } else if (nextX > maxX) {
+        nextX = maxX;
+        if (state.vx > 0) state.vx = -state.vx * restitution;
+      }
+      if (nextY < 0) {
+        nextY = 0;
+        if (state.vy < 0) state.vy = -state.vy * restitution;
+      } else if (nextY > maxY) {
+        nextY = maxY;
+        if (state.vy > 0) state.vy = -state.vy * restitution;
+      }
+      state.x = nextX;
+      state.y = nextY;
       setPosition(state);
     });
 
@@ -3098,6 +3315,11 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
       targetY: state.y,
       targetAngle: getBaseTilt(state),
       edge: null,
+      sampleX: event.clientX,
+      sampleY: event.clientY,
+      sampleTime: event.timeStamp,
+      throwVx: 0,
+      throwVy: 0,
     };
 
     // Loose labels are direct-manipulation controls in Touch Mode. Empty cluster space
@@ -3124,6 +3346,7 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
 
       event.preventDefault();
       if (distance > 5) pointer.moved = true;
+      recordThrowVelocity(pointer, event.clientX, event.clientY, event.timeStamp);
       const target = getClusterDragTarget(state, event.clientX, event.clientY, pointer.grabOffsetX, pointer.grabOffsetY);
       pointer.targetX = target.x;
       pointer.targetY = target.y;
@@ -3154,6 +3377,7 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
       }
       pointer.pointerX = event.clientX;
       pointer.pointerY = event.clientY;
+      recordThrowVelocity(pointer, event.clientX, event.clientY, event.timeStamp);
       updatePlacedDragZone(pointer);
       if (reducedMotion) {
         pointer.scale = pointer.targetScale;
@@ -3188,6 +3412,7 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
     const pointer = activePointer;
     const { state, moved } = pointer;
     const gestureCancelled = cancelled;
+    if (moved && !gestureCancelled) recordThrowVelocity(pointer, event.clientX, event.clientY, event.timeStamp);
     const droppedOnCell = !gestureCancelled && moved && stateOverAnswer(state);
     const insertionIndex = previewIndex ?? placedIds.length;
     try {
@@ -3205,8 +3430,7 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
     } else {
       previewPiece(null);
       if (moved && !gestureCancelled) {
-        state.vx = 0;
-        state.vy = 0;
+        applyReleaseMomentum(state, pointer.throwVx, pointer.throwVy, state.vx, state.vy);
         syncClusterHeight();
       }
       if (!state.used) setPosition(state);
@@ -3309,6 +3533,11 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
       targetY: bounds.top,
       targetAngle: 0,
       edge: null,
+      sampleX: event.clientX,
+      sampleY: event.clientY,
+      sampleTime: event.timeStamp,
+      throwVx: 0,
+      throwVy: 0,
     };
     requestTick();
   });
@@ -3317,6 +3546,7 @@ document.querySelectorAll<HTMLElement>('[data-formula-daily]').forEach((root) =>
     if (!activePlacedPointer || activePlacedPointer.id !== event.pointerId) return;
     const pointer = activePlacedPointer;
     const { state, token, ghost, moved, originalIndex, reorderIndex } = pointer;
+    if (moved && !cancelled) recordThrowVelocity(pointer, event.clientX, event.clientY, event.timeStamp);
     const clusterBounds = field.getBoundingClientRect();
     const answerBounds = inputCell.getBoundingClientRect();
     const visualWidth = pointer.width * pointer.scale;
