@@ -7,6 +7,8 @@ const ticks = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-gal
 const viewToggle = document.querySelector<HTMLButtonElement>('[data-view-toggle]');
 const previousGuide = document.querySelector<HTMLButtonElement>("[data-gallery-guide='previous']");
 const nextGuide = document.querySelector<HTMLButtonElement>("[data-gallery-guide='next']");
+const autoSwipeControl = document.querySelector<HTMLElement>('[data-auto-swipe-control]');
+const autoSwipeToggle = document.querySelector<HTMLInputElement>('[data-auto-swipe-toggle]');
 
 if (root && stage && cards.length && rail && railThumb && ticks.length && viewToggle && previousGuide && nextGuide) {
   let activeIndex = 0;
@@ -26,7 +28,6 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
   const dragSamples: Array<{ x: number; time: number }> = [];
   let railPointerId: number | null = null;
   let wheelLocked = false;
-  let leavingTimer = 0;
   let carouselFrame = 0;
   let carouselMotion: 'none' | 'wrap' | 'edge' | 'step' | 'drag' = 'none';
   let edgeHoldDirection: -1 | 0 | 1 = 0;
@@ -37,10 +38,60 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
   let edgeSuppressedUntil = 0;
   let manualSequenceActive = false;
   const manualStepQueue: Array<-1 | 1> = [];
+  let listEntryLocked = false;
+  let listEntryTimer = 0;
+  let autoSwipeEnabled = true;
+  const listEntryAnimations = new Set<Animation>();
 
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   const fineHover = window.matchMedia('(hover: hover) and (pointer: fine)');
   const edgeHoverMedia = window.matchMedia('(any-hover: hover) and (any-pointer: fine)');
+
+  const HOME_VIEW_MODE_STORAGE_KEY = 'marklee.homeGallery.mode';
+  const AUTO_SWIPE_STORAGE_KEY = 'marklee.homeGallery.autoSwipe';
+
+  const readPreference = (key: string) => {
+    try {
+      return window.localStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  };
+
+  const writePreference = (key: string, value: string) => {
+    try {
+      window.localStorage.setItem(key, value);
+    } catch {
+      // Storage can be unavailable under strict privacy settings. The gallery
+      // still works for the current page when persistence is blocked.
+    }
+  };
+
+  type ListTree = number | {
+    axis: 'x' | 'y';
+    first: ListTree;
+    second: ListTree;
+  };
+
+  const LIST_ACTIVE_WEIGHT_BOOST = 2.8;
+  const LIST_SPLIT_MIN = 0.22;
+  const LIST_TREE: ListTree = {
+    axis: 'x',
+    first: {
+      axis: 'y',
+      first: { axis: 'x', first: 0, second: 1 },
+      second: { axis: 'x', first: 2, second: 3 },
+    },
+    second: {
+      axis: 'y',
+      first: 4,
+      second: { axis: 'x', first: 5, second: 6 },
+    },
+  };
+  const listBaseWeights = cards.map((card) => {
+    const weight = Number(card.dataset.listWeight);
+    return Number.isFinite(weight) && weight > 0 ? weight : 1;
+  });
 
   const EDGE_AUTO_FIRST_DURATION = 1500;
   const EDGE_AUTO_REPEAT_DURATION = 750;
@@ -145,7 +196,7 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
   };
 
   const updateBoundaryGlow = (side: -1 | 0 | 1, rawPull: number) => {
-    if (side === 0 || rawPull <= 0) {
+    if (!autoSwipeEnabled || side === 0 || rawPull <= 0) {
       clearBoundaryGlow();
       return;
     }
@@ -706,7 +757,12 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
     runStepMove(direction, activeIndex, CARD_STEP_DURATION, continueManualNavigation);
   };
 
-  const edgeHoverAvailable = () => edgeHoverMedia.matches && !reducedMotion.matches;
+  const edgeHoverAvailable = () => (
+    autoSwipeEnabled
+    && fineHover.matches
+    && edgeHoverMedia.matches
+    && !reducedMotion.matches
+  );
 
   const beginEdgeAutoStep = (direction: -1 | 1) => {
     if (!edgeHoverAvailable() || mode !== 'carousel' || carouselMotion !== 'none') return;
@@ -828,65 +884,203 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
     if (edgeHoldDirection !== 0 && carouselMotion === 'none') beginEdgeAutoStep(edgeHoldDirection);
   };
 
-  const clearListLeaving = () => {
-    window.clearTimeout(leavingTimer);
-    cards.forEach((card) => {
-      delete card.dataset.listLeaving;
-      card.style.removeProperty('--vacuum-x');
-    });
+  interface ListRect {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }
+
+  type ListDensity = 'featured-wide' | 'featured-stacked' | 'large' | 'medium' | 'compact' | 'sliver';
+
+  const listTreeWeight = (node: ListTree, weights: number[]): number => {
+    if (typeof node === 'number') return weights[node] ?? 1;
+    return listTreeWeight(node.first, weights) + listTreeWeight(node.second, weights);
   };
 
-  const updateListLayout = (index: number) => {
-    const canExpand = fineHover.matches && window.innerWidth > 900;
-
-    cards.forEach((card, cardIndex) => {
-      const distance = Math.abs(cardIndex - index);
-      const direction = Math.sign(cardIndex - index) || 1;
-      const ripple = canExpand && distance > 0 && distance < 4
-        ? direction * Math.max(1, 5 - distance * 1.35)
-        : 0;
-      const rippleScale = canExpand && distance > 0 && distance < 3
-        ? Math.max(0.985, 1 - (3 - distance) * 0.006)
-        : 1;
-
-      card.style.setProperty('--ripple-y', `${ripple}px`);
-      card.style.setProperty('--ripple-scale', String(rippleScale));
-    });
-
-    if (!canExpand) {
-      stage.style.gridTemplateColumns = '';
+  const layoutListTree = (
+    node: ListTree,
+    weights: number[],
+    rect: ListRect,
+    result: ListRect[],
+  ) => {
+    if (typeof node === 'number') {
+      result[node] = rect;
       return;
     }
 
-    const tracks = cards.map((_, cardIndex) => {
-      const distance = Math.abs(cardIndex - index);
-      if (distance === 0) return '2.25fr';
-      if (distance === 1) return '0.96fr';
-      if (distance === 2) return '0.84fr';
-      return '0.74fr';
-    });
-    stage.style.gridTemplateColumns = tracks.join(' ');
-  };
+    const firstWeight = listTreeWeight(node.first, weights);
+    const secondWeight = listTreeWeight(node.second, weights);
+    const totalWeight = Math.max(0.001, firstWeight + secondWeight);
+    const firstRatio = clamp(firstWeight / totalWeight, LIST_SPLIT_MIN, 1 - LIST_SPLIT_MIN);
 
-  const setListIndex = (nextIndex: number, animateOutgoing = true) => {
-    const next = clampIndex(nextIndex);
-    const previous = listIndex;
-    listIndex = next;
-
-    if (animateOutgoing && previous !== next && fineHover.matches) {
-      clearListLeaving();
-      const outgoing = cards[previous];
-      outgoing.dataset.listLeaving = 'true';
-      outgoing.style.setProperty('--vacuum-x', `${Math.sign(next - previous) * 10}px`);
-      leavingTimer = window.setTimeout(clearListLeaving, reducedMotion.matches ? 1 : 320);
+    if (node.axis === 'x') {
+      const firstWidth = rect.width * firstRatio;
+      layoutListTree(node.first, weights, {
+        x: rect.x,
+        y: rect.y,
+        width: firstWidth,
+        height: rect.height,
+      }, result);
+      layoutListTree(node.second, weights, {
+        x: rect.x + firstWidth,
+        y: rect.y,
+        width: rect.width - firstWidth,
+        height: rect.height,
+      }, result);
+      return;
     }
 
-    cards.forEach((card, index) => {
-      if (fineHover.matches && index === listIndex) card.dataset.listActive = 'true';
-      else delete card.dataset.listActive;
-    });
+    const firstHeight = rect.height * firstRatio;
+    layoutListTree(node.first, weights, {
+      x: rect.x,
+      y: rect.y,
+      width: rect.width,
+      height: firstHeight,
+    }, result);
+    layoutListTree(node.second, weights, {
+      x: rect.x,
+      y: rect.y + firstHeight,
+      width: rect.width,
+      height: rect.height - firstHeight,
+    }, result);
+  };
 
+  const resolveListDensity = (width: number, height: number, isActive: boolean): ListDensity => {
+    if (isActive) return width >= 640 && height >= 300 ? 'featured-wide' : 'featured-stacked';
+
+    const minDimension = Math.min(width, height);
+    const area = width * height;
+    const aspectRatio = width / Math.max(1, height);
+
+    if (width < 118 || minDimension < 92) return 'sliver';
+    if (width < 230 || height < 126 || aspectRatio < 0.62) return 'compact';
+    if (area >= 118000 && width >= 340 && height >= 210) return 'large';
+    if (area >= 70000 && width >= 240 && height >= 148 && aspectRatio >= 0.72) return 'medium';
+    return 'compact';
+  };
+
+  const applyListSizing = (
+    card: HTMLElement,
+    width: number,
+    height: number,
+    density: ListDensity,
+    isActive: boolean,
+  ) => {
+    const minDimension = Math.min(width, height);
+    const paddingMin = density === 'sliver' ? 8 : density === 'compact' ? 12 : 14;
+    const paddingMax = isActive ? 24 : density === 'large' ? 20 : 18;
+    const padding = clamp(minDimension * (isActive ? 0.058 : 0.052), paddingMin, paddingMax);
+
+    const titleMin = density === 'sliver'
+      ? 13
+      : density === 'compact'
+        ? 16
+        : density === 'medium'
+          ? 18
+          : density === 'large'
+            ? 22
+            : 30;
+    const titleMax = isActive
+      ? 84
+      : density === 'large'
+        ? 42
+        : density === 'medium'
+          ? 30
+          : density === 'compact'
+            ? 22
+            : 17;
+    const titleText = card.querySelector('h1, h2')?.textContent?.trim() ?? '';
+    const titleCharacters = Math.max(4, titleText.length);
+    const titleColumnRatio = density === 'featured-wide'
+      ? 0.4
+      : density === 'large'
+        ? 0.47
+        : density === 'medium'
+          ? 0.58
+          : 0.94;
+    const titleAvailableWidth = Math.max(1, width * titleColumnRatio - padding * 2);
+    const titleFitSize = titleAvailableWidth / (titleCharacters * 0.52);
+    const titlePreferred = Math.min(
+      width * (isActive ? 0.11 : density === 'large' ? 0.085 : density === 'medium' ? 0.076 : density === 'compact' ? 0.094 : 0.06),
+      height * (isActive ? 0.26 : density === 'large' ? 0.18 : density === 'medium' ? 0.16 : density === 'compact' ? 0.18 : 0.13),
+      density === 'sliver' ? titleMax : titleFitSize,
+    );
+    const titleSize = clamp(titlePreferred, titleMin, titleMax);
+
+    const summaryMax = isActive ? 15.5 : density === 'large' ? 13.6 : density === 'medium' ? 12.6 : 12;
+    const summarySize = clamp(Math.min(width * 0.03, height * 0.07), 11, summaryMax);
+    const eyebrowSize = clamp(Math.min(width * 0.015, height * 0.042), 7.5, isActive ? 9.8 : 8.8);
+
+    card.style.setProperty('--list-card-padding', `${padding.toFixed(2)}px`);
+    card.style.setProperty('--list-title-size', `${titleSize.toFixed(2)}px`);
+    card.style.setProperty('--list-summary-size', `${summarySize.toFixed(2)}px`);
+    card.style.setProperty('--list-eyebrow-size', `${eyebrowSize.toFixed(2)}px`);
+  };
+
+  const updateListLayout = (index: number) => {
+    const bounds = stage.getBoundingClientRect();
+    if (bounds.width <= 0 || bounds.height <= 0) return;
+
+    const weights = listBaseWeights.map((weight, cardIndex) => (
+      cardIndex === index ? weight * LIST_ACTIVE_WEIGHT_BOOST : weight
+    ));
+    const rects: ListRect[] = [];
+    layoutListTree(LIST_TREE, weights, {
+      x: 0,
+      y: 0,
+      width: bounds.width,
+      height: bounds.height,
+    }, rects);
+
+    const gap = clamp(Math.min(bounds.width, bounds.height) * 0.012, 6, 10);
+
+    cards.forEach((card, cardIndex) => {
+      const rect = rects[cardIndex];
+      if (!rect) return;
+
+      const x = rect.x + gap / 2;
+      const y = rect.y + gap / 2;
+      const width = Math.max(1, rect.width - gap);
+      const height = Math.max(1, rect.height - gap);
+      const isActive = cardIndex === index;
+      const density = resolveListDensity(width, height, isActive);
+      card.style.left = `${x.toFixed(2)}px`;
+      card.style.top = `${y.toFixed(2)}px`;
+      card.style.width = `${width.toFixed(2)}px`;
+      card.style.height = `${height.toFixed(2)}px`;
+
+      if (isActive) card.dataset.listActive = 'true';
+      else delete card.dataset.listActive;
+
+      card.dataset.listDensity = density;
+      applyListSizing(card, width, height, density, isActive);
+    });
+  };
+
+  const setListIndex = (nextIndex: number, _animateOutgoing = true) => {
+    listIndex = clampIndex(nextIndex);
     updateListLayout(listIndex);
+  };
+
+  const trackListEntryAnimation = (animation: Animation) => {
+    listEntryAnimations.add(animation);
+    const cleanup = () => listEntryAnimations.delete(animation);
+    animation.addEventListener('finish', cleanup, { once: true });
+    animation.addEventListener('cancel', cleanup, { once: true });
+  };
+
+  const clearListEntryState = () => {
+    window.clearTimeout(listEntryTimer);
+    listEntryTimer = 0;
+    listEntryLocked = false;
+    delete root.dataset.listEntering;
+  };
+
+  const cancelListEntryAnimations = () => {
+    clearListEntryState();
+    listEntryAnimations.forEach((animation) => animation.cancel());
+    listEntryAnimations.clear();
   };
 
   const setMode = (nextMode: 'carousel' | 'list') => {
@@ -894,14 +1088,15 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
     clearBoundaryGlow();
     mode = nextMode;
     root.dataset.mode = mode;
+    writePreference(HOME_VIEW_MODE_STORAGE_KEY, mode);
     const isList = mode === 'list';
 
     viewToggle.setAttribute('aria-pressed', String(isList));
     viewToggle.setAttribute('aria-label', isList ? 'Return to gallery view' : 'Show list view');
     updateGuides();
+    syncAutoSwipeControl();
 
     cards.forEach((card, index) => {
-      card.style.animationDelay = '';
       delete card.dataset.touchActive;
 
       if (isList) {
@@ -910,29 +1105,101 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
         card.style.pointerEvents = 'auto';
         card.style.zIndex = '';
         card.style.removeProperty('filter');
+        card.style.removeProperty('opacity');
       } else {
         delete card.dataset.listActive;
+        delete card.dataset.listDensity;
+        card.style.removeProperty('left');
+        card.style.removeProperty('top');
+        card.style.removeProperty('width');
+        card.style.removeProperty('height');
         card.toggleAttribute('inert', index !== activeIndex);
       }
     });
 
     if (isList) {
       listIndex = activeIndex;
-      cards.forEach((card, index) => {
-        card.style.animationDelay = reducedMotion.matches ? '0ms' : `${index * 24}ms`;
-      });
       setListIndex(listIndex, false);
     } else {
-      clearListLeaving();
-      stage.style.gridTemplateColumns = '';
       renderCarousel();
     }
+  };
+
+  const enterListMode = () => {
+    cancelListEntryAnimations();
+    cancelAllCarouselMotion();
+    clearBoundaryGlow();
+
+    const sourceCard = cards[activeIndex];
+    const sourceRect = sourceCard.getBoundingClientRect();
+
+    root.dataset.listEntering = 'true';
+    listEntryLocked = true;
+    setMode('list');
+
+    if (reducedMotion.matches || typeof sourceCard.animate !== 'function') {
+      clearListEntryState();
+      return;
+    }
+
+    const targetRect = sourceCard.getBoundingClientRect();
+    const sourceCentreX = sourceRect.left + sourceRect.width / 2;
+    const sourceCentreY = sourceRect.top + sourceRect.height / 2;
+    const targetCentreX = targetRect.left + targetRect.width / 2;
+    const targetCentreY = targetRect.top + targetRect.height / 2;
+    const scaleX = targetRect.width ? sourceRect.width / targetRect.width : 1;
+    const scaleY = targetRect.height ? sourceRect.height / targetRect.height : 1;
+
+    const sourceAnimation = sourceCard.animate(
+      [
+        {
+          translate: `${sourceCentreX - targetCentreX}px ${sourceCentreY - targetCentreY}px`,
+          scale: `${scaleX} ${scaleY}`,
+          opacity: 1,
+        },
+        {
+          translate: '0 0',
+          scale: '1 1',
+          opacity: 1,
+        },
+      ],
+      {
+        duration: 720,
+        easing: 'cubic-bezier(0.2, 0.72, 0.16, 1)',
+      },
+    );
+    trackListEntryAnimation(sourceAnimation);
+
+    cards.forEach((card, index) => {
+      if (index === activeIndex) return;
+
+      const distance = Math.abs(index - activeIndex);
+      const delay = 90 + Math.min(120, distance * 22);
+      const animation = card.animate(
+        [
+          { translate: '0 0', scale: '0.965 0.965', opacity: 0 },
+          { translate: '0 0', scale: '1 1', opacity: 1 },
+        ],
+        {
+          duration: 500,
+          delay,
+          easing: 'cubic-bezier(0.22, 0.68, 0.2, 1)',
+          fill: 'backwards',
+        },
+      );
+      trackListEntryAnimation(animation);
+    });
+
+    listEntryTimer = window.setTimeout(() => {
+      clearListEntryState();
+    }, 760);
   };
 
   const returnToCarousel = () => {
     const targetIndex = clampIndex(listIndex);
     const target = cards[targetIndex];
     const startRect = target.getBoundingClientRect();
+    cancelListEntryAnimations();
 
     activeIndex = targetIndex;
     updateRail();
@@ -970,6 +1237,31 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
     });
   };
 
+  const syncAutoSwipeControl = () => {
+    if (!autoSwipeControl || !autoSwipeToggle) return;
+    const available = fineHover.matches && !reducedMotion.matches && mode === 'carousel';
+    autoSwipeControl.hidden = !available;
+    autoSwipeToggle.disabled = !available;
+    autoSwipeToggle.checked = autoSwipeEnabled;
+  };
+
+  const setAutoSwipeEnabled = (enabled: boolean, persist = true) => {
+    autoSwipeEnabled = enabled;
+    root.dataset.autoSwipe = enabled ? 'on' : 'off';
+    if (autoSwipeToggle) autoSwipeToggle.checked = enabled;
+
+    if (!enabled) {
+      resetEdgeIntent();
+      clearEdgeHoverGlow();
+    }
+
+    if (persist) writePreference(AUTO_SWIPE_STORAGE_KEY, enabled ? 'on' : 'off');
+  };
+
+  autoSwipeToggle?.addEventListener('change', () => {
+    setAutoSwipeEnabled(autoSwipeToggle.checked);
+  });
+
   previousGuide.addEventListener('click', () => {
     if (mode !== 'carousel') return;
     settleEdgeMotion();
@@ -985,9 +1277,8 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
   });
 
   viewToggle.addEventListener('click', () => {
-    cancelAllCarouselMotion();
     if (mode === 'list') returnToCarousel();
-    else setMode('list');
+    else enterListMode();
   });
 
   stage.addEventListener('wheel', (event) => {
@@ -1044,7 +1335,16 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
   });
 
   stage.addEventListener('pointermove', (event) => {
-    if (pointerId !== event.pointerId || mode !== 'carousel') return;
+    if (mode === 'list') {
+      if (!listEntryLocked && event.pointerType === 'mouse' && fineHover.matches) {
+        const card = (event.target as Element).closest<HTMLElement>('[data-gallery-card]');
+        const index = card ? Number(card.dataset.slideIndex) : Number.NaN;
+        if (Number.isFinite(index) && index !== listIndex) setListIndex(index);
+      }
+      return;
+    }
+
+    if (pointerId !== event.pointerId) return;
 
     const coalesced = typeof event.getCoalescedEvents === 'function'
       ? event.getCoalescedEvents()
@@ -1139,7 +1439,7 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
   stage.addEventListener('pointercancel', (event) => finishDrag(event, true));
 
   root.addEventListener('pointermove', (event) => {
-    if (event.pointerType !== 'mouse') return;
+    if (event.pointerType !== 'mouse' || !autoSwipeEnabled) return;
     updateEdgeIntentFromPoint(event.clientX, event.clientY, event.target as Element);
   });
 
@@ -1168,13 +1468,11 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
   });
 
   cards.forEach((card, index) => {
-    card.addEventListener('pointerenter', (event) => {
-      if (mode !== 'list' || !fineHover.matches || event.pointerType === 'touch') return;
-      setListIndex(index);
-    });
-
     const surfaceLink = card.querySelector<HTMLAnchorElement>('[data-list-card-link]');
+    let listPointerType = '';
+
     surfaceLink?.addEventListener('pointerdown', (event) => {
+      listPointerType = event.pointerType;
       if (mode !== 'list' || event.pointerType === 'mouse') return;
       card.dataset.touchActive = 'true';
     });
@@ -1184,9 +1482,22 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
     };
 
     surfaceLink?.addEventListener('pointerup', clearTouch);
-    surfaceLink?.addEventListener('pointercancel', clearTouch);
+    surfaceLink?.addEventListener('pointercancel', () => {
+      listPointerType = '';
+      clearTouch();
+    });
+    surfaceLink?.addEventListener('click', (event) => {
+      const touchLike = listPointerType === 'touch' || listPointerType === 'pen';
+      listPointerType = '';
+      if (mode !== 'list' || !touchLike || index === listIndex) return;
+
+      event.preventDefault();
+      setListIndex(index, false);
+    });
     surfaceLink?.addEventListener('focus', () => {
-      if (mode === 'list') setListIndex(index, false);
+      if (mode === 'list' && listPointerType !== 'touch' && listPointerType !== 'pen') {
+        setListIndex(index, false);
+      }
     });
   });
 
@@ -1289,6 +1600,7 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
 
   fineHover.addEventListener('change', () => {
     resetEdgeIntent();
+    syncAutoSwipeControl();
     if (mode === 'list') setListIndex(listIndex, false);
   });
 
@@ -1298,10 +1610,23 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
 
   reducedMotion.addEventListener('change', () => {
     resetEdgeIntent();
+    syncAutoSwipeControl();
+    if (mode === 'list' && reducedMotion.matches) cancelListEntryAnimations();
     if (mode === 'carousel') renderCarousel();
   });
 
   clearBoundaryGlow();
-  setMode('carousel');
-  setActive(0);
+  const storedAutoSwipe = readPreference(AUTO_SWIPE_STORAGE_KEY);
+  setAutoSwipeEnabled(storedAutoSwipe !== 'off', false);
+  syncAutoSwipeControl();
+
+  const storedMode = readPreference(HOME_VIEW_MODE_STORAGE_KEY);
+  if (storedMode === 'list') {
+    activeIndex = 0;
+    updateRail();
+    setMode('list');
+  } else {
+    setMode('carousel');
+    setActive(0);
+  }
 }

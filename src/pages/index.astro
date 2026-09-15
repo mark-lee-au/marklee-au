@@ -22,6 +22,7 @@ const slides = [
     detail: 'A portfolio of analytical projects, visual experiments and interactive work built to explain patterns clearly.',
     href: '/',
     linkLabel: 'Current view',
+    listWeight: 1.1,
     projects: homeProjects,
   },
   {
@@ -33,6 +34,7 @@ const slides = [
     detail: 'Projects move here after the analysis and visual story are ready to stand as finished portfolio work.',
     href: '/data/',
     linkLabel: 'Open Data',
+    listWeight: 1.2,
     projects: [],
   },
   {
@@ -44,6 +46,7 @@ const slides = [
     detail: 'Map work treats geography as part of the analysis rather than a background layer.',
     href: '/maps/',
     linkLabel: 'Open Maps',
+    listWeight: 0.9,
     projects: [],
   },
   {
@@ -55,6 +58,7 @@ const slides = [
     detail: 'Playable prototypes sit beside finished work so the interaction design can be tested in public.',
     href: '/games/',
     linkLabel: 'Open Games',
+    listWeight: 1.25,
     projects: gameProjects.slice(0, 3),
   },
   {
@@ -66,6 +70,7 @@ const slides = [
     detail: 'The Lab keeps early work visible without presenting every experiment as a finished case study.',
     href: '/lab/',
     linkLabel: 'Open Lab',
+    listWeight: 1.3,
     projects: labProjects.slice(0, 4),
   },
   {
@@ -77,6 +82,7 @@ const slides = [
     detail: 'A separate visual practice alongside the data and interactive work on this site.',
     href: '/photography/',
     linkLabel: 'Open Photography',
+    listWeight: 1.15,
     projects: [],
   },
   {
@@ -88,6 +94,7 @@ const slides = [
     detail: 'The portfolio is designed as a growing record of analytical thinking, visual communication and hands-on prototyping.',
     href: '/about/',
     linkLabel: 'Open About',
+    listWeight: 0.62,
     projects: [],
   },
 ];
@@ -113,7 +120,7 @@ const structuredData = {
     <script type="application/ld+json" set:html={JSON.stringify(structuredData)}></script>
   </head>
   <body class="home-page">
-    <main class="portfolio-gallery" data-gallery data-mode="list" aria-label="Mark Lee portfolio sections">
+    <main class="portfolio-gallery" data-gallery data-mode="carousel" aria-label="Mark Lee portfolio sections">
       <header class="gallery-header">
         <a class="gallery-brand" href="/" aria-label="Mark Lee home">MARK LEE</a>
         <p class="gallery-location">BUILT IN ADELAIDE, AUSTRALIA</p>
@@ -136,6 +143,7 @@ const structuredData = {
             data-slide-id={slide.id}
             data-slide-label={slide.label}
             data-slide-index={index}
+            data-list-weight={slide.listWeight}
             aria-label={`${slide.label} section`}
           >
             <a
@@ -201,6 +209,14 @@ const structuredData = {
           ))}
         </div>
       </div>
+
+      <label class="auto-swipe-control" data-auto-swipe-control hidden>
+        <span class="auto-swipe-control__label">Auto Swipe</span>
+        <span class="auto-swipe-control__switch">
+          <input type="checkbox" role="switch" data-auto-swipe-toggle aria-label="Enable automatic edge swiping" checked />
+          <span class="auto-swipe-control__track" aria-hidden="true"></span>
+        </span>
+      </label>
     </main>
 
     <script>

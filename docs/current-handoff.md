@@ -5,9 +5,9 @@ Snapshot date: 2026-09-15
 ## Repository state supplied to ChatGPT
 
 - Latest supplied source snapshot branch: `main`.
-- Base commit: `f67f8d6159cc08aef1f6fcdb50d6ef612a214044`.
+- Base commit: `62207946f645463cf3a7d54b659b3426dc6a9432`.
 - The supplied Project context snapshot records a clean working tree.
-- This ChatGPT package is the twenty-third review pass on the homepage gallery prototype layered on that snapshot.
+- This ChatGPT package is the next focused homepage List-view review pass layered on that snapshot.
 - Cloudflare deployment state has not been independently verified from this ChatGPT session.
 
 ## Current product state
@@ -17,14 +17,61 @@ Snapshot date: 2026-09-15
 - Carousel controls support wheel, horizontal pointer/touch drag, arrow keys and a centred bottom rail with seven interactive section ticks.
 - The carousel no longer uses `backdrop-filter`. Each section is a rounded dark card with a subtle internal gradient and normal box-shadow depth. The active card now uses one large featured preview plus two stacked secondary previews on the right, while waiting cards retain their silhouettes and recede through blur, opacity, muted preview imagery and 3D depth.
 - The List control is now a circular icon centred beneath the top rule. Its selected state inverts to a light button.
-- Desktop List view uses one row of fluid cards. Hovering a card expands it, turns it light, contracts the previous card and applies a small neighbouring ripple. The whole card links to its section.
-- Touch/coarse-pointer List view does not expand cards. A touched card receives the light pressed state and keeps normal link navigation.
+- List view now uses a stable weighted treemap. Each section has a base weight, with Data, Games, Lab and Photography larger by default than About. The selected/hovered/focused region receives a temporary weight boost, becoming the largest region while the other cards compress around it.
+- List cards now reuse the carousel card language: dark gradient surface, 22-28px corner treatment, ordinary shadow depth and the same preview artwork. Density-aware internal layouts keep inactive titles visible, scale typography to the available card size, and move medium/large preview content into a more balanced side-by-side composition instead of pinning everything near the top edge. The previous light selected-card inversion has been removed.
+- On touch or pen input, the first tap on a non-selected List region expands/selects it and does not navigate. A second tap on the selected region opens the section. Keyboard focus still expands a region and Enter follows the native link immediately.
 - Returning from List view restores the carousel on the most recently hovered or keyboard-focused list card and animates that card toward the centred carousel position.
 - Photography remains a top-level section with `/photography/`. Internal pages now use a shared name-only horizontal section strip for Home, Data, Maps, Games, Lab, Photography and About; each strip card is a full native link and the current section is highlighted.
 - South Australian Name Curve remains published in LAB.
 - Formula Daily remains published as a GAMES prototype and in Stage 2 review.
 - Ascend remains present as a GAMES prototype.
 - Pulse of Adelaide remains blocked on a suitable public fuel source with confirmed reuse terms.
+
+## 2026-09-15 review patch: weighted treemap List view
+
+- Branch base: `main`; base commit `62207946f645463cf3a7d54b659b3426dc6a9432`; supplied snapshot recorded a clean working tree.
+- Replaced the equal single-row List layout with a fixed-topology weighted treemap. Section weights are stored with the homepage slide data, and the active List region receives a 2.8x temporary weight boost while split ratios retain minimum space for compressed neighbours.
+- The treemap preserves section positions while it rebalances, avoiding a hover state that reshuffles cards under the pointer. Card geometry animates through `left`, `top`, `width` and `height`; reduced-motion preferences suppress the long transition through the existing rule.
+- List cards now keep the carousel dark surface, radius, shadow and preview treatment. The active region uses all three previews when space allows. Passive large/medium cards keep one featured preview, while compact/sliver cards progressively remove secondary content so narrow regions remain targetable.
+- Added touch/pen two-step List navigation: first tap selects/expands a different region, second tap follows its section link. Mouse click, keyboard focus and keyboard activation retain direct native-link behaviour.
+- Validation: standalone strict TypeScript compilation passed for `home-gallery.ts`; CSS brace-balance check passed; a focused treemap invariant check confirmed the selected region remains the largest and every full-card pointer target stays above 24px in its smallest dimension at representative 1700x700 desktop and 374x650 mobile stage sizes. Full Astro build and browser QA were not completed because the supplied snapshot excludes the installed dependency tree.
+
+
+## 2026-09-15 follow-up patch: List entry transition
+
+- Branch base: `main`; base commit `62207946f645463cf3a7d54b659b3426dc6a9432`; this patch is layered on the corrected List stability package from the same base.
+- Replaced the generic List entrance with a source-aware transition. The currently centred carousel card is measured before mode change, then visually translates and scales into its own final treemap rectangle after the List layout is applied.
+- Non-active List cards no longer travel upward from the carousel card position. They are placed immediately at their own final treemap rectangles, start slightly smaller and transparent, then fade forward from the background with a small stagger.
+- Initial treemap geometry transitions are temporarily suppressed during this entrance so `left`, `top`, `width` and `height` do not animate from the carousel's 50%/50% positioning. Hover-driven treemap resizing is locked until the entrance settles, then the normal 640ms treemap rebalance resumes.
+- The entrance uses the individual `translate` and `scale` properties rather than animating the card's existing `transform`, avoiding the transform collision that caused the earlier carousel/List regression. Reduced-motion users receive the final List layout immediately without the morph/fade sequence.
+- Validation: focused strict TypeScript compilation passed for `home-gallery.ts`; CSS brace-balance check passed. Full Astro/browser QA was not run in this sandbox.
+
+## 2026-09-15 follow-up patch: treemap polish
+
+- Branch base: `main`; base commit `62207946f645463cf3a7d54b659b3426dc6a9432`; supplied snapshot recorded a clean working tree.
+- Refined inactive treemap cards so their titles remain readable more often. Density thresholds now collapse narrow or tall cards into title-first compact states sooner, instead of forcing a preview tile into spaces that were too cramped.
+- Added per-card type scaling in List mode. Title, summary, eyebrow and padding now scale from each card's actual rectangle, so focused regions still feel bold while compressed cards avoid oversized or undersized headings.
+- Reworked medium and large passive cards into balanced side-by-side compositions. Copy and the retained sample preview now share the horizontal space, instead of stacking near the top and leaving dead space below.
+- The attempted FLIP-style List animation was reverted after browser review exposed transform conflicts with the carousel. List rebalancing now uses the stable `left`/`top`/`width`/`height` geometry model with a slower 640ms easing curve, while hover selection is driven by real mouse movement rather than `pointerenter` events generated as cards move under a stationary cursor.
+- Validation: standalone strict TypeScript compilation passed for `home-gallery.ts`; CSS brace-balance check passed. Full Astro build and browser QA were not completed because the supplied snapshot excludes the installed dependency tree.
+
+
+## 2026-09-15 regression fix: stable List/carousel switching
+
+- Corrected the previous List polish regression. The FLIP animation had removed the List-mode `transform: none !important` isolation and left Web Animations transform state competing with the carousel's own inline transforms. This caused malformed first-load treemap positions and could leave the carousel displaced after leaving List view.
+- Restored List-mode transform isolation and the stable direct geometry transition. Treemap cards now rebalance over 640ms with a softer easing curve.
+- Hover-driven selection now responds to actual mouse `pointermove` over a card rather than `pointerenter`. This prevents moving treemap boundaries from recursively selecting newly passing cards and reduces hover oscillation.
+- Kept the density-aware typography and side-by-side medium/large card composition from the previous polish pass. Title sizing now also accounts for title length and the text column width, reducing clipping for long names such as Photography.
+- Validation: focused strict TypeScript compile passed for `home-gallery.ts`; CSS brace-balance check passed. Full Astro/browser QA remains for local review.
+
+
+## 2026-09-15 follow-up patch: persistent view mode and Auto Swipe
+
+- Branch base: `main`; base commit `62207946f645463cf3a7d54b659b3426dc6a9432`; this patch is layered on the stable List-entry-morph package from the same base.
+- Home now stores the last selected homepage mode in `localStorage`. Returning to `/` restores either carousel or List mode instead of always resetting to carousel. The saved value is read defensively so blocked browser storage falls back to normal in-page behaviour.
+- Added a bottom-right `Auto Swipe` switch for fine-pointer/hover-capable use. It defaults on, persists in `localStorage`, and is hidden outside carousel mode or when the primary input is not a fine hover pointer.
+- Turning Auto Swipe off stops desktop edge-hover loading, edge auto-flick/flow, cursor-reactive edge magnet glow, and endpoint pressure glow. Manual wheel, drag, arrow buttons, keyboard controls, rail navigation, and List mode remain unchanged.
+- Validation: focused strict TypeScript compilation passed for `home-gallery.ts`; CSS brace-balance check passed. Full Astro/browser QA was not run in this sandbox.
 
 ## Homepage gallery prototype
 
