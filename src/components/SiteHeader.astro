@@ -1,18 +1,50 @@
 ---
+interface Props {
+  activeSection?: 'home' | 'data' | 'maps' | 'games' | 'lab' | 'photography' | 'about';
+}
+
+const { activeSection } = Astro.props;
 const path = Astro.url.pathname;
+const firstSegment = path.split('/').filter(Boolean)[0] ?? 'home';
+const sectionIds = new Set(['home', 'data', 'maps', 'games', 'lab', 'photography', 'about']);
+const currentSection = activeSection ?? (sectionIds.has(firstSegment) ? firstSegment : undefined);
+
 const links = [
-  { href: '/data', label: 'DATA' },
-  { href: '/maps', label: 'MAPS' },
-  { href: '/games', label: 'GAMES' },
-  { href: '/lab', label: 'LAB' },
-  { href: '/about', label: 'ABOUT' }
-];
+  { id: 'home', href: '/', label: 'HOME' },
+  { id: 'data', href: '/data/', label: 'DATA' },
+  { id: 'maps', href: '/maps/', label: 'MAPS' },
+  { id: 'games', href: '/games/', label: 'GAMES' },
+  { id: 'lab', href: '/lab/', label: 'LAB' },
+  { id: 'photography', href: '/photography/', label: 'PHOTOGRAPHY' },
+  { id: 'about', href: '/about/', label: 'ABOUT' },
+] as const;
 ---
-<header class="site-header">
-  <a class="brand" href="/" aria-label="Mark Lee home">MARK LEE</a>
-  <nav aria-label="Primary navigation">
-    {links.map((link) => (
-      <a href={link.href} aria-current={path === link.href || path === `${link.href}/` ? 'page' : undefined}>{link.label}</a>
-    ))}
+<header class="site-header" data-section-nav>
+  <nav class="section-strip" aria-label="Portfolio sections">
+    <div class="section-strip__track">
+      {links.map((link) => (
+        <a
+          class="section-strip__card"
+          href={link.href}
+          data-section-id={link.id}
+          aria-current={currentSection === link.id ? 'page' : undefined}
+        >
+          {link.label}
+        </a>
+      ))}
+    </div>
   </nav>
 </header>
+
+<script is:inline>
+  requestAnimationFrame(() => {
+    const header = document.querySelector('[data-section-nav]');
+    const scroller = header?.querySelector('.section-strip');
+    const current = header?.querySelector('[aria-current="page"]');
+
+    if (!(scroller instanceof HTMLElement) || !(current instanceof HTMLElement)) return;
+
+    const left = current.offsetLeft - ((scroller.clientWidth - current.offsetWidth) / 2);
+    scroller.scrollTo({ left: Math.max(0, left), behavior: 'auto' });
+  });
+</script>

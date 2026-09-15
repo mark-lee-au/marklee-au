@@ -38,6 +38,7 @@ This directory is the project knowledge base for `marklee.au`.
 - [`exec-plans/active/004-south-australian-name-curve.md`](exec-plans/active/004-south-australian-name-curve.md): South Australian baby-name curve LAB implementation and release plan
 - [`exec-plans/active/005-formula-daily.md`](exec-plans/active/005-formula-daily.md): Formula Daily Stage 1 brief and proposed delivery plan
 - [`exec-plans/active/006-ascend.md`](exec-plans/active/006-ascend.md): Ascend brief, Genesis prototype direction and staged delivery plan
+- [`exec-plans/active/007-home-gallery.md`](exec-plans/active/007-home-gallery.md): homepage turntable gallery, list overview and shared section-navigation prototype
 
 ## Data references and templates
 

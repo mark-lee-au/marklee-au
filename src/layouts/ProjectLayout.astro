@@ -28,7 +28,7 @@ const formatDate = (date: Date) => new Intl.DateTimeFormat('en-AU', {
     <title>{title} · Mark Lee</title>
   </head>
   <body>
-    <SiteHeader />
+    <SiteHeader activeSection={category} />
     <main class:list={['site-shell', 'project-page', { 'project-page--game': category === 'games' }]}>
       <article>
         <header class="page-hero">

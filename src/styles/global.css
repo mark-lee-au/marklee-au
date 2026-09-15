@@ -39,36 +39,66 @@ button:focus-visible {
 }
 
 .site-header {
+  position: sticky;
+  z-index: 100;
+  top: 0;
+  width: 100%;
+  margin: 0;
+  min-height: 0;
+  border-bottom: 1px solid var(--line);
+  background: rgba(8, 9, 8, 0.96);
+}
+
+.section-strip {
   width: min(calc(100% - 40px), var(--max));
   margin: 0 auto;
-  min-height: 88px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: 18px;
+  scrollbar-width: thin;
+  scrollbar-color: #3c403c transparent;
+}
+
+.section-strip::-webkit-scrollbar { height: 5px; }
+.section-strip::-webkit-scrollbar-track { background: transparent; }
+.section-strip::-webkit-scrollbar-thumb { background: #3c403c; }
+
+.section-strip__track {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  border-bottom: 1px solid var(--line);
+  width: max-content;
+  min-width: 100%;
+  border-left: 1px solid var(--line);
 }
 
-.brand {
-  font-size: 0.83rem;
-  font-weight: 750;
-  letter-spacing: 0.16em;
+.section-strip__card {
+  flex: 0 0 clamp(116px, 13vw, 180px);
+  min-height: 58px;
+  display: grid;
+  place-items: center;
+  padding: 0 18px;
+  border-right: 1px solid var(--line);
+  color: #858a85;
+  font-size: 0.7rem;
+  font-weight: 680;
+  letter-spacing: 0.12em;
+  text-align: center;
+  scroll-snap-align: center;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease;
 }
 
-.site-header nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 22px;
+.section-strip__card:hover,
+.section-strip__card:focus-visible {
+  background: rgba(255, 255, 255, 0.045);
+  color: var(--text);
 }
 
-.site-header nav a {
-  color: var(--muted);
-  font-size: 0.74rem;
-  letter-spacing: 0.14em;
+.section-strip__card[aria-current="page"] {
+  background: #eceae2;
+  color: #101210;
 }
-
-.site-header nav a:hover,
-.site-header nav a[aria-current="page"] { color: var(--text); }
 
 .hero {
   min-height: 72vh;
@@ -364,10 +394,10 @@ button:focus-visible {
 
 @media (max-width: 620px) {
   .site-shell,
-  .site-header,
   .site-footer { width: min(calc(100% - 28px), var(--max)); }
-  .site-header { align-items: flex-start; padding: 20px 0; min-height: 0; }
-  .site-header nav { justify-content: flex-end; gap: 10px 16px; }
+  .section-strip { width: 100%; padding-inline: 14px; scroll-padding-inline: 14px; }
+  .section-strip__track { min-width: max-content; }
+  .section-strip__card { flex-basis: 112px; min-height: 54px; }
   .hero { padding-top: 58px; gap: 42px; }
   .hero h1,
   .page-hero h1 { font-size: clamp(3rem, 18vw, 5.1rem); }

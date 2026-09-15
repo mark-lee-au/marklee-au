@@ -1,0 +1,191 @@
+---
+import { Image } from 'astro:assets';
+import { type Project } from '../../lib/projects';
+
+interface Props {
+  sectionId: string;
+  projects?: Project[];
+}
+
+type PreviewKind =
+  | 'name-curve'
+  | 'formula'
+  | 'ascend'
+  | 'fuel-map'
+  | 'transit'
+  | 'energy'
+  | 'data-lines'
+  | 'data-table'
+  | 'data-story'
+  | 'map-route'
+  | 'map-points'
+  | 'map-grid'
+  | 'game-system'
+  | 'portrait'
+  | 'event'
+  | 'landscape'
+  | 'method'
+  | 'build'
+  | 'publish'
+  | 'portfolio';
+
+interface PreviewItem {
+  title: string;
+  kind: PreviewKind;
+  project?: Project;
+}
+
+const { sectionId, projects = [] } = Astro.props;
+
+const projectKind: Record<string, PreviewKind> = {
+  'south-australian-name-curve': 'name-curve',
+  'formula-daily': 'formula',
+  ascend: 'ascend',
+  'pulse-of-adelaide': 'fuel-map',
+  'adelaide-in-motion': 'transit',
+  'powering-south-australia': 'energy',
+};
+
+const fallbackBySection: Record<string, PreviewItem[]> = {
+  home: [
+    { title: 'Visual stories', kind: 'data-lines' },
+    { title: 'Interactive systems', kind: 'game-system' },
+    { title: 'Spatial work', kind: 'map-route' },
+  ],
+  data: [
+    { title: 'Patterns', kind: 'data-lines' },
+    { title: 'Evidence', kind: 'data-table' },
+    { title: 'Story', kind: 'data-story' },
+  ],
+  maps: [
+    { title: 'Movement', kind: 'map-route' },
+    { title: 'Place', kind: 'map-points' },
+    { title: 'Change', kind: 'map-grid' },
+  ],
+  games: [
+    { title: 'Playable systems', kind: 'game-system' },
+  ],
+  lab: [
+    { title: 'Experiment', kind: 'data-story' },
+  ],
+  photography: [
+    { title: 'Portrait', kind: 'portrait' },
+    { title: 'Event', kind: 'event' },
+    { title: 'Landscape', kind: 'landscape' },
+  ],
+  about: [
+    { title: 'Analyse', kind: 'method' },
+    { title: 'Build', kind: 'build' },
+    { title: 'Publish', kind: 'publish' },
+  ],
+};
+
+const items: PreviewItem[] = projects.slice(0, 3).map((project) => ({
+  title: project.data.title,
+  kind: projectKind[project.data.slug] ?? 'portfolio',
+  project,
+}));
+
+for (const fallback of fallbackBySection[sectionId] ?? fallbackBySection.home) {
+  if (items.length >= 3) break;
+  items.push(fallback);
+}
+---
+<div class="gallery-card__visuals" aria-hidden="true">
+  {items.slice(0, 3).map((item, index) => (
+    <div class={`gallery-preview gallery-preview--${item.kind}${index === 0 ? ' gallery-preview--featured' : ''}`}>
+      <div class="gallery-preview__visual">
+        {item.kind === 'name-curve' && item.project && item.project.data.previewImage ? (
+          <Image
+            class="gallery-preview__image"
+            src={item.project.data.previewImage}
+            alt=""
+            loading="eager"
+          />
+        ) : item.kind === 'formula' ? (
+          <>
+            <span class="formula-sheet"></span>
+            <span class="formula-token formula-token--function">SUM(</span>
+            <span class="formula-token formula-token--range">B2:B5</span>
+            <span class="formula-token formula-token--close">)</span>
+          </>
+        ) : item.kind === 'ascend' ? (
+          <>
+            <span class="ascend-orbit ascend-orbit--outer"></span>
+            <span class="ascend-orbit ascend-orbit--inner"></span>
+            <span class="ascend-cell"></span>
+            <span class="ascend-energy"></span>
+          </>
+        ) : item.kind === 'fuel-map' ? (
+          <>
+            <span class="map-street map-street--a"></span>
+            <span class="map-street map-street--b"></span>
+            <span class="map-street map-street--c"></span>
+            <span class="map-pulse map-pulse--a"></span>
+            <span class="map-pulse map-pulse--b"></span>
+            <span class="map-pulse map-pulse--c"></span>
+          </>
+        ) : item.kind === 'transit' ? (
+          <>
+            <span class="transit-line transit-line--a"></span>
+            <span class="transit-line transit-line--b"></span>
+            <span class="transit-stop transit-stop--a"></span>
+            <span class="transit-stop transit-stop--b"></span>
+            <span class="transit-stop transit-stop--c"></span>
+          </>
+        ) : item.kind === 'energy' ? (
+          <div class="energy-bars">
+            <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+          </div>
+        ) : item.kind === 'data-lines' ? (
+          <>
+            <span class="mini-axis mini-axis--x"></span>
+            <span class="mini-axis mini-axis--y"></span>
+            <svg class="mini-line" viewBox="0 0 100 64" preserveAspectRatio="none">
+              <path d="M3 54 C20 48 23 28 38 35 S57 48 65 25 S86 9 97 14" />
+            </svg>
+          </>
+        ) : item.kind === 'data-table' ? (
+          <div class="mini-table">
+            <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+          </div>
+        ) : item.kind === 'data-story' ? (
+          <>
+            <span class="story-number">42</span>
+            <span class="story-rule"></span>
+            <span class="story-copy story-copy--a"></span>
+            <span class="story-copy story-copy--b"></span>
+          </>
+        ) : item.kind === 'map-route' ? (
+          <svg class="route-map" viewBox="0 0 100 80" preserveAspectRatio="none">
+            <path d="M5 61 C17 66 23 20 42 29 S59 66 73 45 S86 17 96 23" />
+            <circle cx="5" cy="61" r="2.5"/><circle cx="42" cy="29" r="2.5"/><circle cx="73" cy="45" r="2.5"/><circle cx="96" cy="23" r="2.5"/>
+          </svg>
+        ) : item.kind === 'map-points' ? (
+          <div class="point-field"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        ) : item.kind === 'map-grid' ? (
+          <><span class="map-cell map-cell--a"></span><span class="map-cell map-cell--b"></span><span class="map-cell map-cell--c"></span><span class="map-cell map-cell--d"></span></>
+        ) : item.kind === 'game-system' ? (
+          <><span class="game-node game-node--a">1</span><span class="game-node game-node--b">+</span><span class="game-node game-node--c">?</span><span class="game-path"></span></>
+        ) : item.kind === 'portrait' ? (
+          <><span class="photo-frame photo-frame--portrait"></span><span class="photo-subject"></span></>
+        ) : item.kind === 'event' ? (
+          <><span class="event-light event-light--a"></span><span class="event-light event-light--b"></span><span class="event-light event-light--c"></span><span class="event-crowd"></span></>
+        ) : item.kind === 'landscape' ? (
+          <><span class="landscape-horizon"></span><span class="landscape-ridge landscape-ridge--a"></span><span class="landscape-ridge landscape-ridge--b"></span><span class="landscape-moon"></span></>
+        ) : item.kind === 'method' ? (
+          <><span class="method-step">01</span><span class="method-line"></span><span class="method-step method-step--two">02</span><span class="method-step method-step--three">03</span></>
+        ) : item.kind === 'build' ? (
+          <><span class="build-block build-block--a"></span><span class="build-block build-block--b"></span><span class="build-block build-block--c"></span></>
+        ) : item.kind === 'publish' ? (
+          <><span class="publish-page"></span><span class="publish-line publish-line--a"></span><span class="publish-line publish-line--b"></span><span class="publish-dot"></span></>
+        ) : (
+          <><span class="portfolio-frame"></span><span class="portfolio-line portfolio-line--a"></span><span class="portfolio-line portfolio-line--b"></span></>
+        )}
+      </div>
+      <div class="gallery-preview__caption">
+        <span>{item.title}</span>
+      </div>
+    </div>
+  ))}
+</div>

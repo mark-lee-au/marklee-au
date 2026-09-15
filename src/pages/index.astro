@@ -1,65 +1,210 @@
 ---
-import SiteHeader from '../components/SiteHeader.astro';
-import SiteFooter from '../components/SiteFooter.astro';
-import CategoryCard from '../components/CategoryCard.astro';
-import ProjectCard from '../components/ProjectCard.astro';
 import { getProjects } from '../lib/projects';
+import HomeGalleryPreviews from '../visualisations/home-gallery/HomeGalleryPreviews.astro';
 import '../styles/global.css';
+import '../visualisations/home-gallery/home-gallery.css';
 
-const featuredProjects = (await getProjects()).filter((project) => project.data.featured);
+const allProjects = await getProjects();
+const gameProjects = allProjects.filter((project) => project.data.category === 'games');
+const labProjects = allProjects.filter((project) => project.data.category === 'lab');
+const homeProjectSlugs = ['south-australian-name-curve', 'formula-daily', 'ascend'];
+const homeProjects = homeProjectSlugs
+  .map((slug) => allProjects.find((project) => project.data.slug === slug))
+  .filter((project): project is (typeof allProjects)[number] => Boolean(project));
+
+const slides = [
+  {
+    id: 'home',
+    label: 'Home',
+    eyebrow: 'Portfolio / Adelaide',
+    title: 'Mark Lee',
+    summary: 'Data visualisation, maps, browser games and photography.',
+    detail: 'A portfolio of analytical projects, visual experiments and interactive work built to explain patterns clearly.',
+    href: '/',
+    linkLabel: 'Current view',
+    projects: homeProjects,
+  },
+  {
+    id: 'data',
+    label: 'Data',
+    eyebrow: 'Analysis / visual stories',
+    title: 'Data',
+    summary: 'Finished visual stories built around a question, dataset and method.',
+    detail: 'Projects move here after the analysis and visual story are ready to stand as finished portfolio work.',
+    href: '/data/',
+    linkLabel: 'Open Data',
+    projects: [],
+  },
+  {
+    id: 'maps',
+    label: 'Maps',
+    eyebrow: 'Place / movement / geography',
+    title: 'Maps',
+    summary: 'Spatial projects about places, movement, infrastructure and change.',
+    detail: 'Map work treats geography as part of the analysis rather than a background layer.',
+    href: '/maps/',
+    linkLabel: 'Open Maps',
+    projects: [],
+  },
+  {
+    id: 'games',
+    label: 'Games',
+    eyebrow: 'Logic / interaction',
+    title: 'Games',
+    summary: 'Small browser games built from logic, systems and custom interaction.',
+    detail: 'Playable prototypes sit beside finished work so the interaction design can be tested in public.',
+    href: '/games/',
+    linkLabel: 'Open Games',
+    projects: gameProjects.slice(0, 3),
+  },
+  {
+    id: 'lab',
+    label: 'Lab',
+    eyebrow: 'Experiments / work in progress',
+    title: 'Lab',
+    summary: 'Visual experiments and data projects while they are still taking shape.',
+    detail: 'The Lab keeps early work visible without presenting every experiment as a finished case study.',
+    href: '/lab/',
+    linkLabel: 'Open Lab',
+    projects: labProjects.slice(0, 4),
+  },
+  {
+    id: 'photography',
+    label: 'Photography',
+    eyebrow: 'Portrait / event / personal',
+    title: 'Photography',
+    summary: 'Portrait, event, landscape and personal photography from Adelaide and beyond.',
+    detail: 'A separate visual practice alongside the data and interactive work on this site.',
+    href: '/photography/',
+    linkLabel: 'Open Photography',
+    projects: [],
+  },
+  {
+    id: 'about',
+    label: 'About',
+    eyebrow: 'Profile / approach',
+    title: 'About',
+    summary: 'About Mark Lee, the work on this site and the way projects are built.',
+    detail: 'The portfolio is designed as a growing record of analytical thinking, visual communication and hands-on prototyping.',
+    href: '/about/',
+    linkLabel: 'Open About',
+    projects: [],
+  },
+];
+
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'Mark Lee Portfolio',
+  url: 'https://marklee.au/',
+  description: 'Mark Lee portfolio of data visualisation, maps, browser games, analytical projects and photography from Adelaide, Australia.',
+};
 ---
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width" />
-    <meta name="description" content="Mark Lee's portfolio: data stories, maps, games and experiments." />
+    <meta name="description" content="Mark Lee portfolio of data visualisation, maps, browser games, analytical projects and photography from Adelaide, Australia." />
     <meta name="theme-color" content="#080908" />
+    <link rel="canonical" href="https://marklee.au/" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <title>Mark Lee · Data / Maps / Games / Lab</title>
+    <title>Mark Lee | Data, Maps, Games and Photography</title>
+    <script type="application/ld+json" set:html={JSON.stringify(structuredData)}></script>
   </head>
-  <body>
-    <SiteHeader />
-    <main class="site-shell">
-      <section class="hero">
-        <div class="hero-copy">
-          <span class="kicker">DATA / MAPS / GAMES / EXPERIMENTS</span>
-          <h1>DATA, MAPPED. MEASURED. MOVING.</h1>
-          <p>A growing collection of visual data stories about places, patterns, history and everyday life.</p>
-          <div class="hero-meta">
-            <span>ADELAIDE, AUSTRALIA</span>
-            <span>MARKLEE.AU</span>
-          </div>
-        </div>
-        <div class="data-field" aria-label="Abstract animated data field">
-          <span class="data-node"></span><span class="data-node"></span><span class="data-node"></span>
-          <span class="data-node"></span><span class="data-node"></span><span class="data-node"></span>
-        </div>
+  <body class="home-page">
+    <main class="portfolio-gallery" data-gallery data-mode="list" aria-label="Mark Lee portfolio sections">
+      <header class="gallery-header">
+        <a class="gallery-brand" href="/" aria-label="Mark Lee home">MARK LEE</a>
+        <p class="gallery-location">BUILT IN ADELAIDE, AUSTRALIA</p>
+      </header>
+
+      <div class="gallery-edge-magnet gallery-edge-magnet--left" aria-hidden="true"></div>
+      <div class="gallery-edge-magnet gallery-edge-magnet--right" aria-hidden="true"></div>
+
+      <button class="view-toggle" type="button" data-view-toggle aria-pressed="false" aria-label="Show list view">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M6 7h12M6 12h12M6 17h12M3.5 7h.01M3.5 12h.01M3.5 17h.01" />
+        </svg>
+      </button>
+
+      <section class="gallery-stage" data-gallery-stage aria-live="polite">
+        {slides.map((slide, index) => (
+          <article
+            class="gallery-card"
+            data-gallery-card
+            data-slide-id={slide.id}
+            data-slide-label={slide.label}
+            data-slide-index={index}
+            aria-label={`${slide.label} section`}
+          >
+            <a
+              class="gallery-card__surface-link"
+              href={slide.href}
+              aria-label={`Open ${slide.label}`}
+              data-list-card-link
+              draggable="false"
+            ></a>
+
+            <div class="gallery-card__count" aria-hidden="true">
+              <span>{String(index + 1).padStart(2, '0')} / {String(slides.length).padStart(2, '0')}</span>
+            </div>
+
+            <div class="gallery-card__body">
+              <div class="gallery-card__copy">
+                <p class="gallery-card__eyebrow">{slide.eyebrow}</p>
+                {slide.id === 'home' ? (
+                  <h1>{slide.title}</h1>
+                ) : (
+                  <h2>{slide.title}</h2>
+                )}
+                <p class="gallery-card__summary">{slide.summary}</p>
+                <p class="gallery-card__detail">{slide.detail}</p>
+              </div>
+
+              <HomeGalleryPreviews sectionId={slide.id} projects={slide.projects} />
+            </div>
+
+          </article>
+        ))}
       </section>
 
-      <section class="section">
-        <div class="section-heading">
-          <h2>Browse the collection.</h2>
-          <p>Finished visual work lives in DATA and MAPS, interactive play in GAMES, and work in progress in LAB.</p>
-        </div>
-        <div class="category-grid">
-          <CategoryCard href="/data" eyebrow="01" title="DATA" text="Finished visual stories built around a question, dataset or pattern." glyph="▥" />
-          <CategoryCard href="/maps" eyebrow="02" title="MAPS" text="Geography, movement, place, history and spatial data." glyph="⌖" />
-          <CategoryCard href="/games" eyebrow="03" title="GAMES" text="Small interactive games built from data, logic and playful systems." glyph="⌗" />
-          <CategoryCard href="/lab" eyebrow="04" title="LAB" text="Data projects, visualisations and experiments still taking shape." glyph="◌" />
-        </div>
-      </section>
+      <div class="gallery-guides" data-gallery-guides aria-label="Carousel guidance">
+        <button class="gallery-guide gallery-guide--previous" type="button" data-gallery-guide="previous" aria-label="Show previous section">
+          <svg viewBox="0 0 64 40" aria-hidden="true">
+            <path d="M61 20H5M5 20l15-15M5 20l15 15" />
+          </svg>
+        </button>
+        <button class="gallery-guide gallery-guide--next" type="button" data-gallery-guide="next" aria-label="Show next section">
+          <svg viewBox="0 0 64 40" aria-hidden="true">
+            <path d="M3 20h56M59 20 44 5M59 20 44 35" />
+          </svg>
+        </button>
+      </div>
 
-      <section class="section">
-        <div class="section-heading">
-          <h2>Selected experiments.</h2>
-          <p>Published studies and new ideas from the LAB, with the visual work brought forward.</p>
+      <div class="gallery-controls" data-gallery-controls>
+        <div class="gallery-rail" data-gallery-rail role="group" aria-label="Choose portfolio section">
+          <span class="gallery-rail__line" aria-hidden="true"></span>
+          <span class="gallery-rail__thumb" data-gallery-thumb aria-hidden="true"></span>
+          {slides.map((slide, index) => (
+            <button
+              class="gallery-rail__tick"
+              type="button"
+              data-gallery-tick
+              data-slide-index={index}
+              style={`--tick-position: ${(index / (slides.length - 1)) * 100}%`}
+              aria-label={`Show ${slide.label}`}
+            >
+              <span class="gallery-rail__mark" aria-hidden="true"></span>
+              <span class="gallery-rail__label" aria-hidden="true">{slide.label}</span>
+            </button>
+          ))}
         </div>
-        <div class="project-grid">
-          {featuredProjects.map((project) => <ProjectCard project={project} />)}
-        </div>
-      </section>
+      </div>
     </main>
-    <SiteFooter />
+
+    <script>
+      import '../visualisations/home-gallery/home-gallery';
+    </script>
   </body>
 </html>

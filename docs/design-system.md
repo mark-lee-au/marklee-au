@@ -20,6 +20,15 @@ Default characteristics:
 
 Projects may override accents and visual treatment inside their own content area.
 
+### Section navigation
+
+- The homepage may use the full gallery/turntable navigation treatment.
+- Internal collection and project pages use a reduced name-only horizontal section strip at the top of the page.
+- Each section card is a native link whose full visible area is clickable.
+- The current section uses a clear selected state. Project pages select their parent collection.
+- On narrow screens the strip scrolls horizontally rather than wrapping into multiple rows.
+- Keep the strip visually restrained so it reads as compressed gallery navigation rather than a second hero.
+
 ## Typography
 
 Use a clean sans-serif system or carefully selected web font.

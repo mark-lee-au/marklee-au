@@ -1,52 +1,79 @@
 # Current Handoff
 
-Snapshot date: 2026-09-12
+Snapshot date: 2026-09-15
 
 ## Repository state supplied to ChatGPT
 
 - Latest supplied source snapshot branch: `main`.
-- Base commit: `b9f4ae9a8c41e11eaaeebf37f80c05be0e71bfee`.
+- Base commit: `f67f8d6159cc08aef1f6fcdb50d6ef612a214044`.
 - The supplied Project context snapshot records a clean working tree.
-- Working baseline is the previously prepared Formula Daily mass-and-release-inertia package, layered after the answer-cell drag-ceiling and silent-wall-collision updates on this clean snapshot. This package adds the same-label heart interaction and updates only Formula Daily plus project documentation.
+- This ChatGPT package is the twenty-third review pass on the homepage gallery prototype layered on that snapshot.
 - Cloudflare deployment state has not been independently verified from this ChatGPT session.
 
 ## Current product state
 
-- South Australian Name Curve is published in LAB.
-- Formula Daily is published as a GAMES prototype and remains in Stage 2 review work. Per-question Tips/score/display preferences now persist, while answer correctness, the complete five-question loop and daily puzzle behaviour remain deferred.
-- Ascend is present as a GAMES prototype with the expanded Genesis implementation in the current `main` snapshot.
+- The homepage remains a fixed-viewport 3D portfolio gallery with no document scrolling.
+- Home, Data, Maps, Games, Lab, Photography and About remain semantic server-rendered sections.
+- Carousel controls support wheel, horizontal pointer/touch drag, arrow keys and a centred bottom rail with seven interactive section ticks.
+- The carousel no longer uses `backdrop-filter`. Each section is a rounded dark card with a subtle internal gradient and normal box-shadow depth. The active card now uses one large featured preview plus two stacked secondary previews on the right, while waiting cards retain their silhouettes and recede through blur, opacity, muted preview imagery and 3D depth.
+- The List control is now a circular icon centred beneath the top rule. Its selected state inverts to a light button.
+- Desktop List view uses one row of fluid cards. Hovering a card expands it, turns it light, contracts the previous card and applies a small neighbouring ripple. The whole card links to its section.
+- Touch/coarse-pointer List view does not expand cards. A touched card receives the light pressed state and keeps normal link navigation.
+- Returning from List view restores the carousel on the most recently hovered or keyboard-focused list card and animates that card toward the centred carousel position.
+- Photography remains a top-level section with `/photography/`. Internal pages now use a shared name-only horizontal section strip for Home, Data, Maps, Games, Lab, Photography and About; each strip card is a full native link and the current section is highlighted.
+- South Australian Name Curve remains published in LAB.
+- Formula Daily remains published as a GAMES prototype and in Stage 2 review.
+- Ascend remains present as a GAMES prototype.
 - Pulse of Adelaide remains blocked on a suitable public fuel source with confirmed reuse terms.
 
-## Formula Daily review change prepared in this package
+## Homepage gallery prototype
 
-- Add a playful same-label interaction inside the loose cluster: when two active labels of the same type touch, one can send a small heart to the other.
-- Matching is based on the current piece value and kind, so pairs such as `(` and `(` or `SUM(` and `SUM(` can trigger it.
-- The heart uses a lightweight pixel-art treatment and fades in from transparent, floats in a small arc from one label to the other, then fades back out.
-- Each matching pair has its own cooldown of about 10 seconds. That pair cannot repeat immediately, but other matching pairs can still trigger while it is cooling down.
-- Keep the current answer-cell drag ceiling, silent wall collisions, answer behaviour, scoring, validation, Tips, Touch Mode logic, and mass/inertia cluster physics unchanged.
+- Edge-hover feedback now uses full-height root-level light layers. A bright edge line fades inward, while a wider cursor-centred bulge and subtle masked particles create a magnet-like luminous-dust response without being clipped by the header or bottom controls.
 
-## Local context archive utility
+- Header centre copy now reads `BUILT IN ADELAIDE, AUSTRALIA`.
+- The moving semi-transparent backdrop layer remains removed. It produced compositor flicker and a dark/purple band on some carousel transitions. Inactive card contents are directly blurred instead of filtering the transformed card container.
+- Carousel sections now use a tighter 22-28px corner radius and shorter ordinary box shadows so the waiting sections still read as physical cards without looking like a second stacked rectangle. The surface, copy and preview imagery fade separately with distance.
+- Active carousel cards now split into text plus an asymmetric visual group: one large featured preview and two stacked secondary previews. Home uses South Australian Name Curve, Formula Daily and Ascend; Games and Lab use their current project metadata; sections without enough current projects use section-specific visual samples rather than fake project links. Preview titles sit inside the imagery rather than in separate mini-card footers, and status labels have been removed from this overview.
+- The centred carousel card remains a complete click/tap target for its section. The same full-card link remains keyboard focusable, while horizontal drag continues to control carousel movement. Hover/focus slightly brightens the card without changing its shadow geometry or zooming individual preview images. The former `OPEN ...` footer link and repeated bottom section label have been removed.
+- The visible `WHEEL / DRAG / ARROW KEYS` helper remains removed. Carousel direction arrows stay visible on every card at 20% opacity and animate to 75% opacity on hover or keyboard focus. Home-left wraps to About and About-right wraps to Home by sweeping through the existing finite sequence rather than inserting duplicate cards.
+- Rapid explicit navigation is now buffered: repeated on-screen previous/next clicks and repeated keyboard arrow presses are remembered while the current explicit move is running and replayed in order. The first step keeps the normal 560ms weighted move; queued one-card steps run at 300ms and queued endpoint sweeps at 760ms. Direct rail selection, wheel/drag input, mode changes and Home/End clear stale queued requests. Keyboard auto-repeat keeps only a small look-ahead buffer so a held key does not leave a long animation backlog after release.
+- Carousel grab and edge-hover zones are now intentionally separate. Pointer/touch drag can begin only inside the visible rounded bounds of the settled active card. Empty stage space and neighbouring cards are not grab handles. On fine-pointer desktop input, edge-hover loading now begins in a viewport-relative zone near the screen edge, aligned just inward of the large direction arrows, with a guaranteed dead band between the card and the edge zone. The zone uses clamped responsive measurements so laptops and wide desktop monitors keep the same interaction separation.
+- Desktop mouse click-drag is now a direct physical gesture rather than a transition-smoothed scrub. Dragging suspends carousel CSS transitions, pointer capture keeps the gesture attached outside the card bounds, and pointer movement is rendered at animation-frame cadence. Recent mouse samples provide release velocity: a fast release throws one neighbouring card with a damped spring continuation, while a slower release uses the existing distance settle. Touch drag keeps the previous non-inertial release behaviour. At the Home/About endpoints, mouse and touch drag now use an unbounded logarithmic soft-wall response instead of a fixed overscroll cap: Home can be pulled right and About left, but each additional amount of pointer travel produces progressively less card travel. A matching screen-edge pressure glow builds on the right for Home and on the left for About as raw pull increases. Release still hands the exact resisted position into the existing endpoint wrap sweep, while sub-threshold pulls settle back.
+- Desktop mouse users get an edge-hover navigation enhancement: entering the dedicated viewport-edge zone progressively loads a small weighted tilt, and the hit area continues through the visible arrow region. A narrow low-intensity white edge wash now grows with that hover pressure on both sides. It stays close to the viewport edge, while a tall diffuse radial bulge follows the cursor vertically so the feedback reads as a natural swelling of edge light rather than a focused hotspot. Holding the edge starts a deliberate 1.5-second first lift-and-flick; keeping the pointer there repeats subsequent cards at 0.75 seconds each. Moving back into the dead zone cancels the pending edge step and fades the hover glow. Touch input and reduced-motion mode do not use this auto-flick behaviour.
+- Carousel launch and arrival states now use separate rotation zones. The outgoing card leaves `rotateY(0deg)` through a short 0.30-card launch zone, while the incoming card uses the slower landing curve and is fully flat for the final 0.14-card centring travel. Visual focus follows the same asymmetric timing, so repeated edge scrolling no longer starts each new card with an instant skew/reset.
+- Neighbour-card darkness, shadow, copy opacity, preview opacity, blur, saturation, brightness, refraction and preview scale now use one continuous depth curve. The previous near/far branch changed values abruptly at exactly one-card distance, which could flicker during continuous browsing. Scripted carousel motion also disables the card container's own opacity transition so every visual depth value follows the same animation frame.
+- The bottom control is centred above the bottom rule. Its moving thumb now follows the live fractional carousel position on every rendered frame, so it moves with the cards during weighted flicks, drag settling and endpoint wrap sweeps instead of waiting for the final active index. The thumb no longer has its own `left` transition. Moving a fine pointer across the rail previews the nearest section; each labelled tick can also be clicked, tapped or keyboard-focused to select a section. Touch users can drag across the rail.
+- List view reuses the same server-rendered card content. It adds a full-card section link rather than creating a second content set.
+- Hover-dependent list expansion is restricted to devices reporting a fine pointer with convenient hover support; narrow layouts use a fixed two-column list grid.
+- Non-active carousel panels remain `inert` and hidden from assistive technology while List view restores all cards to the normal interaction order.
+- Reduced-motion users receive near-instant state changes and no list reveal or return animation.
+- Project names now sit inside the visual panes rather than below them. The section itself remains the single full-card destination, and all section headings/descriptions/links remain present in the server-rendered HTML. Waiting cards keep their preview imagery at low contrast with stronger direct blur and a subtle refracted slice/offset treatment, while their copy becomes effectively unreadable.
+- `docs/exec-plans/active/007-home-gallery.md` records the current prototype decisions and remaining review questions.
+- On non-home pages, the former text-link header has been replaced by a sticky, horizontally scrollable name-only section strip. The current section scrolls into view on load, and project pages mark their parent category as current.
 
-- `archive-project.bat` provides a double-click Windows launcher for project snapshots.
-- `scripts/export-project-context.ps1` creates timestamped, branch/commit-labelled archives by default in `marklee-au-archives` beside the repository.
-- Snapshots preserve relevant uncommitted files for ChatGPT review while excluding dependencies, Git metadata, generated output, secrets, local raw/intermediate data and prior archives.
-- This workflow does not commit, push or publish anything.
+## Validation for this package
 
-## One-click publication helper
-
-- `publish-project.bat` is the double-click Windows entry point and `scripts/publish-project.ps1` performs the guarded Git workflow.
-- The helper shows current changes, asks for a commit message when needed, and asks for one explicit publication confirmation.
-- It creates a project archive when the archive helper is installed, fetches `origin`, verifies branch ancestry, runs `npm run build`, stages non-ignored changes, checks staged whitespace, commits, fast-forwards local `main`, and pushes `origin/main`.
-- The helper refuses divergent branch history and never force-pushes.
-- A successful Git push does not independently prove that the externally configured Cloudflare deployment completed.
+- `src/visualisations/home-gallery/home-gallery.ts` passes a focused strict TypeScript compile with DOM/ES2022 libraries; emitted JavaScript passes `node --check`.
+- Focused TypeScript and state checks now also cover Review 22 interaction-zone separation plus the Review 21 endpoint soft-wall drag/glow, Review 20 endpoint drag wrap handoff and Review 19 desktop mouse drag inertia. Drag initiation is gated to the rounded active-card geometry, endpoint pulls use resisted overscroll before wrap, drag mode disables independent card transitions, pointer capture is retained, recent pointer samples determine release velocity, and a fast mouse release continues with a damped one-card spring throw while touch remains non-inertial. Review 18 explicit-navigation buffering remains intact, Review 17 couples the rail thumb to the live fractional carousel position, and Review 16 keeps the asymmetric launch/landing and continuous neighbour-depth interpolation.
+- Edge-hover auto navigation is restricted to mouse pointer events with a fine hover-capable pointing device. Its zone is now calculated from viewport width and the responsive arrow geometry, with a guaranteed dead band outside the active card. Focused geometry checks at 1024, 1280, 1366, 1440, 1920 and 2560px confirm the edge zone does not overlap the card grab region. The interaction keeps the 1.5-second first step and 0.75-second repeats, cancels when the pointer returns toward the centre, and is disabled when reduced motion is requested.
+- Static checks confirm the Home/Games/Lab preview selections are backed by current project metadata and the South Australian Name Curve uses its existing preview asset.
+- The homepage CSS still contains no `backdrop-filter`.
+- Full `npm run build` was not run for this review because the supplied context snapshot does not contain the installed dependency tree or local Astro executable.
 
 ## Next action
 
-1. Apply the answer-cell drag-ceiling, silent-wall-collision, and mass-and-release-inertia packages first if they are not already present, then apply this package.
-2. Throw labels around the loose cluster and confirm the current mass/inertia feel still works as before.
-3. Bring two matching labels together, such as `(` with `(` or `SUM(` with `SUM(`, and confirm one sends a small heart to the other.
-4. Confirm the heart fades in, travels across, and fades out, then does not repeat for that same pair for about 10 seconds while other matching pairs can still react.
-5. Confirm answer behaviour, Tips, Test Answer, Touch Mode, and wall collisions remain unchanged.
+1. Apply this package over the previously supplied homepage gallery prototype based on `main` at `f67f8d6159cc08aef1f6fcdb50d6ef612a214044`.
+2. Review the featured-plus-stacked preview composition on Home, Games and Lab and decide if it gives the work enough visual weight without competing with the section heading.
+3. Review the refracted/blurred preview presence on neighbouring cards and check that it suggests content without becoming readable or distracting.
+4. Review the generic Data, Maps, Photography and About samples and replace them with real project/photo assets later as those sections gain content.
+5. Check the active-card hover/focus highlight and full-card click behaviour alongside wheel/drag navigation.
+6. Review continuous wheel, arrow, drag and edge-hover browsing from both directions and confirm neighbouring cards no longer darken, sharpen or change shadow abruptly as they cross the one-card depth boundary. Confirm the bottom rail thumb now travels continuously with the same weighted card motion.
+7. On desktop with a mouse, test slow click-drag, fast short throws and release outside the card bounds. Confirm the card follows the pointer without lag and a fast release carries into exactly one neighbouring card without a dead pause.
+8. Review endpoint drag on mouse and touch: pull Home right and About left, confirm the card continues moving with strong logarithmic resistance rather than hitting a visible cap, and confirm the matching screen-edge glow builds with pressure. Release beyond the existing threshold should still enter the wrap sweep; short pulls should settle back.
+9. Review 390px touch behaviour, especially the compressed preview strip and drag-vs-tap behaviour on the active card.
+10. Review the always-visible left/right arrows, including rapid three-plus click/key sequences and the Home-to-About / About-to-Home wrap sweep.
+11. Review desktop interaction separation at laptop and wide-monitor sizes: the cursor should only show grab over the rounded active card, empty space should be neutral, and edge-hover loading should begin near the large arrow with a clear dead zone in between. Then review the 1.5-second first step and 0.75-second held repeats.
+12. Review the compact section strip on internal pages and the List-view transition.
 
 ## 2026-09-12 review patch - same-label heart interactions
 
