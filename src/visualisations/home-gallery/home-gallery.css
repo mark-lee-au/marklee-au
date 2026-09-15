@@ -149,12 +149,15 @@
 }
 
 .view-toggle svg {
+  position: relative;
+  z-index: 1;
   width: 18px;
   height: 18px;
   fill: none;
   stroke: currentColor;
   stroke-width: 1.55;
   stroke-linecap: round;
+  stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
 }
 
@@ -178,9 +181,8 @@
 
 /* Fine-pointer edge-hover feedback is rendered at the gallery root rather
    than inside the stage so it can run continuously behind the header and
-   bottom controls. A bright full-height edge line fades inward, while a
-   broader cursor-centred bulge and subtle particle field make the pointer
-   feel like a magnet pulling luminous dust away from the side. */
+   bottom controls. A bright full-height edge line fades inward and a wider
+   cursor-centred bulge extends into the page without adding decorative dust. */
 .gallery-edge-magnet {
   position: absolute;
   z-index: 116;
@@ -194,8 +196,7 @@
   transition: opacity 170ms ease;
 }
 
-.gallery-edge-magnet::before,
-.gallery-edge-magnet::after {
+.gallery-edge-magnet::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -250,50 +251,6 @@
     rgba(239, 243, 235, 0.24) 18%,
     rgba(214, 222, 211, 0.12) 42%,
     rgba(177, 190, 178, 0.045) 68%,
-    transparent 100%
-  );
-}
-
-.gallery-edge-magnet::after {
-  opacity: 0.42;
-  background-image:
-    radial-gradient(circle, rgba(255, 255, 252, 0.64) 0 0.8px, transparent 1.15px),
-    radial-gradient(circle, rgba(236, 242, 233, 0.44) 0 0.7px, transparent 1.05px),
-    radial-gradient(circle, rgba(211, 220, 210, 0.28) 0 0.6px, transparent 0.95px);
-  background-size: 13px 17px, 19px 23px, 29px 31px;
-  background-position: 0 0, 5px 9px, 11px 3px;
-}
-
-.gallery-edge-magnet--left::after {
-  -webkit-mask-image: radial-gradient(
-    ellipse 118% 32% at 0% var(--edge-hover-glow-left-y),
-    #000 0%,
-    rgba(0, 0, 0, 0.82) 28%,
-    rgba(0, 0, 0, 0.34) 62%,
-    transparent 100%
-  );
-  mask-image: radial-gradient(
-    ellipse 118% 32% at 0% var(--edge-hover-glow-left-y),
-    #000 0%,
-    rgba(0, 0, 0, 0.82) 28%,
-    rgba(0, 0, 0, 0.34) 62%,
-    transparent 100%
-  );
-}
-
-.gallery-edge-magnet--right::after {
-  -webkit-mask-image: radial-gradient(
-    ellipse 118% 32% at 100% var(--edge-hover-glow-right-y),
-    #000 0%,
-    rgba(0, 0, 0, 0.82) 28%,
-    rgba(0, 0, 0, 0.34) 62%,
-    transparent 100%
-  );
-  mask-image: radial-gradient(
-    ellipse 118% 32% at 100% var(--edge-hover-glow-right-y),
-    #000 0%,
-    rgba(0, 0, 0, 0.82) 28%,
-    rgba(0, 0, 0, 0.34) 62%,
     transparent 100%
   );
 }
@@ -960,7 +917,7 @@
   align-items: center;
   gap: 9px;
   color: #8d918d;
-  font-size: 0.58rem;
+  font-size: 0.6875rem;
   font-weight: 650;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1088,7 +1045,7 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: #686c68;
+  color: #777b77;
   transform: translateX(-50%);
   cursor: pointer;
 }
@@ -1113,7 +1070,7 @@
   top: 31px;
   left: 50%;
   color: currentColor;
-  font-size: 0.56rem;
+  font-size: 0.6875rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   transform: translateX(-50%);
@@ -1237,7 +1194,7 @@
   right: clamp(14px, 1.35vw, 24px);
   display: block;
   color: #858985;
-  font-size: 0.58rem;
+  font-size: 0.6875rem;
   opacity: 0;
   transition: opacity 180ms ease;
 }
@@ -1285,7 +1242,7 @@
 .portfolio-gallery[data-mode='list'] .gallery-card__eyebrow {
   margin: 0 0 8px;
   color: #9ca09c;
-  font-size: var(--list-eyebrow-size, clamp(0.48rem, 0.56vw, 0.62rem));
+  font-size: var(--list-eyebrow-size, clamp(0.6875rem, 0.72vw, 0.76rem));
   line-height: 1.25;
 }
 
@@ -1302,7 +1259,7 @@
   max-width: 42rem;
   margin-top: 10px;
   color: #bfc2be;
-  font-size: var(--list-summary-size, clamp(0.72rem, 0.82vw, 0.92rem));
+  font-size: var(--list-summary-size, clamp(0.75rem, 0.82vw, 0.92rem));
   line-height: 1.35;
 }
 
@@ -1328,7 +1285,7 @@
 
 .portfolio-gallery[data-mode='list'] .gallery-preview__caption span,
 .portfolio-gallery[data-mode='list'] .gallery-preview--featured .gallery-preview__caption span {
-  font-size: 0.58rem;
+  font-size: 0.6875rem;
 }
 
 /* The selected treemap region uses the same copy plus three-preview composition
@@ -1550,18 +1507,51 @@
   }
 
   .gallery-brand {
-    font-size: 0.66rem;
+    font-size: 0.6875rem;
   }
 
   .gallery-location {
-    font-size: 0.57rem;
+    font-size: 0.6875rem;
     letter-spacing: 0.08em;
   }
 
   .view-toggle {
-    top: calc(var(--home-header-height) + 9px);
-    width: 38px;
-    height: 38px;
+    top: calc(var(--home-header-height) + 6px);
+    width: 44px;
+    height: 44px;
+    border-color: transparent;
+    background: transparent;
+  }
+
+  .view-toggle::before {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    z-index: 0;
+    border: 1px solid #555955;
+    border-radius: 50%;
+    background: #080908;
+    transition: background-color 220ms ease, border-color 220ms ease;
+  }
+
+  .view-toggle:hover,
+  .view-toggle:focus-visible {
+    border-color: transparent;
+  }
+
+  .view-toggle:hover::before,
+  .view-toggle:focus-visible::before {
+    border-color: #d9dbd7;
+  }
+
+  .portfolio-gallery[data-mode='list'] .view-toggle {
+    border-color: transparent;
+    background: transparent;
+  }
+
+  .portfolio-gallery[data-mode='list'] .view-toggle::before {
+    border-color: var(--paper);
+    background: var(--paper);
   }
 
   .gallery-stage {
@@ -1622,7 +1612,7 @@
 
   .gallery-preview__caption span,
   .gallery-preview--featured .gallery-preview__caption span {
-    font-size: 0.58rem;
+    font-size: 0.6875rem;
   }
 
   .gallery-rail {
@@ -1664,7 +1654,7 @@
 
   .portfolio-gallery[data-mode='list'] .gallery-card__summary {
     margin-top: 7px;
-    font-size: 0.67rem;
+    font-size: 0.75rem;
   }
 }
 

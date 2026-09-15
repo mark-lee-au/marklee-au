@@ -129,9 +129,12 @@ const structuredData = {
       <div class="gallery-edge-magnet gallery-edge-magnet--left" aria-hidden="true"></div>
       <div class="gallery-edge-magnet gallery-edge-magnet--right" aria-hidden="true"></div>
 
-      <button class="view-toggle" type="button" data-view-toggle aria-pressed="false" aria-label="Show list view">
+      <button class="view-toggle" type="button" data-view-toggle aria-pressed="false" aria-label="Show overview">
         <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M6 7h12M6 12h12M6 17h12M3.5 7h.01M3.5 12h.01M3.5 17h.01" />
+          <rect x="4" y="4" width="6" height="6" rx="1" />
+          <rect x="14" y="4" width="6" height="6" rx="1" />
+          <rect x="4" y="14" width="6" height="6" rx="1" />
+          <rect x="14" y="14" width="6" height="6" rx="1" />
         </svg>
       </button>
 
@@ -213,7 +216,7 @@ const structuredData = {
       <label class="auto-swipe-control" data-auto-swipe-control hidden>
         <span class="auto-swipe-control__label">Auto Swipe</span>
         <span class="auto-swipe-control__switch">
-          <input type="checkbox" role="switch" data-auto-swipe-toggle aria-label="Enable automatic edge swiping" checked />
+          <input type="checkbox" role="switch" data-auto-swipe-toggle aria-label="Enable automatic edge swiping" />
           <span class="auto-swipe-control__track" aria-hidden="true"></span>
         </span>
       </label>

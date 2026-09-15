@@ -5,27 +5,39 @@ Snapshot date: 2026-09-15
 ## Repository state supplied to ChatGPT
 
 - Latest supplied source snapshot branch: `main`.
-- Base commit: `62207946f645463cf3a7d54b659b3426dc6a9432`.
+- Base commit: `8114ceac2b51609ea846cc57d79c899076de7177`.
 - The supplied Project context snapshot records a clean working tree.
-- This ChatGPT package is the next focused homepage List-view review pass layered on that snapshot.
+- This ChatGPT package applies the Apple Design Skill homepage refinement pass to that snapshot.
 - Cloudflare deployment state has not been independently verified from this ChatGPT session.
 
 ## Current product state
 
 - The homepage remains a fixed-viewport 3D portfolio gallery with no document scrolling.
 - Home, Data, Maps, Games, Lab, Photography and About remain semantic server-rendered sections.
-- Carousel controls support wheel, horizontal pointer/touch drag, arrow keys and a centred bottom rail with seven interactive section ticks.
+- Carousel controls support deliberate horizontal trackpad/shift-wheel input, horizontal pointer/touch drag, arrow keys and a centred bottom rail with seven interactive section ticks. Ordinary vertical wheel movement no longer changes sections.
 - The carousel no longer uses `backdrop-filter`. Each section is a rounded dark card with a subtle internal gradient and normal box-shadow depth. The active card now uses one large featured preview plus two stacked secondary previews on the right, while waiting cards retain their silhouettes and recede through blur, opacity, muted preview imagery and 3D depth.
-- The List control is now a circular icon centred beneath the top rule. Its selected state inverts to a light button.
-- List view now uses a stable weighted treemap. Each section has a base weight, with Data, Games, Lab and Photography larger by default than About. The selected/hovered/focused region receives a temporary weight boost, becoming the largest region while the other cards compress around it.
-- List cards now reuse the carousel card language: dark gradient surface, 22-28px corner treatment, ordinary shadow depth and the same preview artwork. Density-aware internal layouts keep inactive titles visible, scale typography to the available card size, and move medium/large preview content into a more balanced side-by-side composition instead of pinning everything near the top edge. The previous light selected-card inversion has been removed.
-- On touch or pen input, the first tap on a non-selected List region expands/selects it and does not navigate. A second tap on the selected region opens the section. Keyboard focus still expands a region and Enter follows the native link immediately.
-- Returning from List view restores the carousel on the most recently hovered or keyboard-focused list card and animates that card toward the centred carousel position.
+- The alternate homepage mode is presented to visitors as `Overview`, with a four-pane grid icon centred beneath the top rule. Its selected state still inverts to a light button. Internal implementation names retain `list` for compatibility.
+- Overview uses the existing stable weighted treemap. Each section has a base weight, with Data, Games, Lab and Photography larger by default than About. The selected/hovered/focused region receives a temporary weight boost, becoming the largest region while the other cards compress around it.
+- Overview cards reuse the carousel card language: dark gradient surface, 22-28px corner treatment, ordinary shadow depth and the same preview artwork. Density-aware internal layouts keep inactive titles visible, scale typography to the available card size, and move medium/large preview content into a more balanced side-by-side composition instead of pinning everything near the top edge.
+- On touch or pen input, the first tap on a non-selected Overview region expands/selects it and does not navigate. A second tap on the selected region opens the section. Keyboard focus still expands a region and Enter follows the native link immediately.
+- Returning from Overview restores the carousel on the most recently hovered or keyboard-focused overview card and animates that card toward the centred carousel position.
 - Photography remains a top-level section with `/photography/`. Internal pages now use a shared name-only horizontal section strip for Home, Data, Maps, Games, Lab, Photography and About; each strip card is a full native link and the current section is highlighted.
 - South Australian Name Curve remains published in LAB.
 - Formula Daily remains published as a GAMES prototype and in Stage 2 review.
 - Ascend remains present as a GAMES prototype.
 - Pulse of Adelaide remains blocked on a suitable public fuel source with confirmed reuse terms.
+
+## 2026-09-15 Apple Design Skill refinement pass
+
+- Branch base: `main`; base commit `8114ceac2b51609ea846cc57d79c899076de7177`; supplied snapshot recorded a clean working tree.
+- Renamed the visitor-facing `List` concept to `Overview` and replaced the list glyph with a four-pane overview icon. Stored mode values and internal `data-mode='list'` selectors remain unchanged to avoid destabilising the existing transition code.
+- `Auto Swipe` now defaults off when no saved preference exists. A saved explicit `on` or `off` preference is still respected. One edge entry can trigger only one 1.5-second auto step; the pointer must leave the edge zone and re-enter before another auto step can begin.
+- Wheel navigation now responds only to deliberate horizontal input, including horizontal trackpad movement or Shift+wheel. Ordinary vertical wheel movement does not change sections.
+- Removed the masked luminous particle/dust layer from the edge effect while retaining the bright edge line and cursor-following radial bulge.
+- Raised small interface type floors: rail labels, Auto Swipe text, mobile header/location text, preview captions, overview summaries/counts and dynamically sized overview eyebrow/summary text. The inactive rail colour moved from `#686c68` to `#777b77` for stronger small-text contrast.
+- The mobile Overview toggle now has a 44px interactive box while preserving the previous 38px visible circle through an inset visual layer.
+- Files changed: `src/pages/index.astro`, `src/visualisations/home-gallery/home-gallery.ts`, `src/visualisations/home-gallery/home-gallery.css`, `docs/exec-plans/active/007-home-gallery.md`, `docs/ux-accessibility-features.md`, `docs/current-handoff.md`.
+- Validation: focused strict TypeScript compilation passed for `home-gallery.ts`; CSS brace/structure checks passed; static assertions confirmed the Overview labels/icon, Auto Swipe default-off logic, one-step edge gate, horizontal-only wheel branch, 44px mobile target and removed particle layer. Full Astro build was not completed because two `npm ci` attempts exceeded the sandbox command window and left no usable local Astro executable. Browser QA remains for local review.
 
 ## 2026-09-15 review patch: weighted treemap List view
 
@@ -69,13 +81,13 @@ Snapshot date: 2026-09-15
 
 - Branch base: `main`; base commit `62207946f645463cf3a7d54b659b3426dc6a9432`; this patch is layered on the stable List-entry-morph package from the same base.
 - Home now stores the last selected homepage mode in `localStorage`. Returning to `/` restores either carousel or List mode instead of always resetting to carousel. The saved value is read defensively so blocked browser storage falls back to normal in-page behaviour.
-- Added a bottom-right `Auto Swipe` switch for fine-pointer/hover-capable use. It defaults on, persists in `localStorage`, and is hidden outside carousel mode or when the primary input is not a fine hover pointer.
-- Turning Auto Swipe off stops desktop edge-hover loading, edge auto-flick/flow, cursor-reactive edge magnet glow, and endpoint pressure glow. Manual wheel, drag, arrow buttons, keyboard controls, rail navigation, and List mode remain unchanged.
+- Historical note: this patch originally introduced `Auto Swipe` as default-on. The Apple Design Skill refinement above supersedes that default; it now defaults off unless the visitor has an explicit saved `on` preference.
+- Turning Auto Swipe off stops desktop edge-hover loading, edge auto-flick/flow, cursor-reactive edge magnet glow, and endpoint pressure glow. Manual horizontal trackpad/Shift+wheel input, drag, arrow buttons, keyboard controls, rail navigation, and Overview remain available.
 - Validation: focused strict TypeScript compilation passed for `home-gallery.ts`; CSS brace-balance check passed. Full Astro/browser QA was not run in this sandbox.
 
 ## Homepage gallery prototype
 
-- Edge-hover feedback now uses full-height root-level light layers. A bright edge line fades inward, while a wider cursor-centred bulge and subtle masked particles create a magnet-like luminous-dust response without being clipped by the header or bottom controls.
+- Edge-hover feedback uses full-height root-level light layers. The Apple Design Skill refinement above keeps the bright edge line and cursor-centred bulge but removes the earlier masked particle/dust layer.
 
 - Header centre copy now reads `BUILT IN ADELAIDE, AUSTRALIA`.
 - The moving semi-transparent backdrop layer remains removed. It produced compositor flicker and a dark/purple band on some carousel transitions. Inactive card contents are directly blurred instead of filtering the transformed card container.
@@ -102,7 +114,7 @@ Snapshot date: 2026-09-15
 
 - `src/visualisations/home-gallery/home-gallery.ts` passes a focused strict TypeScript compile with DOM/ES2022 libraries; emitted JavaScript passes `node --check`.
 - Focused TypeScript and state checks now also cover Review 22 interaction-zone separation plus the Review 21 endpoint soft-wall drag/glow, Review 20 endpoint drag wrap handoff and Review 19 desktop mouse drag inertia. Drag initiation is gated to the rounded active-card geometry, endpoint pulls use resisted overscroll before wrap, drag mode disables independent card transitions, pointer capture is retained, recent pointer samples determine release velocity, and a fast mouse release continues with a damped one-card spring throw while touch remains non-inertial. Review 18 explicit-navigation buffering remains intact, Review 17 couples the rail thumb to the live fractional carousel position, and Review 16 keeps the asymmetric launch/landing and continuous neighbour-depth interpolation.
-- Edge-hover auto navigation is restricted to mouse pointer events with a fine hover-capable pointing device. Its zone is now calculated from viewport width and the responsive arrow geometry, with a guaranteed dead band outside the active card. Focused geometry checks at 1024, 1280, 1366, 1440, 1920 and 2560px confirm the edge zone does not overlap the card grab region. The interaction keeps the 1.5-second first step and 0.75-second repeats, cancels when the pointer returns toward the centre, and is disabled when reduced motion is requested.
+- Edge-hover auto navigation is restricted to mouse pointer events with a fine hover-capable pointing device. Its zone is calculated from viewport width and the responsive arrow geometry, with a guaranteed dead band outside the active card. Focused geometry checks at 1024, 1280, 1366, 1440, 1920 and 2560px confirmed the edge zone does not overlap the card grab region. The current interaction keeps the 1.5-second single step, requires retreat and re-entry before another automatic step, and is disabled when reduced motion is requested.
 - Static checks confirm the Home/Games/Lab preview selections are backed by current project metadata and the South Australian Name Curve uses its existing preview asset.
 - The homepage CSS still contains no `backdrop-filter`.
 - Full `npm run build` was not run for this review because the supplied context snapshot does not contain the installed dependency tree or local Astro executable.
@@ -114,12 +126,12 @@ Snapshot date: 2026-09-15
 3. Review the refracted/blurred preview presence on neighbouring cards and check that it suggests content without becoming readable or distracting.
 4. Review the generic Data, Maps, Photography and About samples and replace them with real project/photo assets later as those sections gain content.
 5. Check the active-card hover/focus highlight and full-card click behaviour alongside wheel/drag navigation.
-6. Review continuous wheel, arrow, drag and edge-hover browsing from both directions and confirm neighbouring cards no longer darken, sharpen or change shadow abruptly as they cross the one-card depth boundary. Confirm the bottom rail thumb now travels continuously with the same weighted card motion.
+6. Review continuous horizontal trackpad/Shift+wheel, arrow, drag and edge-hover browsing from both directions and confirm neighbouring cards no longer darken, sharpen or change shadow abruptly as they cross the one-card depth boundary. Confirm the bottom rail thumb now travels continuously with the same weighted card motion.
 7. On desktop with a mouse, test slow click-drag, fast short throws and release outside the card bounds. Confirm the card follows the pointer without lag and a fast release carries into exactly one neighbouring card without a dead pause.
 8. Review endpoint drag on mouse and touch: pull Home right and About left, confirm the card continues moving with strong logarithmic resistance rather than hitting a visible cap, and confirm the matching screen-edge glow builds with pressure. Release beyond the existing threshold should still enter the wrap sweep; short pulls should settle back.
 9. Review 390px touch behaviour, especially the compressed preview strip and drag-vs-tap behaviour on the active card.
 10. Review the always-visible left/right arrows, including rapid three-plus click/key sequences and the Home-to-About / About-to-Home wrap sweep.
-11. Review desktop interaction separation at laptop and wide-monitor sizes: the cursor should only show grab over the rounded active card, empty space should be neutral, and edge-hover loading should begin near the large arrow with a clear dead zone in between. Then review the 1.5-second first step and 0.75-second held repeats.
+11. Review desktop interaction separation at laptop and wide-monitor sizes: the cursor should only show grab over the rounded active card, empty space should be neutral, and edge-hover loading should begin near the large arrow with a clear dead zone in between. Confirm one 1.5-second step occurs per edge entry and another requires retreat plus re-entry.
 12. Review the compact section strip on internal pages and the List-view transition.
 
 ## 2026-09-12 review patch - same-label heart interactions
