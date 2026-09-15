@@ -5,27 +5,42 @@ Snapshot date: 2026-09-15
 ## Repository state supplied to ChatGPT
 
 - Latest supplied source snapshot branch: `main`.
-- Base commit: `8114ceac2b51609ea846cc57d79c899076de7177`.
+- Base commit: `7302dabaf342344d1e222bbf97b6e01b8f380c0d`.
 - The supplied Project context snapshot records a clean working tree.
-- This ChatGPT package applies the Apple Design Skill homepage refinement pass to that snapshot.
+- This ChatGPT package applies the second Apple Design Skill accessibility and interaction pass to that snapshot.
 - Cloudflare deployment state has not been independently verified from this ChatGPT session.
 
 ## Current product state
 
-- The homepage remains a fixed-viewport 3D portfolio gallery with no document scrolling.
+- The homepage remains a fixed-viewport 3D portfolio gallery at normal heights. At effective viewport heights of 560px or less, it switches to a taller scrollable canvas so browser zoom and landscape phones do not clip cards or controls.
 - Home, Data, Maps, Games, Lab, Photography and About remain semantic server-rendered sections.
-- Carousel controls support deliberate horizontal trackpad/shift-wheel input, horizontal pointer/touch drag, arrow keys and a centred bottom rail with seven interactive section ticks. Ordinary vertical wheel movement no longer changes sections.
+- Carousel controls support deliberate horizontal trackpad/shift-wheel input, horizontal pointer/touch drag, Left/Right arrow keys and a centred bottom rail with seven interactive section ticks. Ordinary vertical wheel movement no longer changes sections.
 - The carousel no longer uses `backdrop-filter`. Each section is a rounded dark card with a subtle internal gradient and normal box-shadow depth. The active card now uses one large featured preview plus two stacked secondary previews on the right, while waiting cards retain their silhouettes and recede through blur, opacity, muted preview imagery and 3D depth.
 - The alternate homepage mode is presented to visitors as `Overview`, with a four-pane grid icon centred beneath the top rule. Its selected state still inverts to a light button. Internal implementation names retain `list` for compatibility.
-- Overview uses the existing stable weighted treemap. Each section has a base weight, with Data, Games, Lab and Photography larger by default than About. The selected/hovered/focused region receives a temporary weight boost, becoming the largest region while the other cards compress around it.
+- Overview uses the existing stable weighted treemap. Each section has a base weight, with Data, Games, Lab and Photography larger by default than About. The selected/hovered region receives a temporary weight boost, becoming the largest region while the other cards compress around it.
 - Overview cards reuse the carousel card language: dark gradient surface, 22-28px corner treatment, ordinary shadow depth and the same preview artwork. Density-aware internal layouts keep inactive titles visible, scale typography to the available card size, and move medium/large preview content into a more balanced side-by-side composition instead of pinning everything near the top edge.
-- On touch or pen input, the first tap on a non-selected Overview region expands/selects it and does not navigate. A second tap on the selected region opens the section. Keyboard focus still expands a region and Enter follows the native link immediately.
-- Returning from Overview restores the carousel on the most recently hovered or keyboard-focused overview card and animates that card toward the centred carousel position.
+- Overview touch/pen cards now follow their full-card native link on the first tap. Mouse hover can still reweight the treemap, while keyboard focus highlights its card without reshaping the layout.
+- Returning from Overview restores the carousel on the current selected/last mouse-hovered overview card and animates that card toward the centred carousel position. Keyboard focus no longer changes the return target.
 - Photography remains a top-level section with `/photography/`. Internal pages now use a shared name-only horizontal section strip for Home, Data, Maps, Games, Lab, Photography and About; each strip card is a full native link and the current section is highlighted.
 - South Australian Name Curve remains published in LAB.
 - Formula Daily remains published as a GAMES prototype and in Stage 2 review.
 - Ascend remains present as a GAMES prototype.
 - Pulse of Adelaide remains blocked on a suitable public fuel source with confirmed reuse terms.
+
+
+## 2026-09-15 second Apple Design Skill accessibility and interaction pass
+
+- Branch base: `main`; base commit `7302dabaf342344d1e222bbf97b6e01b8f380c0d`; supplied snapshot recorded a clean working tree.
+- Browser pinch zoom is restored across the carousel/rail with `touch-action: pan-y pinch-zoom`. At effective viewport heights of 560px or less, the homepage uses a taller 600-620px canvas with vertical document scrolling so browser zoom and landscape phones do not clip cards or controls.
+- Previous/next arrows now rest at 45% opacity and receive a distinct keyboard focus outline.
+- Bottom-rail mouse hover previews the nearest tick without changing sections. Click/tap commits a destination; pointer/touch dragging commits while scrubbing and announces the final section after release.
+- Overview touch/pen cards open on the first tap. Keyboard focus no longer reweights the treemap; it keeps a stable geometry and uses the existing focus treatment.
+- Added a permanent visually hidden `Mark Lee portfolio` page heading. All card headings are now `h2`, the animated stage no longer carries `aria-live`, and a dedicated polite status node announces settled section/mode changes.
+- Up/Down keys no longer control the horizontal carousel. Left/Right, Home and End remain available.
+- Raised remaining small meaningful captions and utility labels to about 12px or larger where space allows. The Auto Swipe control now has a 42x28px interaction area around its unchanged 34x18px visual track.
+- Added `viewport-fit=cover`, safe-area-aware positioning for fixed controls and `prefers-contrast: more` styling.
+- Files changed: `src/pages/index.astro`, `src/visualisations/home-gallery/home-gallery.ts`, `src/visualisations/home-gallery/home-gallery.css`, `docs/exec-plans/active/007-home-gallery.md`, `docs/ux-accessibility-features.md`, `docs/current-handoff.md`.
+- Validation: focused strict TypeScript compilation passed for `home-gallery.ts`; CSS structure/static assertions passed. Full Astro build was not completed because dependency installation exceeded the sandbox transport window. Browser QA remains for local review of pinch zoom, short-height scrolling, rail preview/drag, first-tap Overview links, safe areas and increased-contrast mode.
 
 ## 2026-09-15 Apple Design Skill refinement pass
 

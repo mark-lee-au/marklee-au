@@ -111,7 +111,7 @@ const structuredData = {
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="description" content="Mark Lee portfolio of data visualisation, maps, browser games, analytical projects and photography from Adelaide, Australia." />
     <meta name="theme-color" content="#080908" />
     <link rel="canonical" href="https://marklee.au/" />
@@ -121,6 +121,8 @@ const structuredData = {
   </head>
   <body class="home-page">
     <main class="portfolio-gallery" data-gallery data-mode="carousel" aria-label="Mark Lee portfolio sections">
+      <h1 class="sr-only">Mark Lee portfolio</h1>
+
       <header class="gallery-header">
         <a class="gallery-brand" href="/" aria-label="Mark Lee home">MARK LEE</a>
         <p class="gallery-location">BUILT IN ADELAIDE, AUSTRALIA</p>
@@ -138,7 +140,7 @@ const structuredData = {
         </svg>
       </button>
 
-      <section class="gallery-stage" data-gallery-stage aria-live="polite">
+      <section class="gallery-stage" data-gallery-stage>
         {slides.map((slide, index) => (
           <article
             class="gallery-card"
@@ -164,11 +166,7 @@ const structuredData = {
             <div class="gallery-card__body">
               <div class="gallery-card__copy">
                 <p class="gallery-card__eyebrow">{slide.eyebrow}</p>
-                {slide.id === 'home' ? (
-                  <h1>{slide.title}</h1>
-                ) : (
-                  <h2>{slide.title}</h2>
-                )}
+                <h2>{slide.title}</h2>
                 <p class="gallery-card__summary">{slide.summary}</p>
                 <p class="gallery-card__detail">{slide.detail}</p>
               </div>
@@ -179,6 +177,8 @@ const structuredData = {
           </article>
         ))}
       </section>
+
+      <p class="sr-only" data-gallery-status role="status" aria-live="polite" aria-atomic="true"></p>
 
       <div class="gallery-guides" data-gallery-guides aria-label="Carousel guidance">
         <button class="gallery-guide gallery-guide--previous" type="button" data-gallery-guide="previous" aria-label="Show previous section">

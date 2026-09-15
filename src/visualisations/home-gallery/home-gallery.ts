@@ -9,6 +9,7 @@ const previousGuide = document.querySelector<HTMLButtonElement>("[data-gallery-g
 const nextGuide = document.querySelector<HTMLButtonElement>("[data-gallery-guide='next']");
 const autoSwipeControl = document.querySelector<HTMLElement>('[data-auto-swipe-control]');
 const autoSwipeToggle = document.querySelector<HTMLInputElement>('[data-auto-swipe-toggle]');
+const galleryStatus = document.querySelector<HTMLElement>('[data-gallery-status]');
 
 if (root && stage && cards.length && rail && railThumb && ticks.length && viewToggle && previousGuide && nextGuide) {
   let activeIndex = 0;
@@ -27,6 +28,10 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
   let boundaryDragPull = 0;
   const dragSamples: Array<{ x: number; time: number }> = [];
   let railPointerId: number | null = null;
+  let railDragStartX = 0;
+  let railDragMoved = false;
+  let suppressRailClick = false;
+  let railPreviewIndex = -1;
   let wheelLocked = false;
   let carouselFrame = 0;
   let carouselMotion: 'none' | 'wrap' | 'edge' | 'step' | 'drag' = 'none';
@@ -266,6 +271,35 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
   };
   const sectionLabel = (index: number) => cards[index]?.dataset.slideLabel || 'section';
 
+
+  const announce = (message: string) => {
+    if (!galleryStatus) return;
+    galleryStatus.textContent = '';
+    requestAnimationFrame(() => {
+      galleryStatus.textContent = message;
+    });
+  };
+
+  const announceActiveSection = () => {
+    announce(`${sectionLabel(activeIndex)}, section ${activeIndex + 1} of ${cards.length}`);
+  };
+
+  const clearRailPreview = () => {
+    if (railPreviewIndex >= 0) {
+      const previewTick = ticks[railPreviewIndex];
+      if (previewTick) delete previewTick.dataset.preview;
+    }
+    railPreviewIndex = -1;
+  };
+
+  const previewRailIndex = (index: number) => {
+    const nextIndex = clampIndex(index);
+    if (railPreviewIndex === nextIndex) return;
+    clearRailPreview();
+    railPreviewIndex = nextIndex;
+    ticks[nextIndex].dataset.preview = 'true';
+  };
+
   const recordDragSample = (x: number, time: number) => {
     dragSamples.push({ x, time });
     const cutoff = time - 110;
@@ -452,11 +486,13 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
     });
   };
 
-  const setActive = (nextIndex: number) => {
+  const setActive = (nextIndex: number, shouldAnnounce = true) => {
+    clearRailPreview();
     activeIndex = clampIndex(Math.round(nextIndex));
     updateRail();
     updateGuides();
     if (mode === 'carousel') renderCarousel();
+    if (shouldAnnounce) announceActiveSection();
   };
 
   const clearEdgeGuideState = () => {
@@ -522,6 +558,7 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
         carouselMotion = 'none';
         delete root.dataset.carouselMotion;
         renderCarousel(targetIndex);
+        announceActiveSection();
         onSettled?.();
       });
     });
@@ -1008,7 +1045,7 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
 
     const summaryMax = isActive ? 15.5 : density === 'large' ? 13.6 : density === 'medium' ? 12.6 : 12;
     const summarySize = clamp(Math.min(width * 0.03, height * 0.07), 12, summaryMax);
-    const eyebrowSize = clamp(Math.min(width * 0.015, height * 0.042), 11, isActive ? 12.5 : 11.5);
+    const eyebrowSize = clamp(Math.min(width * 0.015, height * 0.042), 12, isActive ? 13 : 12.5);
 
     card.style.setProperty('--list-card-padding', `${padding.toFixed(2)}px`);
     card.style.setProperty('--list-title-size', `${titleSize.toFixed(2)}px`);
@@ -1081,7 +1118,7 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
     listEntryAnimations.clear();
   };
 
-  const setMode = (nextMode: 'carousel' | 'list') => {
+  const setMode = (nextMode: 'carousel' | 'list', shouldAnnounce = true) => {
     cancelAllCarouselMotion();
     clearBoundaryGlow();
     mode = nextMode;
@@ -1095,8 +1132,6 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
     syncAutoSwipeControl();
 
     cards.forEach((card, index) => {
-      delete card.dataset.touchActive;
-
       if (isList) {
         card.removeAttribute('inert');
         card.setAttribute('aria-hidden', 'false');
@@ -1118,6 +1153,7 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
     if (isList) {
       listIndex = activeIndex;
       setListIndex(listIndex, false);
+      if (shouldAnnounce) announce(`Overview, all ${cards.length} portfolio sections visible`);
     } else {
       renderCarousel();
     }
@@ -1201,7 +1237,8 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
 
     activeIndex = targetIndex;
     updateRail();
-    setMode('carousel');
+    setMode('carousel', false);
+    announceActiveSection();
 
     if (reducedMotion.matches || typeof target.animate !== 'function') return;
 
@@ -1476,40 +1513,6 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
     setActive(index);
   });
 
-  cards.forEach((card, index) => {
-    const surfaceLink = card.querySelector<HTMLAnchorElement>('[data-list-card-link]');
-    let listPointerType = '';
-
-    surfaceLink?.addEventListener('pointerdown', (event) => {
-      listPointerType = event.pointerType;
-      if (mode !== 'list' || event.pointerType === 'mouse') return;
-      card.dataset.touchActive = 'true';
-    });
-
-    const clearTouch = () => {
-      window.setTimeout(() => { delete card.dataset.touchActive; }, 120);
-    };
-
-    surfaceLink?.addEventListener('pointerup', clearTouch);
-    surfaceLink?.addEventListener('pointercancel', () => {
-      listPointerType = '';
-      clearTouch();
-    });
-    surfaceLink?.addEventListener('click', (event) => {
-      const touchLike = listPointerType === 'touch' || listPointerType === 'pen';
-      listPointerType = '';
-      if (mode !== 'list' || !touchLike || index === listIndex) return;
-
-      event.preventDefault();
-      setListIndex(index, false);
-    });
-    surfaceLink?.addEventListener('focus', () => {
-      if (mode === 'list' && listPointerType !== 'touch' && listPointerType !== 'pen') {
-        setListIndex(index, false);
-      }
-    });
-  });
-
   const railIndexFromClientX = (clientX: number) => {
     const rect = rail.getBoundingClientRect();
     if (!rect.width) return activeIndex;
@@ -1519,14 +1522,22 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
 
   rail.addEventListener('pointermove', (event) => {
     if (mode !== 'carousel') return;
-    if (event.pointerType === 'mouse' && fineHover.matches) {
-      settleEdgeMotion();
-      clearManualNavigation();
-      edgeSuppressedUntil = performance.now() + 220;
-      setActive(railIndexFromClientX(event.clientX));
+
+    const index = railIndexFromClientX(event.clientX);
+    if (railPointerId === event.pointerId) {
+      if (!railDragMoved && Math.abs(event.clientX - railDragStartX) > 4) railDragMoved = true;
+      if (railDragMoved) {
+        clearRailPreview();
+        setActive(index, false);
+      }
       return;
     }
-    if (railPointerId === event.pointerId) setActive(railIndexFromClientX(event.clientX));
+
+    if (event.pointerType === 'mouse' && fineHover.matches) previewRailIndex(index);
+  });
+
+  rail.addEventListener('pointerleave', () => {
+    if (railPointerId === null) clearRailPreview();
   });
 
   rail.addEventListener('pointerdown', (event) => {
@@ -1534,42 +1545,43 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
     settleEdgeMotion();
     clearManualNavigation();
     edgeSuppressedUntil = performance.now() + 220;
+    clearRailPreview();
     railPointerId = event.pointerId;
-    setActive(railIndexFromClientX(event.clientX));
+    railDragStartX = event.clientX;
+    railDragMoved = false;
     rail.setPointerCapture(event.pointerId);
   });
 
   const finishRailDrag = (event: PointerEvent) => {
     if (railPointerId !== event.pointerId) return;
+    const wasDragged = railDragMoved;
     railPointerId = null;
+    railDragMoved = false;
+    suppressRailClick = wasDragged;
     if (rail.hasPointerCapture(event.pointerId)) rail.releasePointerCapture(event.pointerId);
+    if (wasDragged) announceActiveSection();
+    window.setTimeout(() => { suppressRailClick = false; }, 0);
   };
 
   rail.addEventListener('pointerup', finishRailDrag);
   rail.addEventListener('pointercancel', finishRailDrag);
 
+  rail.addEventListener('click', (event) => {
+    if (mode !== 'carousel' || suppressRailClick) return;
+    if ((event.target as Element).closest('[data-gallery-tick]')) return;
+    settleEdgeMotion();
+    clearManualNavigation();
+    edgeSuppressedUntil = performance.now() + 220;
+    setActive(railIndexFromClientX(event.clientX));
+  });
+
   ticks.forEach((tick, index) => {
-    tick.addEventListener('pointerenter', (event) => {
-      if (mode === 'carousel' && event.pointerType === 'mouse' && fineHover.matches) {
-        settleEdgeMotion();
-        clearManualNavigation();
-        edgeSuppressedUntil = performance.now() + 220;
-        setActive(index);
-      }
-    });
-    tick.addEventListener('focus', () => {
-      if (mode === 'carousel') {
-        settleEdgeMotion();
-        clearManualNavigation();
-        setActive(index);
-      }
-    });
     tick.addEventListener('click', () => {
-      if (mode === 'carousel') {
-        settleEdgeMotion();
-        clearManualNavigation();
-        setActive(index);
-      }
+      if (mode !== 'carousel' || suppressRailClick) return;
+      settleEdgeMotion();
+      clearManualNavigation();
+      edgeSuppressedUntil = performance.now() + 220;
+      setActive(index);
     });
   });
 
@@ -1581,11 +1593,11 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
       || (target.matches('button') && !target.matches('[data-gallery-guide]'));
     if (blocksCarouselKeys) return;
 
-    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+    if (event.key === 'ArrowRight') {
       event.preventDefault();
       settleEdgeMotion();
       requestManualNavigation(1, event.repeat ? 2 : Number.POSITIVE_INFINITY);
-    } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+    } else if (event.key === 'ArrowLeft') {
       event.preventDefault();
       settleEdgeMotion();
       requestManualNavigation(-1, event.repeat ? 2 : Number.POSITIVE_INFINITY);
@@ -1633,9 +1645,9 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
   if (storedMode === 'list') {
     activeIndex = 0;
     updateRail();
-    setMode('list');
+    setMode('list', false);
   } else {
-    setMode('carousel');
-    setActive(0);
+    setMode('carousel', false);
+    setActive(0, false);
   }
 }
