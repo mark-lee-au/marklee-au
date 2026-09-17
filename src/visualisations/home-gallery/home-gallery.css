@@ -28,6 +28,14 @@
   --edge-hover-glow-right: 0;
   --edge-hover-glow-left-y: 50%;
   --edge-hover-glow-right-y: 50%;
+  --edge-liquid-left-scale: 0.92;
+  --edge-liquid-right-scale: 0.92;
+  --edge-liquid-left-ripple-offset: 0px;
+  --edge-liquid-right-ripple-offset: 0px;
+  --edge-liquid-left-fog-shift: 0px;
+  --edge-liquid-right-fog-shift: 0px;
+  --edge-liquid-left-length: 32px;
+  --edge-liquid-right-length: 32px;
   position: relative;
   height: 100vh;
   height: 100dvh;
@@ -183,84 +191,196 @@
 }
 
 
-/* Fine-pointer edge-hover feedback is rendered at the gallery root rather
-   than inside the stage so it can run continuously behind the header and
-   bottom controls. A bright full-height edge line fades inward and a wider
-   cursor-centred bulge extends into the page without adding decorative dust. */
+/* Fine-pointer Auto Swipe feedback is rendered at the gallery root so the
+   magnetic field can run continuously behind the header and bottom controls.
+   The physical edge stays brightest, then radiates inward as a soft fog bank.
+   A liquid suction trail stays bounded between the edge and cursor so the
+   field reads like it is being pulled inward, not sprayed across the stage. */
 .gallery-edge-magnet {
   position: absolute;
   z-index: 116;
   top: 0;
   bottom: 0;
-  width: clamp(150px, 11vw, 210px);
+  width: clamp(300px, 26vw, 460px);
   pointer-events: none;
   opacity: 0;
   overflow: hidden;
   will-change: opacity;
-  transition: opacity 170ms ease;
+  transition: opacity 150ms ease;
 }
 
-.gallery-edge-magnet::before {
+.gallery-edge-magnet::before,
+.gallery-edge-magnet::after {
   content: '';
   position: absolute;
-  inset: 0;
+  top: -10%;
+  bottom: -10%;
   pointer-events: none;
+  will-change: transform, width;
 }
 
 .gallery-edge-magnet--left {
   left: 0;
   opacity: var(--edge-hover-glow-left);
-  background: linear-gradient(
-    90deg,
-    rgba(250, 252, 247, 0.92) 0,
-    rgba(245, 248, 241, 0.58) 3px,
-    rgba(232, 237, 228, 0.28) 10px,
-    rgba(207, 216, 205, 0.12) 24px,
-    rgba(171, 184, 173, 0.045) 48px,
-    rgba(135, 149, 138, 0.012) 78px,
-    transparent 108px
-  );
 }
 
 .gallery-edge-magnet--right {
   right: 0;
   opacity: var(--edge-hover-glow-right);
-  background: linear-gradient(
-    270deg,
-    rgba(250, 252, 247, 0.92) 0,
-    rgba(245, 248, 241, 0.58) 3px,
-    rgba(232, 237, 228, 0.28) 10px,
-    rgba(207, 216, 205, 0.12) 24px,
-    rgba(171, 184, 173, 0.045) 48px,
-    rgba(135, 149, 138, 0.012) 78px,
-    transparent 108px
-  );
 }
 
 .gallery-edge-magnet--left::before {
-  background: radial-gradient(
-    ellipse 118% 34% at 0% var(--edge-hover-glow-left-y),
-    rgba(252, 253, 249, 0.42) 0%,
-    rgba(239, 243, 235, 0.24) 18%,
-    rgba(214, 222, 211, 0.12) 42%,
-    rgba(177, 190, 178, 0.045) 68%,
-    transparent 100%
-  );
+  left: 0;
+  width: 100%;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(250, 252, 247, 1) 0%,
+      rgba(247, 250, 244, 0.86) 0.9%,
+      rgba(237, 242, 233, 0.52) 3%,
+      rgba(217, 225, 215, 0.24) 7%,
+      rgba(185, 195, 184, 0.1) 13%,
+      rgba(149, 161, 150, 0.04) 22%,
+      rgba(111, 123, 113, 0.014) 34%,
+      rgba(84, 95, 87, 0.003) 48%,
+      transparent 66%
+    ),
+    radial-gradient(
+      ellipse 170% 56% at 0% var(--edge-hover-glow-left-y),
+      rgba(249, 251, 246, 0.18) 0%,
+      rgba(233, 238, 229, 0.1) 20%,
+      rgba(203, 212, 201, 0.04) 42%,
+      rgba(156, 168, 157, 0.012) 62%,
+      transparent 82%
+    );
+  transform: scaleX(var(--edge-liquid-left-scale));
+  transform-origin: 0% var(--edge-hover-glow-left-y);
 }
 
 .gallery-edge-magnet--right::before {
-  background: radial-gradient(
-    ellipse 118% 34% at 100% var(--edge-hover-glow-right-y),
-    rgba(252, 253, 249, 0.42) 0%,
-    rgba(239, 243, 235, 0.24) 18%,
-    rgba(214, 222, 211, 0.12) 42%,
-    rgba(177, 190, 178, 0.045) 68%,
-    transparent 100%
-  );
+  right: 0;
+  width: 100%;
+  background:
+    linear-gradient(
+      270deg,
+      rgba(250, 252, 247, 1) 0%,
+      rgba(247, 250, 244, 0.86) 0.9%,
+      rgba(237, 242, 233, 0.52) 3%,
+      rgba(217, 225, 215, 0.24) 7%,
+      rgba(185, 195, 184, 0.1) 13%,
+      rgba(149, 161, 150, 0.04) 22%,
+      rgba(111, 123, 113, 0.014) 34%,
+      rgba(84, 95, 87, 0.003) 48%,
+      transparent 66%
+    ),
+    radial-gradient(
+      ellipse 170% 56% at 100% var(--edge-hover-glow-right-y),
+      rgba(249, 251, 246, 0.18) 0%,
+      rgba(233, 238, 229, 0.1) 20%,
+      rgba(203, 212, 201, 0.04) 42%,
+      rgba(156, 168, 157, 0.012) 62%,
+      transparent 82%
+    );
+  transform: scaleX(var(--edge-liquid-right-scale));
+  transform-origin: 100% var(--edge-hover-glow-right-y);
+}
+
+.gallery-edge-magnet--left::after {
+  left: 0;
+  width: var(--edge-liquid-left-length);
+  opacity: 0.9;
+  filter: blur(8px);
+  background:
+    linear-gradient(
+      90deg,
+      rgba(247, 250, 244, 0.18) 0%,
+      rgba(236, 241, 233, 0.135) 28%,
+      rgba(219, 227, 217, 0.082) 58%,
+      rgba(194, 203, 193, 0.03) 84%,
+      transparent 100%
+    ),
+    radial-gradient(
+      ellipse 62% 24% at 100% 50%,
+      rgba(249, 251, 246, 0.22) 0%,
+      rgba(236, 241, 233, 0.12) 42%,
+      rgba(214, 223, 213, 0.045) 62%,
+      transparent 80%
+    ),
+    radial-gradient(
+      ellipse 146% 18% at 82% calc(50% + var(--edge-liquid-left-ripple-offset)),
+      rgba(246, 249, 243, 0.12) 0%,
+      rgba(229, 235, 226, 0.065) 40%,
+      rgba(202, 210, 200, 0.022) 64%,
+      transparent 84%
+    );
+  transform: translateY(calc(var(--edge-liquid-left-fog-shift) * 0.4));
+  transform-origin: 0% var(--edge-hover-glow-left-y);
+}
+
+.gallery-edge-magnet--right::after {
+  right: 0;
+  width: var(--edge-liquid-right-length);
+  opacity: 0.9;
+  filter: blur(8px);
+  background:
+    linear-gradient(
+      270deg,
+      rgba(247, 250, 244, 0.18) 0%,
+      rgba(236, 241, 233, 0.135) 28%,
+      rgba(219, 227, 217, 0.082) 58%,
+      rgba(194, 203, 193, 0.03) 84%,
+      transparent 100%
+    ),
+    radial-gradient(
+      ellipse 62% 24% at 0% 50%,
+      rgba(249, 251, 246, 0.22) 0%,
+      rgba(236, 241, 233, 0.12) 42%,
+      rgba(214, 223, 213, 0.045) 62%,
+      transparent 80%
+    ),
+    radial-gradient(
+      ellipse 146% 18% at 18% calc(50% + var(--edge-liquid-right-ripple-offset)),
+      rgba(246, 249, 243, 0.12) 0%,
+      rgba(229, 235, 226, 0.065) 40%,
+      rgba(202, 210, 200, 0.022) 64%,
+      transparent 84%
+    );
+  transform: translateY(calc(var(--edge-liquid-right-fog-shift) * 0.4));
+  transform-origin: 100% var(--edge-hover-glow-right-y);
 }
 
 .portfolio-gallery[data-mode='list'] .gallery-edge-magnet {
   opacity: 0;
+}
+
+/* Switching Auto Swipe on briefly confirms that the edge zones are active.
+   The existing full-height magnets pulse twice, then return to their normal
+   pointer-reactive opacity. Reduced-motion mode never triggers this state. */
+.portfolio-gallery[data-mode='carousel'][data-auto-swipe='on'][data-auto-swipe-pulse='on'] .gallery-edge-magnet {
+  animation: auto-swipe-edge-confirm 820ms ease-out both;
+}
+
+@keyframes auto-swipe-edge-confirm {
+  0%,
+  100% {
+    opacity: 0;
+  }
+
+  14% {
+    opacity: 0.62;
+  }
+
+  30% {
+    opacity: 0.06;
+  }
+
+  47% {
+    opacity: 0.48;
+  }
+
+  64% {
+    opacity: 0;
+  }
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -402,11 +522,22 @@
 
 .gallery-card__surface-link {
   position: absolute;
-  z-index: 6;
+  z-index: 3;
   inset: 0;
   display: block;
   border-radius: inherit;
   pointer-events: none;
+}
+
+/* One native section link covers the card; real project links sit above it.
+   The body does not intercept clicks in the gaps between the preview tiles. */
+.gallery-card__body {
+  z-index: 4;
+  pointer-events: none;
+}
+
+.portfolio-gallery[data-mode='carousel'] .gallery-card[data-active='true'] .gallery-card__surface-link {
+  pointer-events: auto;
 }
 
 .portfolio-gallery[data-mode='carousel'] .gallery-card[data-active='true'] {
@@ -420,6 +551,7 @@
 
 .gallery-card__count {
   justify-self: start;
+  pointer-events: none;
   color: #8b8f8b;
   font-size: 0.75rem;
   letter-spacing: 0.1em;
@@ -507,6 +639,26 @@
 
 .gallery-preview--featured {
   grid-row: 1 / -1;
+}
+
+.gallery-preview--linked {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.gallery-preview--linked:focus-visible {
+  outline: 2px solid #f4f1e8;
+  outline-offset: -4px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .gallery-preview--linked:hover {
+    outline: 1px solid rgba(244, 241, 232, 0.65);
+    outline-offset: -2px;
+  }
 }
 
 .gallery-preview__visual {
@@ -928,16 +1080,35 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   user-select: none;
-  transition: opacity 180ms ease, transform 220ms ease, color 180ms ease;
+  opacity: 1;
+  transition: transform 220ms ease, color 180ms ease;
+}
+
+.auto-swipe-control__label,
+.auto-swipe-control__track {
+  opacity: 0.25;
+}
+
+.portfolio-gallery:where([data-auto-swipe='on']) .auto-swipe-control__label,
+.portfolio-gallery:where([data-auto-swipe='on']) .auto-swipe-control__track {
+  opacity: 0.75;
 }
 
 .auto-swipe-control[hidden] {
   display: none;
 }
 
-.auto-swipe-control:hover,
-.auto-swipe-control:focus-within {
+.auto-swipe-control:hover {
   color: #d8dad5;
+}
+
+.auto-swipe-control:hover .auto-swipe-control__label,
+.auto-swipe-control:hover .auto-swipe-control__track {
+  opacity: 1;
+}
+
+.auto-swipe-control__label {
+  transition: opacity 180ms ease;
 }
 
 .auto-swipe-control__switch {
@@ -964,7 +1135,7 @@
   border: 1px solid #555955;
   border-radius: 999px;
   background: #111311;
-  transition: background-color 180ms ease, border-color 180ms ease;
+  transition: opacity 180ms ease, background-color 180ms ease, border-color 180ms ease;
 }
 
 .auto-swipe-control__track::after {
@@ -994,7 +1165,8 @@
   outline-offset: 3px;
 }
 
-.portfolio-gallery[data-mode='list'] .auto-swipe-control {
+.portfolio-gallery[data-mode='list'] .auto-swipe-control,
+.portfolio-gallery[data-mode='list'][data-auto-swipe='on'] .auto-swipe-control {
   opacity: 0;
   pointer-events: none;
   transform: translateY(10px);
@@ -1180,7 +1352,7 @@
 
 .portfolio-gallery[data-mode='list'] .gallery-card__surface-link {
   position: absolute;
-  z-index: 20;
+  z-index: 3;
   inset: 0;
   display: block;
   border-radius: inherit;
@@ -1220,7 +1392,7 @@
 
 .portfolio-gallery[data-mode='list'] .gallery-card__body {
   position: relative;
-  z-index: 2;
+  z-index: 4;
   width: 100%;
   height: 100%;
   min-width: 0;
@@ -1747,6 +1919,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .gallery-edge-magnet::before,
+  .gallery-edge-magnet::after {
+    transform: none !important;
+    filter: none;
+  }
+
   .portfolio-gallery::before,
   .portfolio-gallery::after {
     transition: none;

@@ -1,6 +1,6 @@
 ---
 import { Image } from 'astro:assets';
-import { type Project } from '../../lib/projects';
+import { projectUrl, type Project } from '../../lib/projects';
 
 interface Props {
   sectionId: string;
@@ -91,16 +91,24 @@ for (const fallback of fallbackBySection[sectionId] ?? fallbackBySection.home) {
   items.push(fallback);
 }
 ---
-<div class="gallery-card__visuals" aria-hidden="true">
-  {items.slice(0, 3).map((item, index) => (
-    <div class={`gallery-preview gallery-preview--${item.kind}${index === 0 ? ' gallery-preview--featured' : ''}`}>
-      <div class="gallery-preview__visual">
+<div class="gallery-card__visuals">
+  {items.slice(0, 3).map((item, index) => {
+    const PreviewTag = item.project ? 'a' : 'div';
+    return (
+    <PreviewTag
+      class={`gallery-preview gallery-preview--${item.kind}${index === 0 ? ' gallery-preview--featured' : ''}${item.project ? ' gallery-preview--linked' : ''}`}
+      href={item.project ? projectUrl(item.project) : undefined}
+      aria-label={item.project ? `Open ${item.title}` : undefined}
+      draggable={item.project ? 'false' : undefined}
+    >
+      <div class="gallery-preview__visual" aria-hidden="true">
         {item.kind === 'name-curve' && item.project && item.project.data.previewImage ? (
           <Image
             class="gallery-preview__image"
             src={item.project.data.previewImage}
             alt=""
             loading="eager"
+            draggable="false"
           />
         ) : item.kind === 'formula' ? (
           <>
@@ -186,6 +194,7 @@ for (const fallback of fallbackBySection[sectionId] ?? fallbackBySection.home) {
       <div class="gallery-preview__caption">
         <span>{item.title}</span>
       </div>
-    </div>
-  ))}
+    </PreviewTag>
+    );
+  })}
 </div>

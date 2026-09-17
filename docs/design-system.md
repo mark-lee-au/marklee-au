@@ -112,3 +112,9 @@ Use colour to encode meaning consistently within a project.
 Do not select colours only for decoration if the same colour is also encoding data.
 
 Provide legends when colour meaning is not obvious.
+
+## Fullscreen project navigation (opt-in)
+
+Project frontmatter can set `fullscreen: true` for full-viewport experiences. The shared `ProjectLayout` passes this option to `SiteHeader`; standard pages retain their existing always-visible section strip. In fullscreen mode the strip starts collapsed behind a small centred top tab. Opening it overlays the work without moving it. The tab reveals a pin action; pinning persists in local storage across fullscreen projects and reserves the strip's 59 px height in the document. Unpinning returns to the overlay layout. On touch, the unpin control remains reachable without hover. Escape closes an unpinned overlay, and the closed strip is inert for keyboard navigation. Honour reduced-motion preferences.
+
+Fullscreen navigation refinement, 2026-09-17: The 48 px top tab opens on hover or a first tap, then presents a pin in the same control. The icon column rolls downward on open and unpin. An unpinned strip collapses on pointer exit and overlays the work; a pinned strip reserves 59 px. The pin preference persists across fullscreen projects. Keep the tab keyboard accessible and suppress decorative motion for reduced-motion users.

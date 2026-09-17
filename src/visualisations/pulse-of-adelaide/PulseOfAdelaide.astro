@@ -1,0 +1,57 @@
+---
+import './pulse.css';
+---
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@6.9.1/dist/maplibre-gl.css" />
+<section class="pulse" data-roads-mode="show" data-pulse aria-label="Historical Adelaide fuel price movement">
+  <div class="pulse__chart" data-chart-frame aria-label="Adelaide fuel price trend and playback interval">
+    <svg data-chart tabindex="0" role="group" aria-label="Mean reported station price. Drag to select a time range. Arrow keys move playback, Alt and arrows adjust the start, Shift and arrows adjust the end." preserveAspectRatio="none" viewBox="0 0 1000 140"></svg>
+    <div class="pulse__chart-guides" data-chart-guides aria-hidden="true"></div>
+    <div class="pulse__range-label pulse__range-label--start" data-range-start hidden>
+      <span data-range-start-text></span><button type="button" data-reset-start aria-label="Reset playback start to the beginning" title="Reset start">↺</button>
+    </div>
+    <div class="pulse__range-label pulse__range-label--end" data-range-end hidden>
+      <span data-range-end-text></span><button type="button" data-reset-end aria-label="Reset playback end to the end" title="Reset end">↺</button>
+    </div>
+    <span class="pulse__hover-time" data-hover-time hidden aria-hidden="true"></span>
+    <label class="pulse__chart-scrub" data-scrub-wrap><span class="sr-only">Playback position within selected interval</span><span class="pulse__scrub-knob" data-scrub-knob aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M4 5h8M4 8h8M4 11h8" /></svg></span><input data-hour type="range" step="1" min="0" max="1" value="0" aria-label="Scrub playback within selected interval" /></label>
+    <span class="pulse__scrub-time" data-scrub-time aria-hidden="true"></span>
+    <span class="sr-only" data-range-status aria-live="polite"></span>
+  </div>
+  <div class="pulse__map-wrap">
+    <div class="pulse__ocean" aria-hidden="true"></div>
+    <h2 class="pulse__map-brand" aria-label="The Pulse of Adelaide"><span class="pulse__brand-top"><span>THE</span><span>PULSE</span><span>OF</span></span><span class="pulse__brand-bottom">ADELAIDE</span></h2>
+    <div class="pulse__map" data-map role="region" aria-label="Adelaide coast and recorded price movements, red for increases and green for decreases"></div>
+    <div class="pulse__brand-overlay" data-brand-overlay aria-hidden="true"><span class="pulse__brand-top"><span>THE</span><span>PULSE</span><span>OF</span></span><span class="pulse__brand-bottom">ADELAIDE</span></div>
+    <svg class="pulse__coast" data-coast aria-hidden="true"></svg>
+    <canvas class="pulse__clouds" data-clouds aria-hidden="true"></canvas>
+    <div class="pulse__places" data-places aria-label="Adelaide reference places"></div>
+    <div class="pulse__hud">
+      <div class="pulse__filters" data-filters hidden>
+        <label><span class="sr-only">Fuel type</span><select data-fuel aria-label="Fuel type"></select></label>
+        <label><span class="sr-only">Historical month</span><select data-month aria-label="Historical month"></select></label>
+      </div>
+      <div class="pulse__timer" aria-live="off" title="Historical report timestamps. Source time zone has not been verified."><span data-current-date>SELECT A MONTH</span><strong data-current-time>--:--</strong></div>
+      <div class="pulse__legend"><span class="pulse__rise">↑ Rise</span><span class="pulse__fall">↓ Fall</span></div>
+      <button class="pulse__road-toggle" data-road-toggle type="button" aria-label="Roads visible. Switch to dim roads" title="Roads visible. Click to dim">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21 10 3m9 18L14 3M12 5v3m0 4v3m0 4v2" /></svg>
+      </button>
+    </div>
+    <div class="pulse__station" data-station hidden aria-live="polite"></div>
+    <span class="pulse__road-status" data-road-status role="status" hidden>Road map unavailable</span>
+    <div class="pulse__average" data-average-box aria-label="Mean of latest reported station prices" aria-live="off">
+      <span class="pulse__average-number" data-average-number aria-label="No reported prices"><span data-average-whole>—</span><sup data-average-tenth></sup></span>
+      <span class="pulse__average-label">MEAN PRICE (CPL)</span>
+    </div>
+<div class="pulse__geocredits"><a class="pulse__geocredit" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">Roads © OpenStreetMap contributors (ODbL)</a><span aria-hidden="true">·</span><a class="pulse__geocredit" href="https://www.ngdc.noaa.gov/mgg/shorelines/shorelines.html" target="_blank" rel="noopener noreferrer">Coast GSHHG (LGPL)</a></div>
+    <div class="pulse__transport" data-transport hidden>
+      <div class="pulse__controls" data-controls>
+        <button type="button" class="pulse__rewind" data-rewind aria-label="Rewind to playback start" title="Rewind to selection start"><svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M4 5h2v14H4zm3 7 12-7v14z" /></svg></button>
+        <button type="button" class="pulse__speed" data-speed aria-label="Playback speed 1×. Activate to switch to 2×">1×</button>
+        <button type="button" data-play class="pulse__play" aria-label="Pause historical prices"><span data-play-icon aria-hidden="true">❚❚</span><span class="sr-only" data-play-text>Pause</span></button>
+      </div>
+    </div>
+    <div class="pulse__notice" data-notice role="status"><strong data-notice-title>Local history needed</strong><span data-notice-text>Generate an event export from your R data to play the map.</span><button type="button" data-retry hidden>Retry</button></div>
+  </div>
+  <noscript><p>JavaScript is required for historical playback.</p></noscript>
+</section>
+<script>import './pulse.ts';</script>

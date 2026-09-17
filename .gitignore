@@ -25,3 +25,10 @@ dist/
 *.rar
 *.tar
 *.gz
+# Historical Pulse preview exports are local and unapproved for release; never commit or bundle data in ZIP patches.
+/public/data/pulse-of-adelaide/*
+!/public/data/pulse-of-adelaide/README.md
+
+# Verified public map reference vectors only; private events stay ignored.
+!/public/data/pulse-of-adelaide/geography/
+!/public/data/pulse-of-adelaide/geography/**

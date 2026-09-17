@@ -1,14 +1,14 @@
 ---
 interface Props {
   activeSection?: 'home' | 'data' | 'maps' | 'games' | 'lab' | 'photography' | 'about';
+  fullscreen?: boolean;
 }
 
-const { activeSection } = Astro.props;
+const { activeSection, fullscreen = false } = Astro.props;
 const path = Astro.url.pathname;
 const firstSegment = path.split('/').filter(Boolean)[0] ?? 'home';
 const sectionIds = new Set(['home', 'data', 'maps', 'games', 'lab', 'photography', 'about']);
 const currentSection = activeSection ?? (sectionIds.has(firstSegment) ? firstSegment : undefined);
-
 const links = [
   { id: 'home', href: '/', label: 'HOME' },
   { id: 'data', href: '/data/', label: 'DATA' },
@@ -19,32 +19,104 @@ const links = [
   { id: 'about', href: '/about/', label: 'ABOUT' },
 ] as const;
 ---
-<header class="site-header" data-section-nav>
-  <nav class="section-strip" aria-label="Portfolio sections">
+<header class:list={['site-header', { 'site-header--fullscreen': fullscreen }]} data-section-nav data-fullscreen-nav={fullscreen ? '' : undefined}>
+  <nav class="section-strip" id={fullscreen ? 'fullscreen-section-strip' : undefined} aria-label="Portfolio sections" inert={fullscreen ? true : undefined}>
     <div class="section-strip__track">
       {links.map((link) => (
-        <a
-          class="section-strip__card"
-          href={link.href}
-          data-section-id={link.id}
-          aria-current={currentSection === link.id ? 'page' : undefined}
-        >
+        <a class="section-strip__card" href={link.href} data-section-id={link.id} aria-current={currentSection === link.id ? 'page' : undefined}>
           {link.label}
         </a>
       ))}
     </div>
   </nav>
+  {fullscreen && (
+    <div class="fullscreen-nav__tab" data-nav-tab>
+      <button type="button" class="fullscreen-nav__toggle" data-nav-toggle aria-controls="fullscreen-section-strip" aria-expanded="false" aria-pressed="false" aria-label="Open portfolio navigation" title="Open portfolio navigation">
+        <span class="fullscreen-nav__slot" aria-hidden="true">
+          <span class="fullscreen-nav__icons">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m16 3 5 5-4 1-3 5v3l-3 1-5-5 1-3h3l5-3zM9 15l-6 6" /></svg>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+          </span>
+        </span>
+      </button>
+    </div>
+  )}
 </header>
-
 <script is:inline>
-  requestAnimationFrame(() => {
+  (() => {
     const header = document.querySelector('[data-section-nav]');
     const scroller = header?.querySelector('.section-strip');
     const current = header?.querySelector('[aria-current="page"]');
-
-    if (!(scroller instanceof HTMLElement) || !(current instanceof HTMLElement)) return;
-
-    const left = current.offsetLeft - ((scroller.clientWidth - current.offsetWidth) / 2);
-    scroller.scrollTo({ left: Math.max(0, left), behavior: 'auto' });
-  });
+    if (!(header instanceof HTMLElement) || !(scroller instanceof HTMLElement)) return;
+    requestAnimationFrame(() => {
+      if (current instanceof HTMLElement) {
+        const left = current.offsetLeft - ((scroller.clientWidth - current.offsetWidth) / 2);
+        scroller.scrollTo({ left: Math.max(0, left), behavior: 'auto' });
+      }
+    });
+    if (!header.hasAttribute('data-fullscreen-nav')) return;
+    const toggle = header.querySelector('[data-nav-toggle]');
+    const tab = header.querySelector('[data-nav-tab]');
+    if (!(toggle instanceof HTMLButtonElement) || !(tab instanceof HTMLElement)) return;
+    const storageKey = 'marklee-fullscreen-nav-pinned-v1';
+    let pinned = false;
+    try { pinned = localStorage.getItem(storageKey) === 'true'; } catch { /* Storage can be unavailable. */ }
+    let open = pinned;
+    let hasToggled = false;
+    const render = () => {
+      header.classList.toggle('is-open', open);
+      header.classList.toggle('is-pinned', pinned);
+      header.classList.toggle('has-toggled', hasToggled);
+      document.documentElement.classList.toggle('fullscreen-nav-pinned', pinned);
+      scroller.inert = !open;
+      toggle.setAttribute('aria-expanded', String(open));
+      toggle.setAttribute('aria-pressed', String(pinned));
+      const label = pinned ? 'Unpin and collapse portfolio navigation' : open ? 'Pin portfolio navigation open' : 'Open portfolio navigation';
+      toggle.setAttribute('aria-label', label);
+      toggle.title = label;
+    };
+    const setOpen = (value) => {
+      if (pinned || open === value) return;
+      open = value;
+      hasToggled = true;
+      render();
+    };
+    const isTouch = (event) => event.pointerType === 'touch';
+    tab.addEventListener('pointerenter', (event) => {
+      if (!isTouch(event)) setOpen(true);
+    });
+    toggle.addEventListener('click', (event) => {
+      if (!open) {
+        setOpen(true);
+        return;
+      }
+      pinned = !pinned;
+      open = pinned;
+      hasToggled = true;
+      try { localStorage.setItem(storageKey, String(pinned)); } catch { /* Keep current session state. */ }
+      render();
+      if (event.detail > 0) toggle.blur();
+    });
+    document.addEventListener('pointermove', (event) => {
+      if (isTouch(event)) return;
+      const nearTop = event.clientY < 110;
+      header.classList.toggle('is-near-top', nearTop);
+      const withinStrip = event.clientY >= 0 && event.clientY <= 59;
+      const bounds = tab.getBoundingClientRect();
+      const withinTab = event.clientX >= bounds.left && event.clientX <= bounds.right && event.clientY >= bounds.top && event.clientY <= bounds.bottom;
+      header.classList.toggle('is-over-strip', pinned && (withinStrip || withinTab));
+      if (!pinned && open && !withinStrip && !withinTab) setOpen(false);
+    }, { passive: true });
+    header.addEventListener('focusout', (event) => {
+      if (!pinned && open && !header.contains(event.relatedTarget)) setOpen(false);
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && open && !pinned) {
+        setOpen(false);
+        toggle.focus();
+      }
+    });
+    render();
+  })();
 </script>

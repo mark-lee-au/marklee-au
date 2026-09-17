@@ -10,7 +10,7 @@ interface Props {
 }
 
 const { project } = Astro.props;
-const { title, summary, question, category, status, publishedDate, updatedDate,
+const { title, summary, question, category, status, fullscreen, publishedDate, updatedDate,
   previewImage, previewAlt, tags, sources, repositoryUrl } = project.data;
 const formatDate = (date: Date) => new Intl.DateTimeFormat('en-AU', {
   dateStyle: 'long', timeZone: 'UTC',
@@ -28,8 +28,8 @@ const formatDate = (date: Date) => new Intl.DateTimeFormat('en-AU', {
     <title>{title} · Mark Lee</title>
   </head>
   <body>
-    <SiteHeader activeSection={category} />
-    <main class:list={['site-shell', 'project-page', { 'project-page--game': category === 'games' }]}>
+    <SiteHeader activeSection={category} fullscreen={fullscreen} />
+    <main class:list={['site-shell', 'project-page', { 'project-page--game': category === 'games', 'project-page--fullscreen': fullscreen }]}>
       <article>
         <header class="page-hero">
           <span class="kicker"><a href={`/${category}`}>{category.toUpperCase()}</a> / {projectStatusLabels[status]}</span>

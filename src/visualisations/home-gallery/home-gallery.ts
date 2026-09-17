@@ -10,12 +10,15 @@ const nextGuide = document.querySelector<HTMLButtonElement>("[data-gallery-guide
 const autoSwipeControl = document.querySelector<HTMLElement>('[data-auto-swipe-control]');
 const autoSwipeToggle = document.querySelector<HTMLInputElement>('[data-auto-swipe-toggle]');
 const galleryStatus = document.querySelector<HTMLElement>('[data-gallery-status]');
+const leftEdgeMagnet = document.querySelector<HTMLElement>("[data-edge-magnet='left']");
+const rightEdgeMagnet = document.querySelector<HTMLElement>("[data-edge-magnet='right']");
 
 if (root && stage && cards.length && rail && railThumb && ticks.length && viewToggle && previousGuide && nextGuide) {
   let activeIndex = 0;
   let listIndex = 0;
   let mode: 'carousel' | 'list' = 'carousel';
   let pointerId: number | null = null;
+  let dragCaptureTarget: HTMLElement | null = null;
   let dragStartX = 0;
   let dragX = 0;
   let dragPosition = 0;
@@ -37,7 +40,6 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
   let carouselMotion: 'none' | 'wrap' | 'edge' | 'step' | 'drag' = 'none';
   let edgeHoldDirection: -1 | 0 | 1 = 0;
   let edgeLift = 0;
-  let edgeAutoNeedsReentry = false;
   let hasEdgePointer = false;
   let edgeSuppressedUntil = 0;
   let manualSequenceActive = false;
@@ -45,6 +47,11 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
   let listEntryLocked = false;
   let listEntryTimer = 0;
   let autoSwipeEnabled = false;
+  let autoSwipePulseTimer = 0;
+  let edgeAutoSequenceDirection: -1 | 0 | 1 = 0;
+  let edgeAutoSequenceCount = 0;
+  let edgePointerClientX = 0;
+  let edgePointerClientY = 0;
   const listEntryAnimations = new Set<Animation>();
 
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -98,6 +105,8 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
   });
 
   const EDGE_AUTO_FIRST_DURATION = 1500;
+  const EDGE_AUTO_MIN_DURATION = 760;
+  const EDGE_AUTO_ACCELERATION = 0.82;
   const EDGE_WRAP_DURATION = 1050;
   const CARD_STEP_DURATION = 560;
   const QUEUED_CARD_STEP_DURATION = 300;
@@ -181,14 +190,198 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
     const guideInset = clamp(width * 0.04, 22, 76);
     const guideWidth = clamp(width * 0.062, 72, 112);
     const guideLead = clamp(width * 0.016, 18, 34);
+    const fieldLead = clamp(width * 0.09, 96, 180);
     const deadBand = clamp(width * 0.012, 18, 30);
 
-    const nominalLeftStart = rootRect.left + guideInset + guideWidth + guideLead;
-    const nominalRightStart = rootRect.right - guideInset - guideWidth - guideLead;
+    // Let the magnetic hint begin farther inward than the visible arrow zone.
+    // The card dead band remains authoritative so the field cannot steal drag.
+    const nominalLeftStart = rootRect.left + guideInset + guideWidth + guideLead + fieldLead;
+    const nominalRightStart = rootRect.right - guideInset - guideWidth - guideLead - fieldLead;
     const leftStart = Math.min(cardRect.left - deadBand, nominalLeftStart);
     const rightStart = Math.max(cardRect.right + deadBand, nominalRightStart);
 
     return { rootRect, leftStart, rightStart };
+  };
+
+  type EdgeFieldSide = 'left' | 'right';
+
+  interface EdgeFieldState {
+    side: EdgeFieldSide;
+    element: HTMLElement | null;
+    width: number;
+    height: number;
+    x: number;
+    targetX: number;
+    xVelocity: number;
+    y: number;
+    targetY: number;
+    yVelocity: number;
+    targetIntensity: number;
+    intensity: number;
+    active: boolean;
+  }
+
+  const createEdgeFieldState = (side: EdgeFieldSide, element: HTMLElement | null): EdgeFieldState => ({
+    side,
+    element,
+    width: 0,
+    height: 0,
+    x: 0,
+    targetX: 0,
+    xVelocity: 0,
+    y: 0,
+    targetY: 0,
+    yVelocity: 0,
+    targetIntensity: 0,
+    intensity: 0,
+    active: false,
+  });
+
+  const edgeFields = {
+    left: createEdgeFieldState('left', leftEdgeMagnet),
+    right: createEdgeFieldState('right', rightEdgeMagnet),
+  };
+  let edgeFieldFrame = 0;
+  let edgeFieldLastTime = 0;
+
+  const edgeFieldForDirection = (direction: -1 | 1) => (
+    direction < 0 ? edgeFields.left : edgeFields.right
+  );
+
+  const resizeEdgeField = (state: EdgeFieldState) => {
+    const rect = state.element?.getBoundingClientRect();
+    if (!rect) return;
+    state.width = Math.max(1, rect.width);
+    state.height = Math.max(1, rect.height);
+    if (!state.x) state.x = state.side === 'left' ? state.width * 0.16 : state.width * 0.84;
+    if (!state.targetX) state.targetX = state.x;
+    if (!state.y) state.y = state.height / 2;
+    if (!state.targetY) state.targetY = state.y;
+  };
+
+  const setEdgeFieldCss = (state: EdgeFieldState) => {
+    if (!state.height || !state.width) return;
+    const yPercent = clamp((state.y / state.height) * 100, 2, 98);
+    const intensity = clamp(state.intensity, 0, 1);
+    const rippleStrength = clamp(Math.abs(state.yVelocity) / 10, 0, 1) * clamp(intensity * 1.3, 0, 1);
+    const rippleOffset = clamp(state.yVelocity * 2.1, -28, 28) * (0.26 + rippleStrength * 0.74);
+    const liquidScale = 0.98 + intensity * 0.28;
+    const fogShift = clamp(state.yVelocity * 2.4, -28, 28);
+    const trailReach = state.side === 'left' ? state.x : state.width - state.x;
+    const trailLength = clamp(trailReach - 10, 20, state.width);
+
+    root.style.setProperty(`--edge-hover-glow-${state.side}-y`, `${yPercent.toFixed(2)}%`);
+    root.style.setProperty(`--edge-liquid-${state.side}-scale`, liquidScale.toFixed(4));
+    root.style.setProperty(`--edge-liquid-${state.side}-ripple-offset`, `${rippleOffset.toFixed(2)}px`);
+    root.style.setProperty(`--edge-liquid-${state.side}-fog-shift`, `${fogShift.toFixed(2)}px`);
+    root.style.setProperty(`--edge-liquid-${state.side}-length`, `${trailLength.toFixed(2)}px`);
+  };
+
+  const animateEdgeFields = (now: number) => {
+    const elapsed = edgeFieldLastTime
+      ? clamp(now - edgeFieldLastTime, 8, 34)
+      : 16.667;
+    edgeFieldLastTime = now;
+    const step = elapsed / 16.667;
+    let keepRunning = false;
+
+    (Object.values(edgeFields) as EdgeFieldState[]).forEach((state) => {
+      resizeEdgeField(state);
+
+      const intensityEase = 1 - Math.pow(0.76, step);
+      state.intensity += (state.targetIntensity - state.intensity) * intensityEase;
+
+      const xDelta = state.targetX - state.x;
+      state.xVelocity += xDelta * 0.052 * step;
+      state.xVelocity *= Math.pow(0.78, step);
+      state.x += state.xVelocity * step;
+      state.x = clamp(state.x, 0, Math.max(1, state.width));
+
+      const yDelta = state.targetY - state.y;
+      state.yVelocity += yDelta * 0.05 * step;
+      state.yVelocity *= Math.pow(0.74, step);
+      state.y += state.yVelocity * step;
+      state.y = clamp(state.y, 0, Math.max(1, state.height));
+
+      setEdgeFieldCss(state);
+
+      if (
+        state.targetIntensity > 0.002
+        || state.intensity > 0.002
+        || Math.abs(state.xVelocity) > 0.03
+        || Math.abs(state.yVelocity) > 0.03
+      ) keepRunning = true;
+    });
+
+    if (keepRunning && !reducedMotion.matches) {
+      edgeFieldFrame = requestAnimationFrame(animateEdgeFields);
+    } else {
+      edgeFieldFrame = 0;
+      edgeFieldLastTime = 0;
+    }
+  };
+
+  const ensureEdgeFieldAnimation = () => {
+    if (reducedMotion.matches || edgeFieldFrame) return;
+    edgeFieldLastTime = 0;
+    edgeFieldFrame = requestAnimationFrame(animateEdgeFields);
+  };
+
+  const setEdgeFieldTarget = (
+    direction: -1 | 1,
+    progress: number,
+    clientX: number,
+    clientY: number,
+  ) => {
+    const active = edgeFieldForDirection(direction);
+    const inactive = direction < 0 ? edgeFields.right : edgeFields.left;
+    resizeEdgeField(active);
+    resizeEdgeField(inactive);
+
+    const rect = active.element?.getBoundingClientRect();
+    if (rect) {
+      active.targetX = clamp(clientX - rect.left, 2, Math.max(2, rect.width));
+      active.targetY = clamp(clientY - rect.top, 2, Math.max(2, rect.height - 2));
+      if (active.intensity < 0.01 && Math.abs(active.x - active.targetX) > active.width * 0.35) {
+        active.x = active.targetX;
+        active.xVelocity = 0;
+      }
+      if (active.intensity < 0.01 && Math.abs(active.y - active.targetY) > active.height * 0.35) {
+        active.y = active.targetY;
+        active.yVelocity = 0;
+      }
+    }
+
+    active.targetIntensity = smootherstep(progress);
+    active.active = true;
+    inactive.targetIntensity = 0;
+    inactive.active = false;
+    ensureEdgeFieldAnimation();
+  };
+
+  const releaseEdgeFields = (immediate = false) => {
+    (Object.values(edgeFields) as EdgeFieldState[]).forEach((state) => {
+      state.targetIntensity = 0;
+      state.active = false;
+      if (immediate) {
+        state.intensity = 0;
+        state.xVelocity = 0;
+        state.yVelocity = 0;
+        root.style.setProperty(`--edge-liquid-${state.side}-scale`, '0.98');
+        root.style.setProperty(`--edge-liquid-${state.side}-ripple-offset`, '0px');
+        root.style.setProperty(`--edge-liquid-${state.side}-fog-shift`, '0px');
+        root.style.setProperty(`--edge-liquid-${state.side}-length`, '24px');
+      }
+    });
+
+    if (immediate && edgeFieldFrame) {
+      cancelAnimationFrame(edgeFieldFrame);
+      edgeFieldFrame = 0;
+      edgeFieldLastTime = 0;
+      return;
+    }
+
+    ensureEdgeFieldAnimation();
   };
 
   const clearBoundaryGlow = () => {
@@ -227,33 +420,46 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
   const clearEdgeHoverGlow = () => {
     root.style.setProperty('--edge-hover-glow-left', '0');
     root.style.setProperty('--edge-hover-glow-right', '0');
+    releaseEdgeFields();
+  };
+
+  const pulseAutoSwipeEdges = () => {
+    if (reducedMotion.matches || !fineHover.matches || mode !== 'carousel') return;
+
+    window.clearTimeout(autoSwipePulseTimer);
+    delete root.dataset.autoSwipePulse;
+
+    // Force a style flush so switching Auto Swipe off and back on quickly can
+    // replay the confirmation pulse from its first frame.
+    void root.offsetWidth;
+    root.dataset.autoSwipePulse = 'on';
+    autoSwipePulseTimer = window.setTimeout(() => {
+      delete root.dataset.autoSwipePulse;
+      autoSwipePulseTimer = 0;
+    }, 860);
   };
 
   const updateEdgeHoverGlow = (
     direction: -1 | 1,
     progress: number,
+    clientX: number,
     clientY: number,
   ) => {
-    const stageRect = stage.getBoundingClientRect();
-    const y = clamp(
-      ((clientY - stageRect.top) / Math.max(1, stageRect.height)) * 100,
-      4,
-      96,
-    );
     const eased = smootherstep(progress);
-    // Keep edge-hover feedback substantially softer than endpoint pressure.
-    // The broad side wash gives the entire edge presence, while the radial
-    // bulge follows the pointer and strengthens with hover pressure.
-    const opacity = (0.08 + eased * 0.24) * Math.min(1, progress * 3.5);
+    // Keep the feedback readable but restrained. The bright edge line and the
+    // constrained fog trail should do most of the explaining, not raw opacity.
+    const opacity = progress <= 0
+      ? 0
+      : Math.min(0.27, 0.025 + eased * 0.245);
+
+    setEdgeFieldTarget(direction, progress, clientX, clientY);
 
     if (direction < 0) {
       root.style.setProperty('--edge-hover-glow-right', '0');
       root.style.setProperty('--edge-hover-glow-left', opacity.toFixed(4));
-      root.style.setProperty('--edge-hover-glow-left-y', `${y.toFixed(2)}%`);
     } else {
       root.style.setProperty('--edge-hover-glow-left', '0');
       root.style.setProperty('--edge-hover-glow-right', opacity.toFixed(4));
-      root.style.setProperty('--edge-hover-glow-right-y', `${y.toFixed(2)}%`);
     }
   };
   const easeInOutCubic = (value: number) => (
@@ -271,6 +477,14 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
   };
   const sectionLabel = (index: number) => cards[index]?.dataset.slideLabel || 'section';
 
+  const resetEdgeAutoSequence = () => {
+    edgeAutoSequenceDirection = 0;
+    edgeAutoSequenceCount = 0;
+  };
+
+  const edgeAutoDuration = () => (
+    Math.max(EDGE_AUTO_MIN_DURATION, EDGE_AUTO_FIRST_DURATION * Math.pow(EDGE_AUTO_ACCELERATION, edgeAutoSequenceCount))
+  );
 
   const announce = (message: string) => {
     if (!galleryStatus) return;
@@ -536,7 +750,6 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
     delete root.dataset.carouselMotion;
     edgeLift = 0;
     edgeHoldDirection = 0;
-    edgeAutoNeedsReentry = false;
     clearEdgeGuideState();
     if (mode === 'carousel') renderCarousel();
   };
@@ -796,18 +1009,46 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
     && !reducedMotion.matches
   );
 
+  const continueEdgeAutoSequence = (direction: -1 | 1) => {
+    if (!hasEdgePointer || mode !== 'carousel' || !edgeHoverAvailable()) {
+      resetEdgeAutoSequence();
+      return;
+    }
+
+    updateEdgeIntentFromPoint(edgePointerClientX, edgePointerClientY, null, false);
+    if (edgeHoldDirection !== direction || carouselMotion !== 'none') {
+      if (edgeHoldDirection === 0) resetEdgeAutoSequence();
+      return;
+    }
+
+    edgeAutoSequenceCount = Math.min(edgeAutoSequenceCount + 1, 12);
+    requestAnimationFrame(() => {
+      if (carouselMotion === 'none' && edgeHoldDirection === direction && mode === 'carousel') {
+        beginEdgeAutoStep(direction);
+      }
+    });
+  };
+
   const beginEdgeAutoStep = (direction: -1 | 1) => {
     if (!edgeHoverAvailable() || mode !== 'carousel' || carouselMotion !== 'none') return;
     if (edgeHoldDirection !== direction) return;
 
-    if (edgeAutoNeedsReentry) return;
+    if (edgeAutoSequenceDirection !== direction) {
+      edgeAutoSequenceDirection = direction;
+      edgeAutoSequenceCount = 0;
+    }
 
-    const duration = EDGE_AUTO_FIRST_DURATION;
+    const duration = edgeAutoDuration();
+    const rawTarget = activeIndex + direction;
+    if (rawTarget < 0 || rawTarget >= cards.length) {
+      runWrapFlick(direction, Math.max(820, duration * 0.92), () => continueEdgeAutoSequence(direction));
+      return;
+    }
 
     carouselMotion = 'edge';
     root.dataset.carouselMotion = 'edge';
     const startIndex = activeIndex;
-    const targetIndex = wrapIndex(startIndex + direction);
+    const targetIndex = rawTarget;
     const startPosition = startIndex;
     const targetPosition = targetIndex;
     const startedAt = performance.now();
@@ -822,9 +1063,7 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
 
       const progress = Math.min(1, (now - startedAt) / duration);
       const moveProgress = heavyFlick(progress);
-      // Preserve any hover lift already present when the move starts, then
-      // release it smoothly as the single edge-triggered step commits.
-      const liftRelease = smootherstep(Math.min(1, progress / 0.24));
+      const liftRelease = smootherstep(Math.min(1, progress / 0.26));
       edgeLift = startingEdgeLift * (1 - liftRelease);
       updateEdgeGuideState();
       renderCarousel(startPosition + (targetPosition - startPosition) * moveProgress);
@@ -834,12 +1073,9 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
         return;
       }
 
-      edgeAutoNeedsReentry = true;
-      edgeHoldDirection = 0;
       edgeLift = 0;
       clearEdgeGuideState();
-      clearEdgeHoverGlow();
-      finishAnimatedMove(targetIndex);
+      finishAnimatedMove(targetIndex, () => continueEdgeAutoSequence(direction));
     };
 
     carouselFrame = requestAnimationFrame(frame);
@@ -848,13 +1084,14 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
   const resetEdgeIntent = (cancelRunning = true) => {
     edgeHoldDirection = 0;
     edgeLift = 0;
+    resetEdgeAutoSequence();
     clearEdgeGuideState();
     clearEdgeHoverGlow();
     if (cancelRunning && carouselMotion === 'edge') settleEdgeMotion();
     else if (mode === 'carousel' && carouselMotion === 'none') renderCarousel();
   };
 
-  const updateEdgeIntentFromPoint = (clientX: number, clientY: number, target?: Element | null) => {
+  const updateEdgeIntentFromPoint = (clientX: number, clientY: number, target?: Element | null, allowAutoBegin = true) => {
     hasEdgePointer = true;
 
     if (
@@ -864,13 +1101,11 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
       || manualSequenceActive
       || performance.now() < edgeSuppressedUntil
     ) {
-      edgeAutoNeedsReentry = false;
       resetEdgeIntent();
       return;
     }
     if (carouselMotion === 'wrap') return;
     if (target?.closest('.gallery-header, .view-toggle, .gallery-controls')) {
-      edgeAutoNeedsReentry = false;
       resetEdgeIntent();
       return;
     }
@@ -879,7 +1114,6 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
     const rect = card.getBoundingClientRect();
     const verticalAllowance = Math.min(70, rect.height * 0.14);
     if (clientY < rect.top - verticalAllowance || clientY > rect.bottom + verticalAllowance) {
-      edgeAutoNeedsReentry = false;
       resetEdgeIntent();
       return;
     }
@@ -895,28 +1129,22 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
       direction = 1;
       liftProgress = clamp((clientX - rightStart) / Math.max(1, rootRect.right - rightStart), 0, 1);
     } else {
-      edgeAutoNeedsReentry = false;
       resetEdgeIntent();
       return;
     }
 
-    if (edgeAutoNeedsReentry) {
-      edgeHoldDirection = 0;
-      edgeLift = 0;
-      clearEdgeGuideState();
-      clearEdgeHoverGlow();
-      if (carouselMotion === 'none') renderCarousel();
-      return;
+    if (edgeAutoSequenceDirection !== 0 && edgeAutoSequenceDirection !== direction) {
+      resetEdgeAutoSequence();
     }
 
     edgeLift = direction * smootherstep(liftProgress);
-    updateEdgeHoverGlow(direction, liftProgress, clientY);
+    updateEdgeHoverGlow(direction, liftProgress, clientX, clientY);
     const nextHoldDirection: -1 | 0 | 1 = liftProgress >= EDGE_HOLD_PROGRESS ? direction : 0;
     edgeHoldDirection = nextHoldDirection;
     updateEdgeGuideState();
 
     if (carouselMotion === 'none') renderCarousel();
-    if (edgeHoldDirection !== 0 && carouselMotion === 'none') beginEdgeAutoStep(edgeHoldDirection);
+    if (allowAutoBegin && edgeHoldDirection !== 0 && carouselMotion === 'none') beginEdgeAutoStep(edgeHoldDirection);
   };
 
   interface ListRect {
@@ -1125,6 +1353,7 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
     root.dataset.mode = mode;
     writePreference(HOME_VIEW_MODE_STORAGE_KEY, mode);
     const isList = mode === 'list';
+    if (isList) releaseEdgeFields(true);
 
     viewToggle.setAttribute('aria-pressed', String(isList));
     viewToggle.setAttribute('aria-label', isList ? 'Return to gallery' : 'Show overview');
@@ -1286,8 +1515,14 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
     if (autoSwipeToggle) autoSwipeToggle.checked = enabled;
 
     if (!enabled) {
+      window.clearTimeout(autoSwipePulseTimer);
+      autoSwipePulseTimer = 0;
+      delete root.dataset.autoSwipePulse;
       resetEdgeIntent();
-      clearEdgeHoverGlow();
+      resetEdgeAutoSequence();
+      releaseEdgeFields(true);
+    } else if (persist) {
+      pulseAutoSwipeEdges();
     }
 
     if (persist) writePreference(AUTO_SWIPE_STORAGE_KEY, enabled ? 'on' : 'off');
@@ -1348,7 +1583,7 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
   stage.addEventListener('pointerdown', (event) => {
     if (mode !== 'carousel' || event.button !== 0) return;
     const target = event.target as HTMLElement;
-    if (target.closest('button, input, textarea, select, a:not([data-list-card-link])')) return;
+    if (target.closest('button, input, textarea, select, a:not([data-list-card-link]):not(.gallery-preview--linked)')) return;
 
     // Dragging belongs to the visible active card only. Empty stage space, the
     // dead band and neighbouring cards must not become invisible grab handles.
@@ -1376,7 +1611,10 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
     carouselMotion = 'drag';
     root.dataset.carouselMotion = 'drag';
     root.dataset.dragging = 'true';
-    stage.setPointerCapture(event.pointerId);
+    // Capture on the link that received the press, not on the stage. A plain
+    // click must keep its native destination (including preview links).
+    dragCaptureTarget = target.closest<HTMLElement>('a') ?? activeCard;
+    dragCaptureTarget.setPointerCapture(event.pointerId);
   });
 
   stage.addEventListener('pointermove', (event) => {
@@ -1464,7 +1702,10 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
     carouselMotion = 'none';
     delete root.dataset.carouselMotion;
 
-    if (stage.hasPointerCapture(event.pointerId)) stage.releasePointerCapture(event.pointerId);
+    if (dragCaptureTarget?.hasPointerCapture(event.pointerId)) {
+      dragCaptureTarget.releasePointerCapture(event.pointerId);
+    }
+    dragCaptureTarget = null;
     edgeSuppressedUntil = performance.now() + 420;
 
     if (boundaryWrapDirection !== 0) {
@@ -1485,33 +1726,32 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
 
   root.addEventListener('pointermove', (event) => {
     if (event.pointerType !== 'mouse' || !autoSwipeEnabled) return;
+    edgePointerClientX = event.clientX;
+    edgePointerClientY = event.clientY;
     updateEdgeIntentFromPoint(event.clientX, event.clientY, event.target as Element);
   });
 
   root.addEventListener('pointerleave', (event) => {
     if (event.pointerType !== 'mouse') return;
     hasEdgePointer = false;
-    edgeAutoNeedsReentry = false;
     resetEdgeIntent();
   });
 
   stage.addEventListener('click', (event) => {
-    if (mode !== 'carousel' || dragged || carouselMotion !== 'none') return;
+    if (mode !== 'carousel') return;
+    // Pointer capture can deliver a click after a swipe. It must never follow
+    // either the section link or a project preview after the card was dragged.
+    if (dragged || carouselMotion !== 'none') {
+      event.preventDefault();
+      return;
+    }
     const target = event.target as HTMLElement;
-    if (target.closest('button, input, textarea, select')) return;
+    if (target.closest('a, button, input, textarea, select')) return;
     const card = target.closest<HTMLElement>('[data-gallery-card]');
     if (!card) return;
     const index = Number(card.dataset.slideIndex);
-    if (!Number.isFinite(index)) return;
-
-    if (index === activeIndex) {
-      const link = card.querySelector<HTMLAnchorElement>('[data-list-card-link]');
-      if (link?.href) window.location.assign(link.href);
-      return;
-    }
-
-    setActive(index);
-  });
+    if (Number.isFinite(index) && index !== activeIndex) setActive(index);
+  }, true);
 
   const railIndexFromClientX = (clientX: number) => {
     const rect = rail.getBoundingClientRect();
@@ -1631,6 +1871,12 @@ if (root && stage && cards.length && rail && railThumb && ticks.length && viewTo
 
   reducedMotion.addEventListener('change', () => {
     resetEdgeIntent();
+    if (reducedMotion.matches) {
+      window.clearTimeout(autoSwipePulseTimer);
+      autoSwipePulseTimer = 0;
+      delete root.dataset.autoSwipePulse;
+      releaseEdgeFields(true);
+    }
     syncAutoSwipeControl();
     if (mode === 'list' && reducedMotion.matches) cancelListEntryAnimations();
     if (mode === 'carousel') renderCarousel();

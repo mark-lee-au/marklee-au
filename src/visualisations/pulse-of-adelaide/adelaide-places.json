@@ -1,0 +1,13 @@
+[
+  { "name": "Port Adelaide", "longitude": 138.4952, "latitude": -34.8434 },
+  { "name": "Elizabeth", "longitude": 138.6665, "latitude": -34.7143 },
+  { "name": "Modbury", "longitude": 138.6856, "latitude": -34.8304 },
+  { "name": "Klemzig", "longitude": 138.6374, "latitude": -34.8766 },
+  { "name": "Magill", "longitude": 138.6744, "latitude": -34.9136 },
+  { "name": "Adelaide CBD", "longitude": 138.6007, "latitude": -34.9285 },
+  { "name": "Goodwood", "longitude": 138.5790, "latitude": -34.9500 },
+  { "name": "Glenelg", "longitude": 138.5140, "latitude": -34.9813 },
+  { "name": "Seaford", "longitude": 138.6088, "latitude": -35.1873 },
+  { "name": "Stirling", "longitude": 138.7183, "latitude": -35.0024 },
+  { "name": "Mount Barker", "longitude": 138.8615, "latitude": -35.0671 }
+]

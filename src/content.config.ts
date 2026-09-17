@@ -12,6 +12,7 @@ const projects = defineCollection({
     category: z.enum(['data', 'maps', 'games', 'lab']),
     status: z.enum(['idea', 'prototype', 'published', 'archived']),
     featured: z.boolean().default(false),
+    fullscreen: z.boolean().default(false),
     sortOrder: z.number().int().nonnegative().default(100),
     publishedDate: z.coerce.date().optional(),
     updatedDate: z.coerce.date().optional(),

@@ -1,210 +1,119 @@
-# Execution Plan 002: The Pulse of Adelaide
+# Execution Plan 002: The Pulse of Adelaide (historical-only)
 
-Status: planned; data-source research blocked pending a verified source (reviewed 2026-09-08).
+## 2026-09-17 source-alignment follow-up
 
-No suitable fuel source or reuse terms have been established in this repository. V1 uses the static-first [data contract](../../data-project-contract.md), [architecture](../../data-architecture.md) and [governance](../../data-governance.md). The [source note](../../../data/sources/pulse-of-adelaide.md) records unknowns; no dataset, pipeline or findings exist yet.
+- GSHHG intermediate resolution is not interchangeable with the current OSM road/harbour outline. The Port River polygon from the supplied Geofabrik water shapefile exposes a spatial mismatch in the *coastal source*, not an offset in the map projection. Do not translate fuel stations or roads.
+- `build_land_overlay.py --roads-zip <Geofabrik ZIP>` now subtracts OSM water/riverbank polygons in a bounded Adelaide harbour window, creates `harbour-water.geojson`, and retains original full-state GSHHG mainland elsewhere. The browser replaces only the GSHHG harbour linework with these OSM water boundaries. Some bridges run above waterways and are valid. This does not claim a comprehensive OSM open-sea coastline; inspect visually and procure a verified higher-resolution land polygon if needed.
+- Initialise title masking before the first map gesture so the initial ocean mask is not applied in one abrupt step. Keep title occlusion cumulative and in-memory. Chart axis dates and progress datetime share a lower baseline, with the progress label covering intersecting axis labels; A/B labels retain their lower position. Navigation icon rolls now take 1.3 seconds.
 
-## Working title
+Status 2026-09-17: **local-only event playback prototype in iterative visual review; actual local R export reported working, full browser/device QA pending.** The separate paused SA Government Direct API project remains under Plan 008; no API credentials, terms or data are used here.
 
-The Pulse of Adelaide
+## 2026-09-17 shared nav hover and opaque mainland render
 
-## Initial category
+- The two-button fullscreen tab is replaced by one narrow control. Hover opens the strip; the icon rolls downward from chevron to pin. Pointer exit closes an unpinned strip and rolls back to chevron. Touch can tap once to open and again to pin. The pinned preference remains shared and reserves its original 59 px vertical space. Keyboard opening, Escape and reduced motion remain supported.
+- A separate SVG now contains a **solid** land surface over the ocean and the title, but below the vector road canvas. The primary connected mainland shoreline in the existing GSHHG `coast.geojson` is the exact visible polygon edge; closure edges lie far inland outside the visualisation, not across the clipped viewport or between unrelated coastal/island segments. The title is revealed or concealed naturally as the map pans, and the existing coastline line casts a restrained ocean-side shadow. The polygon is a rendering mask, not new geographic source data. Smaller offshore islands remain coastline outlines in this stage.
+- Removed the old 71 px fullscreen height assumption: Pulse uses the full available viewport when navigation floats and reserves 59 px only after pinning. No new private data, external map request or road asset changes.
+- Focused strict TypeScript, isolated Chromium nav checks (desktop, mobile width and touch emulation), and a synthetic geographic projection/land-mask check passed. The tests did not run a full Astro build or the real MapLibre/February history in a browser.
 
-LAB
+## 2026-09-17 statewide static vector-geography stage
 
-Likely final category:
+- User supplied `south-australia-260916-free.shp.zip`, a Geofabrik South Australia extract containing 31,284 roads in the requested OSM major-road classes (including links). `build_static_geography.py` reads the source ZIP directly; it retains every selected road record, clips lines to adaptive half-degree geographic partitions, and writes 305 small GeoJSON tiles plus a simplified motorway/trunk/primary/secondary overview. A static manifest controls visible-partition loading and unloading. No network calls to Location SA, image fallback or dynamic road tiles remain.
+- MapLibre draws solid round-capped, antialiased road lines at 25% opacity in cool blue-grey. Native vectors retain sharpness while zooming. Full statewide navigation is possible down to zoom 4; nearby detail tiles load at zoom 8.25 and above, with the smaller overview shown below that threshold. The MapLibre canvas uses screen blending over the dark page instead of being hidden.
+- For the much broader shoreline than the SA road extract provides, `build_static_geography.py` extracts GSHHG intermediate-resolution level-1 coastal lines from Basemap data 2.0.0. The static coastline extends from 125.5 to 144.5 degrees east and -39.3 to -30.2 degrees south, covering all South Australian coast and neighbouring WA/VIC shoreline. At 129 E and 141 E, short north-going border cues join the sourced coastal intersection; these are not precise cadastral boundaries. Mainland and islands stay as *open lines*, not a made-up filled land shape.
+- OSM/Geofabrik roads and NOAA GSHHG coast are independently sourced geometry layers with separate ODbL and LGPL attributions on the visual and in `geography/metadata.json`. No raw ZIP or privately generated fuel data enters the patch. Geography can be regenerated offline from the pinned source ZIP and GSHHG binaries. Historical data release restrictions remain unchanged. Focused strict TypeScript, the generated file/coordinate/count audit and isolated 1440px/390px browser harness using a mock map passed. Real MapLibre and full Astro build have not run here.
 
-MAPS
+## 2026-09-17 road request diagnosis and fallback
 
-## Question
+- Local screenshot confirms the promised road network is not visible. Previously every render depended on a browser GeoJSON request from Location SA; successful synthetic tests had stubbed that request, so they could not establish CORS or live service response. No browser network log was provided, so an exact server-side error cannot be asserted.
+- Added an image export path using the documented `StreetMapCased_wmas/MapServer/export` operation. The dynamic layer uses map layer 118, a major-road CLASS filter, a cool-blue unique-value renderer, no labels and unrestricted display scale. Its transparent PNG aligns to Web Mercator MapLibre bounds, follows camera movement and refreshes after pan/zoom. This does not require fetching or copying the raw road coordinates into the browser.
+- On export load failure, try the alternate Location SA host then the existing GeoJSON vector loader. Expose a compact road-unavailable status when all attempts fail. Source styling and the SVG renderer remain distinct from the warm continuous coastline. A successful image load cannot prove it contains non-transparent geometry without network/service verification.
+- Scope: only local Pulse map code and source notes, no R exporter, private data, backend or deployment. Focused TypeScript and synthetic browser fallback tests passed; live service and full Astro build remain outstanding.
 
-How does Adelaide's petrol price cycle move across the city through time?
+## 2026-09-17 major-road visibility fix
 
-## Portfolio purpose
+- The previous prototype had an optional road request but returned early or failed quietly when the service did not provide the expected payload. Its line opacity was also too low to see clearly on a black scene. The updated loader checks for valid, nonempty GeoJSON, requests the verified region-scale Location SA roads layer 118 from `maps.sa.gov.au`, and tries progressively more detailed layers plus the alternative host when needed. All road lines still come from the published service. Failures now emit a browser-console warning rather than invented geometry.
+- Separate FREE/HWY and ART paths project with MapLibre. A cool-blue, fine-dashed main-road line and thinner arterial line remain visually distinct from the continuous warm-grey coastline. No road names, tiles, route interactions, data transformations or new dependencies were added. The original observations, station-state model and smooth playback are unchanged.
+- Validation: focused strict TypeScript and a small synthetic Chromium test passed. Live Location SA response, CORS, comprehensive road coverage, production Astro build and user-data review are pending. The browser overlay is optional when the external service cannot be reached.
 
-Demonstrate:
+## 2026-09-17 frame-time playback and coastline correction
 
-- data acquisition
-- data cleaning
-- time-series analysis
-- geographic analysis
-- data transformation
-- interactive mapping
-- animation
-- responsive visual design
-- concise analytical communication
+- The prior version added up to 50 historical whole hours per 1.4 seconds via discrete ticks, which made the clock and map look like slides. Playback now advances a continuous historical timestamp using animation-frame elapsed time. Event application still uses each retained source timestamp without rounding, but the cursor, station glow decay and clock move between observations. The clock updates each displayed minute; A/B range picks and manual scrub remain snapped to Adelaide whole hours. Reduced-motion users still start paused.
+- Display modes now run at 3.55, 4.8, 6.1 and 7.5 historical hours per real second, respectively, which gives the former 5× feel to 1× without multiplying 10× into a rapid full-period sweep. The existing 1×/2×/5×/10× labels are now relative presets rather than exact multipliers; reconsider their naming after visual review. Persistent glows and transient bursts ease into view on new events; the existing magnitude-dependent expiry continues to apply. No price interpolation or synthetic observations are introduced.
+- The previous shaded land trapezoid was invalid: it closed an *open, clipped coastline line* through the viewport corners. The page now renders only the source-aligned coastline as a faint unfilled outline and a soft offset edge. Filling land would require actual land polygon geometry, not inferred polygon closure. The static ocean-wave background remains a graphic treatment only.
+- The title is now a larger muted, left-aligned two-line heading inside the map. Its first line uses distributed text to match the `ADELAIDE` line width.
+- Validation: focused strict TypeScript and temporary Node tests passed for fractional-hour visual progression, per-minute clock updates and unfilled projected coast paths. Chromium timed out on a basic headless launch. Pending: full Astro build and local browser/device review against the user's actual February export and Location SA service. Private data rights and source timestamp timezone remain unresolved. The archive architecture is not part of this patch.
 
-## Data rule
+## 2026-09-17 fullscreen and static geography refinement
 
-Use public or explicitly licensed fuel data with terms permitting the intended use and redistribution.
+- Reusable fullscreen project flag added to the content schema and shared shell, activated for Pulse only. Floating top navigation is unpinned by default; a revealed pin persists across fullscreen projects and reserves a 59 px layout gutter when active. Non-fullscreen pages keep their existing header.
+- Replaced the large neighbouring WA/VIC coast sections with narrow, sourced shoreline peeks, short meridian border cues and projected opacity gradients. SA shoreline is kept intact. The coastline asset and generator remain independent of the private historical archive.
+- Replaced the overview/detail zoom cutover with a permanently resident overview and additive detailed road tiles above zoom 10.2. Removed round line caps that created visible end-point dots. Road visibility toggle offers show/dim/off and stores the preference locally; the mapped road layer fades near the state borders. Test actual rendering at desktop/mobile and across zoom levels before release.
 
-Do not use confidential employer datasets, internal price feeds, internal station metadata, or proprietary analysis.
+## 2026-09-17 title/land and playback control follow-up
 
-Never infer, reconstruct or approximate private employer data, including from memory. Missing source observations must not be filled using private knowledge.
+- Previous map fill incorrectly projected a huge ring closed at remote inland coordinates. It could cross the visible screen as dark triangles and cover roads that actually follow the correct map projection. Generate `land.geojson` from the longest GSHHG mainland shoreline and clip a validated polygon to a bounded WGS84 extent. Render the polygon as a MapLibre fill below the road layers; retain the existing coast outline as the same GSHHG geographic boundary, rather than filling a collection of open shoreline SVG fragments.
+- Rendering remains an approximation near harbours: OSM roads and GSHHG intermediate coastline are different geographic source vintages and scales, so some coast-adjacent OSM roads and causeways can lie outside the derived GSHHG land polygon. Do not move station or road coordinates to match the polygon or claim new precision. Consider a verified high-resolution polygon as a separate source-data stage.
+- Retain two copies of the title: the base is under land; the top copy starts visible regardless of the map. On drag/zoom, intersect the top copy's cumulative alpha mask with the *same* land geometry each time. Once a pixel has occupied ocean it stays below future land, while remaining readable over ocean through the base copy. Refresh resets this decorative mask.
+- The scrub grip is an HTML marker positioned over the native range input. The A/B label previews use their eventual bracket location. The new rewind target is rangeStart; playback resumes from there if already playing. The fullscreen header's slot animation is slower with no change to stored pin settings.
 
-## Minimum viable project
+## Current source and evidence
 
-Build a dark Adelaide map with service-station points and a time control.
+- Corrected `netwatch_data` contains 1,219 SA site records, 725 Active and 494 Closed. There are 757 exact historical ID matches across SA and 311 in the Adelaide region. Historical Adelaide ULP has 306 stations and 561,757 observations overall. These figures supersede the old 40 SA / nine Adelaide count, which came from an incomplete lookup.
+- Local February 2024 ULP R model: 295 reporting stations, 8,433 raw rows including warmup, 7,193 distinct observation timestamps and 2,569 price transitions (539 rises, 2,030 falls). Reconciliation against retained observations found zero errors. The withheld test's 63.66% match is the proportion unchanged at withheld times; it cannot establish the actual price between reports.
+- G records are treated as authentic reports. Do not flag, smooth or discard fast/large price changes solely because of their magnitude. Exact duplicates may be consolidated with source-row count retained. Repeated same-price observations remain in the event stream and refresh observation age.
+- Original SQL: `CONVERT(VARCHAR(19), t.TRANSACTIONDATE, 126) + 'Z'`. This **labels** the extracted clock time as UTC without converting it. Preserve the source strings now, label Adelaide display times provisional and validate the SQL column timezone before publishing or interpreting exact local hours.
 
-Required interactions:
+## 2026-09-17 event playback patch
 
-- play
-- pause
-- timeline scrub
-- tap or click station
-- station detail view
+- Added `scripts/data/pulse-of-adelaide/build_event_playback.R` for a working February model (`--model`) or the full Parquet plus corrected SA station CSV (`--parquet --stations --month --fuel` or `--all`). The full route reads one UTC month and a 48-hour lookback at a time, filters Adelaide geometry and writes local, ignored `events/index.json` and `events/YYYY-MM/FUEL.json` files. Every distinct monthly observation retains price, timestamp, source and duplicate count. No historical data is packaged with the code.
+- Replaced daily dots and day slider with a viewport-fitted map and event playback. A canvas draws soft red/green price-change clouds at real station coordinates. Change magnitude affects brightness/size, each change creates a short pulse, subsequent changes can reverse colour, and old glows fade. MapLibre and the existing OSM raster basemap stay in place, darkened and vignetted; no connections or interpolated geographic price field.
+- An SVG hourly mean-price chart sits above the map. Its previously traversed line is gold, future line muted grey and a vertical cursor follows the playback. Controls are play/pause, an hourly scrubber, 1×/2×/5×/10× speed, month and grade. Individual reporting events retain their actual ordering within each hour, even though the chart and scrubber sample hourly. Mean weights each known station once, with coverage stated alongside it; missing stations never become zero-price points.
+- No full-site redesign, server, database or government API changes. Source licence and public release remain unresolved. Existing legacy daily importer is left intact but not read by the active Pulse page. Generated `public/` data must not enter an unrelated deployment.
 
-Required data display:
+## 2026-09-17 minimalist visual follow-up
 
-- station location
-- observed fuel price
-- time of observation or change
-- selected fuel grade
-- city-level summary for the current time
+- The chart now behaves as a brushed playback selector instead of using visible A/B markers. Default chrome is intentionally sparse: no always-on tick labels, no visible average/count text, and no explicit play text. Hover, focus and drag reveal just enough internal chart guides for orientation.
+- The map presentation is now closer to a background data artwork. OSM raster tiles were removed from the active scene and replaced with a blank projection plus a faint coastline trace and stronger pulse rendering. This is the smallest useful step toward geographic context without reintroducing a conventional boxed map.
+- The coastline is currently an embedded prototype trace. Before wider release, replace it with an official coastline or metro boundary asset, then consider a second subtle geography layer such as sourced metro-region outlines or SA2-style groupings if they help orientation without turning the page into a dashboard.
+- The new playback range only works within one loaded partition. The next archive decision is architectural: keep the same interaction model, but let the chart represent a wider historical span while the browser lazily loads only the data needed for the current viewed period and selection. Candidate approach: an archive manifest plus per-month event partitions plus carry-in seed checkpoints at partition boundaries.
 
-Possible summary metrics:
+## 2026-09-17 coastline and UI correction
 
-- city median or average price
-- cheapest observed station
-- price spread
-- percentage of stations that recently changed price
+- The previous hand-entered coastline trace was incorrect. Removed it and replaced it with clipped WGS84 GSHHG intermediate-resolution level-1 shoreline geometry from Basemap data 2.0.0, with NOAA source and LGPL details in `data/sources/pulse-of-adelaide.md`. The SVG viewBox now matches the map's rendered pixel dimensions instead of stretching a fixed 1,000 × 1,000 viewBox. This source is genuine geographic reference data, not a precisely surveyed coastline.
+- Removed the chart's filled gold selected rectangle, replacing it with a narrow horizontal bracket and short endpoint ticks below the price line. Added vertical whitespace between the lowest plotted value and the bracket; slightly thickened the price line and added a restrained shadow. Guides use actual HTML text over the SVG, so responsive SVG scaling no longer stretches font glyphs.
+- The map has no raster, tinted panel, vignette or artificial backdrop. The coastline and station pulses fade through an elliptical transparency mask to the page background; the persistent glow at each observed station remains intentional. The map's select controls, date/time and colour legend are grouped at upper right with no cards or borders; the redundant tagline is removed. Playback speed cycles 1× → 2× → 5× → 10× on a text-only button; filters are unboxed native selects.
+- The selection and bottom scrubber still operate within the loaded month. This does not address full-archive loading or the exporter’s limited prior-state lookback. Local test data and screenshot mockups are excluded from the patch.
 
-Exact metrics should depend on data quality.
+## 2026-09-17 chart, geography and mean-price refinement
 
-## Visual concept
+- The time-series bracket persists as the playback interval, but an extra light line segment follows that interval **only while the user is actively dragging**. Releasing the pointer removes the temporary highlight. The series gains a restrained neutral underlay and remains crisp on black without a filled selection region.
+- The time display is larger and semi-transparent. Mean reported station price returns as a bottom-right text-only readout using an integer plus a superscript tenth, e.g. `181³ c/L` represents 181.3 cents per litre. Red/green text-glow accents trigger during forward playback only when cumulative mean movement reaches the larger of 0.5 c/L or 0.25% of the reference mean, with a 1.4-second minimum interval. Scrubbing, initialisation and reduced-motion mode do not trigger the effect. The displayed mean still updates for every new reported observation.
+- Map suburb orientation uses 12 geographic reference squares, including the user's requested locations and Gawler. Mouse hover reveals semi-transparent small-caps names, and hovering/focusing a square makes its name fully visible; touch can select individual names without showing all labels at once. The labels are geographic cues, not observed prices.
+- The existing GSHHG line remains the offline fallback. The browser asks Location SA's public coastline layer for higher-detail GeoJSON within the Adelaide bounding box and clips to that area before drawing. The result shares the same projection as the stations and the attribution link names the active source. This is a static-page reference fetch, not an API for fuel prices. Browser access to the Location SA service, CORS and source attribution terms still require real-network confirmation; if it fails, the visual falls back to the bundled GSHHG line rather than inventing a new coastline.
+- No price observations, event ordering, month partitioning or R files change. Longer-period playback, the 48-hour seed issue and the historical fuel data publication decision remain separate follow-up stages.
 
-Potential mappings:
+## 2026-09-17 hover transport and flag-node refinement
 
-```text
-station position = latitude and longitude
-price level = colour or intensity
-price change = pulse event
-time = animation timeline
-brand = optional symbol or filter
-```
+- The map fills the space formerly used by the separate transport row. Play/pause and speed share an animated bottom-centre overlay: 20% opacity when the map is hovered, 75% while hovered/focused directly, persistent accessible controls on touch. The progress line sits along the map bottom and grows slightly on hover, keeping native range-input semantics.
+- The date/time and mean-price typography were enlarged without introducing card backgrounds. The former mean pulse gate, based on meaningful aggregate changes and a cooldown, is unchanged.
+- Station **visual glow duration** is now magnitude-dependent: about 1.2 historical hours plus 0.38 hours per c/L, capped at 24 hours, with opacity falling to zero at expiry. Short transient flashes also scale with magnitude. The price-state carry-forward and event stream do not time out or discard observations.
+- Suburb reference squares appear only when exploring the map with a pointer; a hover/focus/tap selects an individual short diagonal flag whose label reveals in quick, reversible typewriter-style steps. Multiple flags can transition independently while moving between nodes. Keyboard focus remains visible; touch devices keep reference squares available and support tap selection.
+- Removed the locally bundled coarse GSHHG coastline from the active code. **The old `adelaide-coastline.json` file must be deleted manually.** The map now draws no coastline until its Location SA GeoJSON query succeeds, so there is no low-to-high-resolution visual jump. Failure to load means no coast rather than presenting false or inferior geometry. Network/CORS and source reuse obligations remain to be verified.
+- No R pipeline, source price data, fuel partition or full-archive loading changes.
 
-Do not commit to colour encoding until the dataset and accessibility needs are reviewed.
+## 2026-09-17 whole-hour chart, longer pulses and major roads
 
-## Technical direction
+- Halved the chart's vertical allocation to roughly 7% of the visualisation, with a mobile floor for usable touch targets. Removed the independent map-bottom progress bar and moved the accessible playback range input onto the chart's bottom bracket. Its marker/progress uses the same x scale as the price series. Series-area clicks select A, then B, or a single drag selects an interval; selecting shows temporary line emphasis only while pressed, and releasing clears it. The series hover time and locked endpoint labels use `DD MMM HH:MM` in the existing sans-serif font. Each endpoint has an independent reset button; keyboard arrows move the cursor, Alt+arrows edit A, Shift+arrows edit B, and Enter/Space can initiate/finish keyboard selection.
+- Displayed hours align to **Adelaide-local hour boundaries**: ceil the source start and floor the end, then round selections/scrubs to the same hour lattice. One historical hour advances per discrete playback step, with fractional real-frame time accumulated at 1×, 2×, 5× or 10×. Source event timestamps and chronological order are not rounded, modified or re-exported. Autoplay starts only after successful local data/map load and is suppressed for reduced-motion users; explicit play still works.
+- Persistent station *visual* glows now expire after `min(60, 4 + 0.9 × abs(deltaCpl))` historical hours, not after a fixed station-price age. Latest reported prices remain carried forward, unchanged. Increased the translucent time/mean typography; visible unit is in `MEAN PRICE (CPL)`, not repeated after the superscript decimal. Removed transport button fills/borders, retained invisible click/touch targets, and kept the Adelaide CBD orientation flag visible when not exploring.
+- Sourced faint freeway/highway/arterial road geometry from [Location SA Streets Map roads layer 42](https://location.sa.gov.au/arcgis/rest/services/BaseMaps/StreetMapCased_wmas/MapServer/42), which publicly lists CLASS `FREE`, `HWY`, `ART` and supports GeoJSON queries/pagination. Up to four 1,000-feature pages are fetched for a metropolitan WGS84 bbox, clipped, projected alongside existing coastline and faded with the same mask. This is **road reference geometry**, not evidence that price changes propagate along roads or that one station causes another's price. There is no invented routing or backend. Verify actual response size, CORS and attribution before publication; failure leaves the road overlay blank.
 
-Likely tools:
+## Validation and next decision
 
-- Astro project page
-- MapLibre GL JS
-- TypeScript
-- Python or Node preprocessing
-- compact JSON or GeoJSON output
+- Focused strict TypeScript and GeoJSON validation passed. An isolated Chromium harness using in-memory synthetic events and a MapLibre projection stub passed 1440 × 900 and 390 × 780 layout, transparent map, three coastline paths aligned to SVG dimensions, 5× speed after two clicks, draggable bracket and zero runtime errors. The user reports running the local R exporter, but the current archive contains no R installation or real exported data. Full Astro, real MapLibre/CDN and live-data browser checks remain untested.
+- Check February map position, coastline usefulness, pulse legibility, range-brush behaviour, mobile one-viewport layout, scrubber behaviour, reduced-motion stepping and actual network payload size. Then choose how to join consecutive monthly segments for longer playback. The current 48-hour lookback intentionally leaves older unobserved states unknown rather than inventing prices.
+- Original historical publisher/provenance and reuse permission must be checked before release. Keep the project in LAB prototype status.
 
-D3 may be used for timeline or supporting chart elements if useful.
+## Previous local-history implementation (superseded for browser playback)
 
-## Data pipeline
-
-Target pattern:
-
-```text
-permitted source -> data/raw/pulse-of-adelaide/ (ignored local input)
-   |
-   v
-scripts/data/pulse-of-adelaide/ (add after research)
-   |
-   +-- validation
-   +-- cleaning
-   +-- station matching
-   +-- time normalisation
-   +-- derived metrics
-   |
-   v
-data/processed/pulse-of-adelaide/ (ignored intermediates)
-   |
-   v
-public/data/pulse-of-adelaide/ (approved browser exports + metadata)
-   |
-   v
-interactive map
-```
-
-Commit provenance in `data/sources/pulse-of-adelaide.md`. Document exact retrieval and processing commands when implemented. Given the same pinned inputs and parameters, transformations must produce the same data values and stable ordering; generation time is separate metadata. Validate a new snapshot before replacing approved outputs.
-
-## V1 data contract
-
-Storage and updates: static browser-ready files deployed with the existing Astro output and Cloudflare Worker. Start with an explicitly prepared manual snapshot, with its observation period visible. Source acquisition is separate from `npm run dev` and `npm run build`; no live API, scheduled ingestion or Cloudflare storage is required for V1.
-
-The following is a proposed client contract, subject to inspection of a legitimate source. It does not claim these source fields or coverage exist. Finalise exact schemas, fuel grade, units, timezone, null policy and measured sizes before implementing the map.
-
-| Proposed file | Browser fields and meaning | Ordering and missing-data policy |
-| --- | --- | --- |
-| `stations.json` | Stable station ID, display name and map coordinates; optional brand only if needed and permitted. Target coordinates: longitude/latitude in WGS84 decimal degrees, transformed from the verified source CRS. | Stable ID order, unique IDs. Exclude unlocatable stations from the map and disclose counts; do not invent coordinates. |
-| `timeline.json` | Station ID, observation/change timestamp, selected grade and observed price. Convert verified price units to cents/litre and timestamps to explicit UTC instants; display in `Australia/Adelaide`. | Time then station ID. Finalise duplicate resolution after inspection. Missing observations are unavailable, never zero; any carry-forward/expiry rule requires evidence and disclosure. |
-| `summary.json` | Time bucket, count of valid observations, and only metrics supported by the source (for example median price in cents/litre). | Ascending time. No valid observations means count zero and null metrics. Define bucket size, weighting and inclusion rules before export. |
-| `metadata.json` | Version, generation and retrieval times, verified sources/terms, actual coverage, processing method, per-file counts/bytes and limitations. | Follow the [metadata convention](../../data-governance.md#browser-metadata); use null for unknown facts during drafting, never fabricate provenance. |
-
-Keep station metadata out of repeated timeline observations. Raw format, size, row count, source identifiers, CRS, timezone, cadence and each output's size are all currently unknown. Record them in the source note after retrieval. Define each file's record-count meaning and payload measurements before release. Aim below about 2 MB compressed for the initial visual data; consider chunks when total data approaches 10 MB. These are planning targets, not measured results or platform limits.
-
-D1, R2 or KV may be considered only after measuring a specific query, payload or update requirement and documenting why static exports/chunking cannot satisfy it. Record the decision and isolated local setup before adding any service. Default commands must not mutate production resources; remote access requires an explicit task requirement and user approval.
-
-Local development uses `npm run dev`; verify built assets with `npm run build` then `npm run preview`. Proposed data URLs are `/data/pulse-of-adelaide/<filename>` in both environments. Before data exists, retain the current PLANNED project page.
-
-Failure behaviour: show loading progress, a readable load-error message and retry control on fetch failure; disable playback until required assets load. Empty periods show an explicit no-observations state. Partial coverage shows available observations and valid-station counts with a visible limitation. Do not portray unavailable values as zero or stale values as current. A future refresh failure retains the last validated snapshot and its original coverage dates.
-
-Attribution: use the existing project `sources` frontmatter for verified source links. Put licence/terms, observation period, retrieval date, limitations and concise methodology in the project body, with a link to public metadata once released. Add real update dates only when data is available; no fabricated citations on the current idea page.
-
-## Research before implementation
-
-Before coding the visual:
-
-1. identify a legitimate public source for historical or current Adelaide fuel prices
-2. document access terms
-3. inspect available fields
-4. confirm geographic coordinates or a geocoding strategy
-5. measure observation frequency
-6. determine how price-change events can be derived
-7. select one fuel grade for the first version
-8. estimate browser dataset size
-
-Also confirm redistribution rights, historical availability, raw byte/row counts, stable identifiers, source CRS, timestamp timezone and price units. Record evidence in the source note and finalise the V1 contract above. If research cannot establish a suitable source, leave the visualisation blocked and revise its scope from public evidence; do not invent data or substitute employer knowledge.
-
-## Mobile strategy
-
-On phones:
-
-- map remains primary
-- timeline spans available width
-- station details use a bottom sheet or stacked panel rather than a desktop side panel
-- labels are reduced
-- nonessential map decoration is removed
-
-## Accessibility
-
-- provide play and pause controls
-- respect reduced motion
-- allow scrubbing without animation
-- do not rely only on colour to identify change direction or state
-- provide written findings below the visual
-
-## Later enhancements
-
-Only after the first version works:
-
-- brand filters
-- multiple fuel grades
-- cycle comparison
-- price-change propagation analysis
-- suburb summaries
-- day and night visual modes
-- downloadable derived data
-- annotation of major cycle events
-
-## Completion criteria for LAB publication
-
-- data source is documented
-- source/redistribution terms are verified and the research blocker is resolved
-- reproducible processing, validated static exports and metadata follow the V1 contract
-- actual initial transfer and output sizes are recorded
-- [data release checklist](../../checklists/data-release.md) is complete, including load/empty/partial states
-- interactive map works
-- timeline works on desktop and mobile
-- at least one useful finding is written from the data
-- methodology is documented
-- reduced-motion behaviour exists
-- `npm run build` passes
-- project page has a stable URL
+The 2026-09-16 daily archive importer `build_history_browser.py` produced one last observed price per Adelaide calendar day from an earlier incomplete 40-station export. It remains in the repository for comparison but cannot support intraday propagation and is not read by the event player. Earlier one-month preview and government integration files remain separate legacy material, not inputs to this prototype.

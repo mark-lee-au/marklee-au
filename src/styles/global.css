@@ -414,3 +414,90 @@ button:focus-visible {
     transition-duration: 0.001ms !important;
   }
 }
+
+/* Shared fullscreen project navigation. The page uses this only with fullscreen frontmatter. */
+html { --fullscreen-nav-offset: 0px; }
+html.fullscreen-nav-pinned { --fullscreen-nav-offset: 59px; }
+.project-page--fullscreen { padding-top: var(--fullscreen-nav-offset); }
+.site-header--fullscreen {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 300;
+  min-height: 0;
+  height: 0;
+  border: 0;
+  background: none;
+  overflow: visible;
+}
+.site-header--fullscreen .section-strip {
+  position: absolute;
+  inset: 0 0 auto;
+  width: 100%;
+  max-width: none;
+  height: 59px;
+  padding-inline: max(0px, calc((100vw - var(--max)) / 2));
+  overflow-x: auto;
+  background: rgba(8, 9, 8, .98);
+  border-bottom: 1px solid var(--line);
+  transform: translateY(-100%);
+  visibility: hidden;
+  transition: transform .28s ease, visibility 0s .28s;
+}
+.site-header--fullscreen.is-open .section-strip {
+  transform: translateY(0);
+  visibility: visible;
+  transition-delay: 0s;
+}
+.site-header--fullscreen .section-strip__track { border-left: 1px solid var(--line); }
+.fullscreen-nav__tab {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 48px;
+  height: 33px;
+  border: 1px solid rgba(188, 194, 181, .26);
+  border-top: 0;
+  border-radius: 0 0 6px 6px;
+  background: rgba(16, 19, 17, .96);
+  opacity: .25;
+  transition: top .28s ease, opacity .2s ease;
+  pointer-events: auto;
+}
+.site-header--fullscreen.is-open .fullscreen-nav__tab { top: 59px; }
+.site-header--fullscreen.is-near-top .fullscreen-nav__tab,
+.site-header--fullscreen .fullscreen-nav__tab:hover,
+.site-header--fullscreen .fullscreen-nav__tab:focus-within { opacity: .75; }
+.fullscreen-nav__toggle {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 33px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #e6e8dc;
+  cursor: pointer;
+}
+.fullscreen-nav__toggle:hover { color: #fff; }
+.fullscreen-nav__slot { display: block; width: 24px; height: 28px; overflow: hidden; }
+.fullscreen-nav__icons { display: flex; flex-direction: column; width: 24px; transform: translateY(0); }
+.fullscreen-nav__icons svg { flex: none; height: 28px; width: 24px; padding: 4px 2px; }
+.site-header--fullscreen.is-open .fullscreen-nav__icons { transform: translateY(-28px); }
+@keyframes fullscreen-nav-roll-pin { from { transform: translateY(-56px); } to { transform: translateY(-28px); } }
+@keyframes fullscreen-nav-roll-chevron { from { transform: translateY(-28px); } to { transform: translateY(0); } }
+.site-header--fullscreen.is-open.has-toggled .fullscreen-nav__icons { animation: fullscreen-nav-roll-pin 1.3s cubic-bezier(.22,.73,.19,1) both; }
+.site-header--fullscreen:not(.is-open).has-toggled .fullscreen-nav__icons { animation: fullscreen-nav-roll-chevron 1.3s cubic-bezier(.22,.73,.19,1) both; }
+/* A pinned tab is shown only while the strip is approached. Keep it visible in the short gap below the strip. */
+.site-header--fullscreen.is-pinned .fullscreen-nav__tab { opacity: 0; pointer-events: none; }
+.site-header--fullscreen.is-pinned.is-over-strip .fullscreen-nav__tab,
+.site-header--fullscreen.is-pinned .fullscreen-nav__tab:focus-within { opacity: .75; pointer-events: auto; }
+@media (hover: none) {
+  .site-header--fullscreen.is-pinned .fullscreen-nav__tab { opacity: .75; pointer-events: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .site-header--fullscreen .section-strip,
+  .fullscreen-nav__tab { transition: none; }
+  .site-header--fullscreen .fullscreen-nav__icons { animation: none !important; transform: translateY(0); }
+  .site-header--fullscreen.is-open .fullscreen-nav__icons { transform: translateY(-28px); }
+}
