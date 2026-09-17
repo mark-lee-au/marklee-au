@@ -142,27 +142,26 @@ body:has(.pulse) > .site-footer { display: none; }
   stroke-linecap: round;
 }
 .pulse__selection {
-  stroke: rgba(232, 218, 183, .78);
-  stroke-width: 1.15;
+  stroke: rgba(143, 175, 182, .6);
+  stroke-width: 2.55;
 }
 .pulse__bracket-progress {
-  stroke: rgba(246, 215, 155, .96);
-  stroke-width: 1.65;
+  /* Cool blue-green progress stays visually separate from the gold price line. */
+  stroke: #9ad8d9;
+  stroke-width: 3.2;
   pointer-events: none;
 }
 .pulse__bracket-ball {
-  fill: #f1d49c;
+  fill: #9ad8d9;
   stroke: #080908;
   stroke-width: 1;
   vector-effect: non-scaling-stroke;
   pointer-events: none;
 }
 .pulse__handle {
-  stroke: rgba(232, 218, 183, .86);
-  stroke-width: 1.2;
+  stroke: #9ad8d9;
+  stroke-width: 3.2;
 }
-.pulse__chart:has(.pulse__chart-scrub:hover) .pulse__selection,
-.pulse__chart:has(.pulse__chart-scrub:hover) .pulse__bracket-progress { stroke-width: 1.95; }
 .pulse__chart-scrub {
   position: absolute;
   z-index: 3;
@@ -216,15 +215,18 @@ body:has(.pulse) > .site-footer { display: none; }
   letter-spacing: .01em;
 }
 .pulse__range-label {
-  top: calc(100% + 2px);
+  /* Keep reset controls clear of the grip, including at the interval ends. */
+  top: calc(100% + 11px);
   display: flex;
   align-items: center;
   gap: 4px;
+  padding: 1px 4px;
+  background: #080908;
   pointer-events: none;
 }
 .pulse__range-label--start { transform: translateX(0); }
 .pulse__range-label--end { transform: translateX(-100%); }
-.pulse__range-label--end.is-close { top: calc(100% + 16px); }
+.pulse__range-label--end.is-close { top: calc(100% + 38px); }
 .pulse__range-label button {
   border: 0;
   padding: 0 2px;
@@ -747,7 +749,7 @@ body:has(.pulse) > .site-footer { display: none; }
   .pulse__speed { right: -8px; top: 8px; width: 34px; height: 34px; }
   .pulse__controls { width: 92px; height: 74px; bottom: 2px; }
   .pulse__place-label { font-size: 9px; }
-  .pulse__range-label { font-size: 9px; top: calc(100% + 1px); }
+  .pulse__range-label { font-size: 9px; }
   .pulse__hover-time { font-size: 10px; }
   .pulse__map-brand {
     top: 35px;
@@ -814,12 +816,15 @@ body:has(.pulse) > .site-footer { display: none; }
 }
 .pulse__map-brand { z-index: 1; }
 .pulse__brand-overlay { z-index: 7; -webkit-mask-size: 100% 100%; mask-size: 100% 100%; }
-.pulse__selection { stroke-width: 2.55; }
-.pulse__bracket-progress { stroke-width: 3.2; }
+/* All three bracket strokes thicken together, including both vertical ends. */
 .pulse__chart:has(.pulse__chart-scrub:hover) .pulse__selection,
 .pulse__chart:has(.pulse__chart-scrub:hover) .pulse__bracket-progress,
+.pulse__chart:has(.pulse__chart-scrub:hover) .pulse__handle,
 .pulse__chart.is-scrubbing .pulse__selection,
-.pulse__chart.is-scrubbing .pulse__bracket-progress { stroke-width: 4.8; }
+.pulse__chart.is-scrubbing .pulse__bracket-progress,
+.pulse__chart.is-scrubbing .pulse__handle { stroke-width: 4.8; }
+.pulse__chart:has(.pulse__chart-scrub:hover) .pulse__selection,
+.pulse__chart.is-scrubbing .pulse__selection { stroke-width: 3.7; }
 .pulse__scrub-knob {
   position: absolute;
   z-index: 3;
@@ -831,10 +836,10 @@ body:has(.pulse) > .site-footer { display: none; }
   width: 22px;
   height: 18px;
   transform: translateX(-50%);
-  border: 1px solid rgba(255, 239, 194, .88);
+  border: 1px solid rgba(180, 235, 235, .9);
   border-radius: 5px;
-  background: #f4d99b;
-  box-shadow: 0 0 10px rgba(251, 213, 139, .42), 0 2px 6px rgba(0, 0, 0, .8);
+  background: #9ad8d9;
+  box-shadow: 0 0 10px rgba(154, 216, 217, .3), 0 2px 6px rgba(0, 0, 0, .8);
   pointer-events: none;
   transition: box-shadow .16s ease, transform .16s ease;
 }
@@ -847,7 +852,7 @@ body:has(.pulse) > .site-footer { display: none; }
 }
 .pulse__chart-scrub:hover .pulse__scrub-knob,
 .pulse__chart.is-scrubbing .pulse__scrub-knob {
-  box-shadow: 0 0 15px rgba(251, 213, 139, .72), 0 2px 8px rgba(0, 0, 0, .8);
+  box-shadow: 0 0 15px rgba(154, 216, 217, .56), 0 2px 8px rgba(0, 0, 0, .8);
   transform: translateX(-50%) scale(1.1);
 }
 .pulse__controls { width: 122px; }
@@ -874,15 +879,16 @@ body:has(.pulse) > .site-footer { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { .pulse__scrub-knob { transition: none; } }
 
-/* Playback timestamp sits below the grip, on top of the date axis rather than crossing it. */
+/* Drag-only timestamp uses the chart lane above the grip. A/B labels and
+   their reset buttons occupy a separate lane below the grip. */
 .pulse__scrub-time {
   position: absolute;
-  z-index: 12;
-  top: calc(100% + 2px);
+  z-index: 9;
+  top: max(0px, calc(100% - 50px));
   transform: translateX(-50%);
   padding: 1px 6px 3px;
   white-space: nowrap;
-  color: rgba(244, 224, 177, .85);
+  color: #c1eded;
   background: #080908;
   box-shadow: 0 0 8px 5px #080908;
   font-size: clamp(9px, .7vw, 11px);
@@ -893,7 +899,7 @@ body:has(.pulse) > .site-footer { display: none; }
 .pulse__scrub-time.is-near-start { transform: translateX(0); }
 .pulse__scrub-time.is-near-end { transform: translateX(-100%); }
 .pulse__guide--date { z-index: 1; }
-.pulse__scrub-knob { background: #f4d99b; }
+.pulse__scrub-knob { background: #9ad8d9; }
 /* Port River geometry comes from the same OSM extract as the roads. */
 .pulse__harbour-coast {
   fill: none;

@@ -1,5 +1,18 @@
 # Execution Plan 002: The Pulse of Adelaide (historical-only)
 
+## 2026-09-17 Patch 2: drag-only time and distinct playback bracket
+
+- Separate the two chart meanings: gold/grey is the reported mean-price series, while cool blue-green is the interval bracket, progress segment and scrub grip. Give vertical bracket end caps the same 3.2px stroke as progress, and thicken both to 4.8px on hover or scrub. Keep the neutral selection rail narrower.
+- Show the scrub timestamp above the grip only while the user holds and moves the native slider or drags the bracket. Hide on pointer release/cancellation, loss of capture, blur or tab visibility change; no floating timestamp during Play/Pause or keyboard stepping. Suppress the competing chart hover timestamp while scrubbing.
+- Shift A/B labels and reset buttons into a lower lane with opaque backing and stack close A/B endpoints on separate rows. This keeps buttons clickable without competing with the grip or its short-lived timestamp. Retain the native slider and keyboard navigation. No title, geography, price export or playback-rate changes.
+- Local browser review remains needed for narrow/short viewports, near-end drags and closely spaced A/B points. Full build requires the repository's installed dependencies.
+
+## 2026-09-17 title-only all-or-nothing handover
+
+- Replace visible per-pixel disappearance of the top title with an all-or-nothing handover. Retain the existing cumulative geographic land mask internally, but test it against rasterised, laid-out title glyphs, not the title's full rectangular box. A word's surrounding empty space cannot prevent completion.
+- Keep the top copy wholly above land until no title glyph pixels remain unexposed to water. Hide the entire top copy in one step at that point, leaving the unchanged base title below land. The handover remains latched until refresh. No changes to title copy, roads, map data, scrub or A/B labels.
+- Focused strict Pulse TypeScript passed; verify actual font raster alignment and the handover visually in the local MapLibre page. Full Astro build was not run.
+
 ## 2026-09-17 source-alignment follow-up
 
 - GSHHG intermediate resolution is not interchangeable with the current OSM road/harbour outline. The Port River polygon from the supplied Geofabrik water shapefile exposes a spatial mismatch in the *coastal source*, not an offset in the map projection. Do not translate fuel stations or roads.

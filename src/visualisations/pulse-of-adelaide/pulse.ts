@@ -144,6 +144,11 @@ if (root) {
   let coastLines: Point[][] = [];
   let harbourWaterLines: Point[][] = [];
   let titleMaskInitialized = false;
+  let titleFullyCrossed = false;
+  let titleGlyphsWidth = 0;
+  let titleGlyphsHeight = 0;
+  const titleGlyphCanvas = document.createElement('canvas');
+  const titleGlyphCtx = titleGlyphCanvas.getContext('2d');
   let landRings: Point[][][] = [];
   let titleWasDragged = false;
   let lastTitleMask = 0;
@@ -486,8 +491,49 @@ if (root) {
     else { titleMaskCtx.fillStyle = '#fff'; titleMaskCtx.fillRect(0, 0, width, height); }
   }
 
+  // Match the actual laid-out letter positions, including the spaced first line.
+  // Empty space inside the title's box must not delay the all-or-nothing handover.
+  function refreshTitleGlyphs(width: number, height: number): void {
+    if (!titleGlyphCtx || (titleGlyphsWidth === width && titleGlyphsHeight === height)) return;
+    titleGlyphCanvas.width = width;
+    titleGlyphCanvas.height = height;
+    titleGlyphsWidth = width;
+    titleGlyphsHeight = height;
+    const overlayRect = brandOverlay.getBoundingClientRect();
+    titleGlyphCtx.fillStyle = '#fff';
+    titleGlyphCtx.textBaseline = 'middle';
+    for (const span of Array.from(brandOverlay.querySelectorAll<HTMLElement>('.pulse__brand-top > span, .pulse__brand-bottom'))) {
+      const range = document.createRange();
+      range.selectNodeContents(span);
+      const rect = range.getBoundingClientRect();
+      const style = getComputedStyle(span);
+      titleGlyphCtx.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+      // Canvas letterSpacing is supported in current Chromium; fall back to the
+      // browser's normal glyph spacing where it is unavailable.
+      if ('letterSpacing' in titleGlyphCtx) titleGlyphCtx.letterSpacing = style.letterSpacing;
+      titleGlyphCtx.fillText(span.textContent ?? '', rect.left - overlayRect.left, rect.top - overlayRect.top + rect.height / 2);
+    }
+  }
+
+  function hasEveryTitleLetterCrossedWater(): boolean {
+    if (!titleMaskCtx || !titleGlyphCtx) return false;
+    const width = titleMaskCanvas.width;
+    const height = titleMaskCanvas.height;
+    refreshTitleGlyphs(width, height);
+    const glyphs = titleGlyphCtx.getImageData(0, 0, width, height).data;
+    const remainingLand = titleMaskCtx.getImageData(0, 0, width, height).data;
+    let letterPixels = 0;
+    for (let alpha = 3; alpha < glyphs.length; alpha += 4) {
+      // Ignore antialiased fringes, not the interior of the lettering.
+      if (glyphs[alpha] < 128) continue;
+      letterPixels++;
+      if (remainingLand[alpha] >= 128) return false;
+    }
+    return letterPixels > 0;
+  }
+
   function updateTitleMask(force = false): void {
-    if (!map || !landRings.length || !titleMaskCtx) return;
+    if (!map || !landRings.length || !titleMaskCtx || titleFullyCrossed) return;
     if (!titleWasDragged && titleMaskInitialized) return;
     const now = performance.now();
     if (!force && now - lastTitleMask < 75) return;
@@ -511,10 +557,13 @@ if (root) {
     }
     titleMaskCtx.fill('evenodd');
     titleMaskCtx.globalCompositeOperation = 'source-over';
-    const mask = `url("${titleMaskCanvas.toDataURL('image/png')}")`;
-    brandOverlay.style.webkitMaskImage = mask;
-    brandOverlay.style.maskImage = mask;
     titleMaskInitialized = true;
+    // Keep the entire upper copy visible until every visible letter has had
+    // its turn over water. Then hand over the whole title to the lower copy.
+    if (hasEveryTitleLetterCrossedWater()) {
+      titleFullyCrossed = true;
+      brandOverlay.style.visibility = 'hidden';
+    }
   }
 
   async function loadStaticLand(): Promise<void> {
@@ -805,7 +854,9 @@ if (root) {
     rangeEndLabel.style.left = `${endPercent}%`;
     const overlapping = endPercent - startPercent < (chartFrame.clientWidth < 650 ? 48 : 28);
     rangeEndLabel.classList.toggle('is-close', overlapping);
-    hoverTime.hidden = hoveredTime === null || pickStage === 'choosing-end';
+    // The drag-only scrub timestamp occupies the upper chart lane; do not also
+    // show a competing chart hover timestamp in that lane.
+    hoverTime.hidden = hoveredTime === null || pickStage === 'choosing-end' || chartFrame.classList.contains('is-scrubbing');
     chartFrame.classList.toggle('is-previewing', hoveredTime !== null || pickStage === 'choosing-end');
     if (hoveredTime !== null) {
       hoverTime.textContent = rangeTime(hoveredTime);
@@ -982,6 +1033,12 @@ if (root) {
     play.setAttribute('aria-label', 'Play historical prices');
   }
 
+  function setScrubDragging(active: boolean): void {
+    chartFrame.classList.toggle('is-scrubbing', active);
+    scrubTime.hidden = !active;
+    updateRangeLabels();
+  }
+
   function loop(now: number): void {
     if (!playing) return;
     if (lastFrame) {
@@ -1035,7 +1092,7 @@ if (root) {
     }
     chart.setPointerCapture(event.pointerId);
     if (dragMode === 'range' || dragMode === 'end' || dragMode === 'start') chartFrame.classList.add('is-selecting');
-    if (dragMode === 'scrub') { chartFrame.classList.add('is-scrubbing'); render(Math.min(rangeFinish, Math.max(rangeStart, time))); }
+    if (dragMode === 'scrub') { setScrubDragging(true); render(Math.min(rangeFinish, Math.max(rangeStart, time))); }
     updateRangeLabels();
     stationInfo.hidden = true;
   }
@@ -1077,7 +1134,8 @@ if (root) {
     }
     dragMode = null;
     activePointer = null;
-    chartFrame.classList.remove('is-selecting', 'is-scrubbing');
+    chartFrame.classList.remove('is-selecting');
+    setScrubDragging(false);
     if (event.pointerType === 'touch') { chartFrame.classList.remove('is-guides-visible'); hoveredTime = null; }
     updateRangeLabels();
   }
@@ -1190,9 +1248,13 @@ if (root) {
     render(rangeStart);
     if (resume) beginPlayback();
   });
-  slider.addEventListener('pointerdown', () => chartFrame.classList.add('is-scrubbing'));
-  for (const event of ['pointerup', 'pointercancel', 'change', 'blur']) {
-    slider.addEventListener(event, () => chartFrame.classList.remove('is-scrubbing'));
+  slider.addEventListener('pointerdown', (event) => {
+    if (event.pointerType !== 'touch' && event.button !== 0) return;
+    stop();
+    setScrubDragging(true);
+  });
+  for (const event of ['pointerup', 'pointercancel', 'lostpointercapture', 'change', 'blur']) {
+    slider.addEventListener(event, () => setScrubDragging(false));
   }
   play.addEventListener('click', () => {
     if (playing) { stop(); return; }
@@ -1206,7 +1268,7 @@ if (root) {
     speedButton.setAttribute('aria-label', `Playback speed ${currentMode.label}. Activate to switch to ${followingMode.label}`);
   });
   retry.addEventListener('click', () => { if (index) void loadMonth(); else void start(); });
-  document.addEventListener('visibilitychange', () => { if (document.hidden) stop(); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) { stop(); setScrubDragging(false); } });
   mapWrap.addEventListener('pointerenter', (event) => { if (event.pointerType !== 'touch') root.classList.add('is-exploring'); });
   mapWrap.addEventListener('pointerleave', (event) => {
     if (event.pointerType === 'touch') return;

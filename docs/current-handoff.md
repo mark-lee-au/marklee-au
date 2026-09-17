@@ -1,5 +1,22 @@
 # Current Handoff
 
+## 2026-09-17 Pulse timeline controls (Patch 2, after title handover)
+
+- Base: supplied dirty `main` snapshot `79770434464b4450ef55b00357464fdc82ccc29d` with Patch 1's all-or-nothing title source and documentation layered on top. No live Git comparison; check overlapping local files before applying.
+- The native playback slider and chart-bracket scrub show their floating timestamp **only during an active pointer drag**, including touch. It disappears on release, cancellation, blur or hidden tab. Ordinary Play, Pause and keyboard playback do not display it. The chart hover timestamp is suppressed during a scrub; the drag timestamp stays above the grip, while A/B dates and their separate reset buttons sit below it. Nearby A/B labels use separate rows.
+- The price series remains gold/grey. The playback bracket, progress grip and vertical endpoint ticks use cool blue-green so they read separately from the series; endpoint ticks match the progress stroke width at rest and thicken with it on hover/drag. Existing native slider labels, keyboard controls, playback timing and Patch 1 title behaviour remain unchanged.
+- Changed: `src/visualisations/pulse-of-adelaide/{PulseOfAdelaide.astro,pulse.css,pulse.ts}`, `docs/{current-handoff.md,ux-accessibility-features.md}`, `docs/exec-plans/active/002-pulse-of-adelaide.md`. No deletions. Focused compilation and structure checks are recorded in the patch handoff; local browser visual verification and full Astro build remain pending. Next: review timeline placement during slider drag, short A/B intervals and touch use.
+
+---
+
+## 2026-09-17 Pulse title all-or-nothing land handover (title-only patch)
+
+- Base: supplied dirty `main` snapshot `79770434464b4450ef55b00357464fdc82ccc29d`, including its existing Pulse title/land implementation. No live Git comparison was available; compare overlapping files with local edits before application.
+- The top title stays fully visible above the land while a cumulative land intersection records which letter pixels have entered water. Once every rendered letter pixel has crossed water, the entire top copy hides at once; the existing base title then remains under land. The handover is permanent until refresh. Empty spacing around and between words does not count toward completion.
+- Only title logic and documentation changed. Timeline labels, scrub styling, roads, geography, fuel data and the chart remain untouched. Focused strict TypeScript passed; full Astro build and real MapLibre/browser visual check were not run. Next: review the title transition locally, then tackle the timeline controls separately.
+
+---
+
 ## 2026-09-17 Pulse harbour alignment and chart-label review (latest patch)
 
 - Base: supplied dirty `main` snapshot `79770434464b4450ef55b00357464fdc82ccc29d`, with the previously delivered static-geography, fullscreen-navigation, solid-land and smart-title patches layered in that order. No Git checkout or comparison with newer local edits was available.
