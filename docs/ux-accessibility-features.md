@@ -336,7 +336,14 @@ The homepage review prototype treats top-level site sections as a single-viewpor
 
 ## The Pulse of Adelaide (historical-only prototype)
 
+### Full-history month-range selector, 2026-09-18
+
+The default trend and playback interval span all available historical months for the chosen grade. A compact, keyboard-operable History control opens a panel with native From/To month selects, separate labelled month sliders and a selected-span rail. Selecting an end before the start moves the other endpoint with it, so the month range cannot contain an accidental isolated gap. Applying a period zooms the trend and restores A/B to that period; an All months action stages the entire archive. The time chart continues to accept only a deliberate A/B drag of at least two hours, and the playback timestamp still appears only while the visitor drags the scrubber. The chart summary represents the full history without downloading every raw event into the browser; monthly event files load only when visited, and cumulative checkpoints keep prices from older valid reports when crossing a month boundary. Missing source months are marked as reporting gaps, not interpolated price events. Test mobile sizing, the panel's scroll behaviour and network stalls with the real full export before release.
+
+
 ### Timeline drag clarity, 2026-09-17
+
+A single click on the price plot no longer creates A or lets hover move B. Mouse, pen and touch now establish a new A/B interval only with a deliberate drag longer than 6 CSS pixels and spanning at least 2 whole Adelaide-local hours; shorter or cancelled gestures preserve the previous range. Reverse drags work. Existing A/B handles and keyboard edits observe the same minimum duration, while the separate native playback scrubber still responds immediately and the chart remains keyboard accessible.
 
 The mean-price series stays gold/grey, while the progress bracket and three-line grip now use cool blue-green. The vertical bracket ends match the progress line's weight and respond to hover/drag with it. The playback timestamp appears above the grip only while the visitor actively drags it, not while playback runs or is paused. A/B dates and their reset buttons occupy a separate lane below the grip, and close endpoints stack on separate rows. The chart's own hover time is hidden during a scrub to avoid competing labels. The native range input and its accessible value, keyboard navigation, separate reset controls and reduced-motion playback remain in place.
 

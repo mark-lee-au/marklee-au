@@ -4,7 +4,7 @@ import './pulse.css';
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@6.9.1/dist/maplibre-gl.css" />
 <section class="pulse" data-roads-mode="show" data-pulse aria-label="Historical Adelaide fuel price movement">
   <div class="pulse__chart" data-chart-frame aria-label="Adelaide fuel price trend and playback interval">
-    <svg data-chart tabindex="0" role="group" aria-label="Mean reported station price. Drag to select a time range. Arrow keys move playback, Alt and arrows adjust the start, Shift and arrows adjust the end." preserveAspectRatio="none" viewBox="0 0 1000 140"></svg>
+    <svg data-chart tabindex="0" role="group" aria-label="Mean reported station price. Drag at least two hours to select a time range; a click alone does not select. Arrow keys move playback, Alt and arrows adjust the start, Shift and arrows adjust the end." preserveAspectRatio="none" viewBox="0 0 1000 140"></svg>
     <div class="pulse__chart-guides" data-chart-guides aria-hidden="true"></div>
     <div class="pulse__range-label pulse__range-label--start" data-range-start hidden>
       <span data-range-start-text></span><button type="button" data-reset-start aria-label="Reset playback start to the beginning" title="Reset start">↺</button>
@@ -28,9 +28,25 @@ import './pulse.css';
     <div class="pulse__hud">
       <div class="pulse__filters" data-filters hidden>
         <label><span class="sr-only">Fuel type</span><select data-fuel aria-label="Fuel type"></select></label>
-        <label><span class="sr-only">Historical month</span><select data-month aria-label="Historical month"></select></label>
+        <div class="pulse__archive-control" data-archive-control>
+          <button type="button" class="pulse__archive-trigger" data-archive-toggle aria-expanded="false" aria-controls="pulse-archive-panel" aria-label="Choose historical month range"><span data-archive-caption>ALL HISTORY</span><span aria-hidden="true">⌄</span></button>
+          <div class="pulse__archive-panel" id="pulse-archive-panel" data-archive-panel hidden>
+            <div class="pulse__archive-heading"><strong>HISTORY</strong><button type="button" data-archive-all>Select all</button></div>
+            <div class="pulse__archive-fields">
+              <label>FROM<select data-archive-from aria-label="First month in history"></select></label>
+              <label>TO<select data-archive-to aria-label="Last month in history"></select></label>
+            </div>
+            <div class="pulse__archive-overview" aria-hidden="true"><div data-archive-band></div></div>
+            <div class="pulse__archive-sliders">
+              <label><span>START</span><input type="range" data-archive-start-slider aria-label="First month" min="0" max="1" value="0"></label>
+              <label><span>END</span><input type="range" data-archive-end-slider aria-label="Last month" min="0" max="1" value="1"></label>
+            </div>
+            <p class="pulse__archive-description" data-archive-description></p>
+            <button class="pulse__archive-apply" type="button" data-archive-apply>View period</button>
+          </div>
+        </div>
       </div>
-      <div class="pulse__timer" aria-live="off" title="Historical report timestamps. Source time zone has not been verified."><span data-current-date>SELECT A MONTH</span><strong data-current-time>--:--</strong></div>
+      <div class="pulse__timer" aria-live="off" title="Historical report timestamps. Source time zone has not been verified."><span data-current-date>LOADING HISTORY</span><strong data-current-time>--:--</strong></div>
       <div class="pulse__legend"><span class="pulse__rise">↑ Rise</span><span class="pulse__fall">↓ Fall</span></div>
       <button class="pulse__road-toggle" data-road-toggle type="button" aria-label="Roads visible. Switch to dim roads" title="Roads visible. Click to dim">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21 10 3m9 18L14 3M12 5v3m0 4v3m0 4v2" /></svg>

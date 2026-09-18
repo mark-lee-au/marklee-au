@@ -1,5 +1,23 @@
 # Current Handoff
 
+## 2026-09-18 Pulse full-history month-range prototype (review patch)
+
+- Source baseline: the supplied dirty `main` snapshot at `79770434464b4450ef55b00357464fdc82ccc29d`, with title Patch 1, timeline Patch 2 and drag-only Patch 3 layered over it. The user subsequently reported publishing a February-only data commit `c6a7067` and producing a complete local archive through September 2026. No fresh checkout, complete new commit hash, current working-tree comparison or actual full event files were supplied; compare the overlapping local files before applying this ZIP. Do not overwrite newer local changes.
+- New compact per-fuel archive summary generator reads the user's existing exported monthly JSON once, emits hourly mean/coverage for the full archive, and cumulative station-state checkpoints. The client displays all available months by default without loading all raw observations into browser memory. A small upper-right History panel chooses a contiguous From/To month by native selects or two labelled month sliders; View period zooms the chart and resets A/B to that span, while the existing 2-hour drag rule and drag-only progress timestamp remain unchanged. Monthly event files load on demand across the timeline; up to three files are cached. Missing whole months appear as chart gaps; continuous months carry valid last reported prices through their boundaries.
+- Changed: `src/visualisations/pulse-of-adelaide/{PulseOfAdelaide.astro,pulse.css,pulse.ts}`, `scripts/data/pulse-of-adelaide/{build_archive_summary.mjs,README.md}`, `docs/{current-handoff.md,ux-accessibility-features.md}` and `docs/exec-plans/active/002-pulse-of-adelaide.md`. No generated fuel data or geographic assets in the ZIP. After copying the complete export into `public/data/pulse-of-adelaide/events/`, run `node scripts/data/pulse-of-adelaide/build_archive_summary.mjs` before `npm run dev`.
+- Validation: focused strict TypeScript and Node syntax passed; synthetic three-partition export checked cumulative checkpoints, hourly mean and a missing-month chart gap; CSS parsed without errors. Actual full-history payload sizing, Astro build, browser/device rendering and month-boundary network playback remain untested. The isolated browser harness was blocked from opening local URLs by the execution environment. Review local load time, gap rendering, controls at narrow widths and full history playback before publication.
+
+---
+
+
+## 2026-09-17 Pulse click-versus-drag A/B fix (after Patch 2)
+
+- Base: supplied dirty `main` snapshot `79770434464b4450ef55b00357464fdc82ccc29d`, with the delivered title Patch 1 and timeline Patch 2 layered on top. No live Git checkout or comparison with newer local work; check overlapping files before extraction.
+- Plot clicks now leave the existing A/B playback interval and playing state alone. Pointer-down does not create A, chart hover never updates B, and a new interval is previewed only after deliberate movement exceeding 6 CSS pixels **and** at least 2 snapped Adelaide-local hours. Dragging either direction works. Only a valid pointer-up locks the range; an invalid release or pointer cancellation restores the prior selection and cursor. Existing A/B endpoint drags and keyboard interval edits observe a 2-hour minimum; the separate bracket scrub remains click/drag accessible.
+- Changed: `src/visualisations/pulse-of-adelaide/{pulse.ts,PulseOfAdelaide.astro}`, `docs/{current-handoff.md,ux-accessibility-features.md}`, `docs/exec-plans/active/002-pulse-of-adelaide.md`. No changes to title, CSS, roads, geography, data, or other projects. Focused strict TypeScript and a 10-scenario isolated selection-handler harness passed; full Astro build and visual/browser testing remain pending. Next: review single clicks, short drags, reverse drags and endpoint editing in the local Pulse page.
+
+---
+
 ## 2026-09-17 Pulse timeline controls (Patch 2, after title handover)
 
 - Base: supplied dirty `main` snapshot `79770434464b4450ef55b00357464fdc82ccc29d` with Patch 1's all-or-nothing title source and documentation layered on top. No live Git comparison; check overlapping local files before applying.

@@ -5,6 +5,8 @@ type RecordRow = { id: string; priceCpl: number; observedAt: string; source: str
 type Part = { month: string; fuelCode: string; file: string; events: number; stations: number };
 type Index = { schemaVersion: 3; kind: 'pulse-event-index'; stations: Site[]; partitions: Part[] };
 type Month = { schemaVersion: 3; kind: 'pulse-events'; month: string; fuelCode: string; start: string; end: string; seeds: RecordRow[]; events: RecordRow[] };
+type ArchivePart = { month: string; file: string; start: string; end: string; events: number; checkpoint: Record<string, [number, number, number | null, number]> };
+type Archive = { schemaVersion: 1; kind: 'pulse-archive-summary'; fuelCode: string; start: string; end: string; months: ArchivePart[]; points: [number, number | null, number][] };
 type State = { price: number; observedAt: number; changedAt: number; delta: number };
 type PulseEvent = RecordRow & { time: number };
 type Pulse = { id: string; delta: number; born: number };
@@ -63,7 +65,18 @@ if (root) {
   const filters = one<HTMLElement>('[data-filters]');
   const transport = one<HTMLElement>('[data-transport]');
   const fuelSelect = one<HTMLSelectElement>('[data-fuel]');
-  const monthSelect = one<HTMLSelectElement>('[data-month]');
+  const archiveControl = one<HTMLElement>('[data-archive-control]');
+  const archiveToggle = one<HTMLButtonElement>('[data-archive-toggle]');
+  const archiveCaption = one<HTMLElement>('[data-archive-caption]');
+  const archivePanel = one<HTMLElement>('[data-archive-panel]');
+  const archiveFrom = one<HTMLSelectElement>('[data-archive-from]');
+  const archiveTo = one<HTMLSelectElement>('[data-archive-to]');
+  const archiveStartSlider = one<HTMLInputElement>('[data-archive-start-slider]');
+  const archiveEndSlider = one<HTMLInputElement>('[data-archive-end-slider]');
+  const archiveBand = one<HTMLElement>('[data-archive-band]');
+  const archiveDescription = one<HTMLElement>('[data-archive-description]');
+  const archiveApply = one<HTMLButtonElement>('[data-archive-apply]');
+  const archiveAll = one<HTMLButtonElement>('[data-archive-all]');
   const speedButton = one<HTMLButtonElement>('[data-speed]');
   const slider = one<HTMLInputElement>('[data-hour]');
   const play = one<HTMLButtonElement>('[data-play]');
@@ -74,7 +87,8 @@ if (root) {
   const currentTime = one<HTMLElement>('[data-current-time]');
   const stationInfo = one<HTMLElement>('[data-station]');
   const detailFormatter = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Adelaide', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false });
-  const dateFormatter = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Adelaide', day: '2-digit', month: 'short' });
+  const dateFormatter = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Adelaide', day: '2-digit', month: 'short', year: 'numeric' });
+  const axisMonthFormatter = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Adelaide', month: 'short', year: 'numeric' });
   const timeFormatter = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Adelaide', hour: '2-digit', minute: '2-digit', hour12: false });
   const monthFormatter = new Intl.DateTimeFormat('en-AU', { timeZone: 'UTC', month: 'short', year: 'numeric' });
   const rangeFormatter = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Adelaide', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false });
@@ -93,6 +107,12 @@ if (root) {
   const svgNS = 'http://www.w3.org/2000/svg';
   let index: Index | null = null;
   let month: Month | null = null;
+  let archive: Archive | null = null;
+  let activePart: ArchivePart | null = null;
+  const cachedMonths = new Map<string, Month>();
+  let activation = 0;
+  let firstMonthIndex = 0;
+  let lastMonthIndex = 0;
   let map: any = null;
   let maplibre: any = null;
   let loading = 0;
@@ -111,7 +131,11 @@ if (root) {
   let pickStage: PickStage = 'idle';
   let hoveredTime: number | null = null;
   let pressX = 0;
-  let startedPicking = false;
+  let dragHasPreview = false;
+  let dragOriginalStart = 0;
+  let dragOriginalFinish = 0;
+  let dragOriginalCursor = 0;
+  let dragOriginalStage: PickStage = 'idle';
   let roadIndex: RoadIndex | null = null;
   let coastBorders: Point[][] = [];
   let coastWest: Point[][] = [];
@@ -189,14 +213,139 @@ if (root) {
   function firstWholeHour(t: number): number { return t + ((60 - adelaideMinute(t)) % 60) * 60_000; }
   function lastWholeHour(t: number): number { return t - adelaideMinute(t) * 60_000; }
   function displayDate(t: number): string { return dateFormatter.format(new Date(t)).toUpperCase(); }
+  function axisDate(t: number): string { return (archiveFinish - archiveStart > 90 * 24 * hour ? axisMonthFormatter : dateFormatter).format(new Date(t)).toUpperCase(); }
   function displayTime(t: number): string { return timeFormatter.format(new Date(t)); }
 
-  function populateMonths(): void {
-    if (!index) return;
-    const months = [...new Set(index.partitions.filter((p) => p.fuelCode === fuelSelect.value).map((p) => p.month))].sort().reverse();
-    const wanted = months.includes(monthSelect.value) ? monthSelect.value : months.includes('2024-02') ? '2024-02' : months[0];
-    monthSelect.replaceChildren(...months.map((m) => new Option(monthFormatter.format(new Date(`${m}-01T00:00:00Z`)), m)));
-    monthSelect.value = wanted;
+  function validArchive(data: any, fuel: string): data is Archive {
+    if (data?.schemaVersion !== 1 || data.kind !== 'pulse-archive-summary' || data.fuelCode !== fuel || !Array.isArray(data.months) || !data.months.length || !Array.isArray(data.points) || !data.points.length || !index) return false;
+    const expected = index.partitions.filter((p) => p.fuelCode === fuel).sort((a, b) => a.month.localeCompare(b.month));
+    return data.months.length === expected.length && data.months.every((part: ArchivePart, i: number) => part.file === expected[i].file && part.events === expected[i].events && Number.isFinite(Date.parse(part.start)) && Number.isFinite(Date.parse(part.end)) && part.checkpoint && typeof part.checkpoint === 'object') && data.points.every((point: unknown) => Array.isArray(point) && point.length === 3 && Number.isFinite(point[0]) && (point[1] === null || Number.isFinite(point[1])) && Number.isFinite(point[2]));
+  }
+
+  function monthName(value: string): string { return monthFormatter.format(new Date(`${value}-01T00:00:00Z`)); }
+
+  function openArchive(open: boolean): void {
+    archivePanel.hidden = !open;
+    archiveToggle.setAttribute('aria-expanded', String(open));
+  }
+
+  function syncArchivePicker(source: 'from' | 'to' | 'start' | 'end' = 'from'): void {
+    if (!archive) return;
+    const max = archive.months.length - 1;
+    let first = source === 'start' ? Number(archiveStartSlider.value) : archive.months.findIndex((p) => p.month === archiveFrom.value);
+    let last = source === 'end' ? Number(archiveEndSlider.value) : archive.months.findIndex((p) => p.month === archiveTo.value);
+    first = Math.max(0, Math.min(max, first));
+    last = Math.max(0, Math.min(max, last));
+    if (first > last) {
+      if (source === 'from' || source === 'start') last = first;
+      else first = last;
+    }
+    archiveFrom.value = archive.months[first].month;
+    archiveTo.value = archive.months[last].month;
+    archiveStartSlider.value = String(first);
+    archiveEndSlider.value = String(last);
+    archiveBand.style.left = `${first / Math.max(1, max) * 100}%`;
+    archiveBand.style.right = `${(max - last) / Math.max(1, max) * 100}%`;
+    archiveDescription.textContent = `${monthName(archive.months[first].month)} to ${monthName(archive.months[last].month)} · ${last - first + 1} reporting months`;
+    archiveApply.disabled = first === firstMonthIndex && last === lastMonthIndex;
+  }
+
+  function initialiseArchivePicker(): void {
+    if (!archive) return;
+    const choices = archive.months.map((p) => new Option(monthName(p.month), p.month));
+    archiveFrom.replaceChildren(...choices.map((p) => p.cloneNode(true) as HTMLOptionElement));
+    archiveTo.replaceChildren(...choices);
+    archiveStartSlider.max = archiveEndSlider.max = String(archive.months.length - 1);
+    firstMonthIndex = 0;
+    lastMonthIndex = archive.months.length - 1;
+    archiveFrom.value = archive.months[firstMonthIndex].month;
+    archiveTo.value = archive.months[lastMonthIndex].month;
+    syncArchivePicker();
+    archiveCaption.textContent = 'ALL HISTORY';
+    openArchive(false);
+  }
+
+  function selectArchiveRange(first: number, last: number): Promise<void> {
+    if (!archive || !archive.months[first] || !archive.months[last]) return Promise.resolve();
+    stop();
+    ++activation;
+    firstMonthIndex = first;
+    lastMonthIndex = last;
+    archiveStart = firstWholeHour(Date.parse(archive.months[first].start));
+    // The first archive month may start before the first report exists.
+    if (first === 0) {
+      const firstObserved = archive.points.find((point) => point[1] !== null);
+      if (firstObserved) archiveStart = Math.max(archiveStart, firstObserved[0]);
+    }
+    archiveFinish = lastWholeHour(Date.parse(archive.months[last].end));
+    if (archiveFinish - archiveStart < 2 * hour) { showNotice('Not enough observations', 'Choose a wider period for playback.'); return Promise.resolve(); }
+    rangeStart = archiveStart;
+    rangeFinish = archiveFinish;
+    cursor = rangeStart;
+    pickStage = 'idle';
+    hoveredTime = null;
+    previousStep = -1;
+    previousClockMinute = -1;
+    pulseReferenceMean = null;
+    lastAveragePulse = -Infinity;
+    hours = archive.points.filter((p) => p[0] >= archiveStart && p[0] <= archiveFinish).map(([at, mean, n]) => ({ at, mean, n }));
+    drawChart();
+    updateScrubber();
+    updateRangeLabels();
+    archiveCaption.textContent = first === 0 && last === archive.months.length - 1 ? 'ALL HISTORY' : `${monthName(archive.months[first].month)}  ·  ${monthName(archive.months[last].month)}`;
+    openArchive(false);
+    rangeStatus.textContent = `History ${monthName(archive.months[first].month)} to ${monthName(archive.months[last].month)}.`;
+    return activatePart(partForTime(rangeStart)!, rangeStart);
+  }
+
+  function partForTime(t: number): ArchivePart | null {
+    if (!archive) return null;
+    let found = archive.months[0];
+    for (const part of archive.months) {
+      if (Date.parse(part.start) > t) break;
+      found = part;
+    }
+    return found;
+  }
+
+  async function activatePart(part: ArchivePart, target: number, effects = false): Promise<void> {
+    const token = ++activation;
+    const resume = playing;
+    stop();
+    notice.hidden = false;
+    noticeTitle.textContent = 'Loading monthly observations';
+    noticeText.textContent = `${monthName(part.month)} · ${fuelSelect.value}`;
+    retry.hidden = true;
+    try {
+      let raw = cachedMonths.get(part.file);
+      if (!raw) {
+        const spec = index?.partitions.find((p) => p.file === part.file);
+        if (!spec) throw new Error(`Missing index entry for ${part.file}`);
+        const response = await fetch(`${endpoint}${part.file}`);
+        if (!response.ok) throw new Error(`Missing event file: ${part.file}`);
+        const data: unknown = await response.json();
+        if (!validMonth(data, spec)) throw new Error(`Event file does not match its index: ${part.file}`);
+        raw = data;
+        cachedMonths.set(part.file, raw);
+        if (cachedMonths.size > 3) cachedMonths.delete(cachedMonths.keys().next().value!);
+      }
+      if (token !== activation) return;
+      month = raw;
+      activePart = part;
+      events = raw.events.map((item) => ({ ...item, time: Date.parse(item.observedAt) }));
+      if (events.some((item) => !siteLookup.has(item.id)) || Object.keys(part.checkpoint).some((id) => !siteLookup.has(id))) throw new Error('An observation has no Adelaide station metadata.');
+      reset();
+      cursor = Date.parse(part.start);
+      previousStep = -1;
+      previousClockMinute = -1;
+      notice.hidden = true;
+      render(target, effects);
+      if (resume && cursor < rangeFinish && !document.hidden) beginPlayback();
+    } catch (error) {
+      if (token !== activation) return;
+      activePart = null;
+      showNotice('History unavailable', error instanceof Error ? error.message : 'Could not load monthly observations.');
+    }
   }
 
   function makeSprite(color: 'red' | 'green'): HTMLCanvasElement {
@@ -789,9 +938,9 @@ if (root) {
 
   function reset(): void {
     states = new Map();
-    if (!month) return;
-    for (const row of month.seeds) {
-      states.set(row.id, { price: row.priceCpl, observedAt: Date.parse(row.observedAt), changedAt: -Infinity, delta: 0 });
+    if (!activePart) return;
+    for (const [id, [price, observedAt, changedAt, delta]] of Object.entries(activePart.checkpoint)) {
+      states.set(id, { price, observedAt, changedAt: changedAt ?? -Infinity, delta });
     }
     nextEvent = 0;
     pulses = [];
@@ -866,7 +1015,7 @@ if (root) {
   }
 
   function setRange(a: number, b: number, preserveCursor = false): void {
-    const minimum = Math.min(hour, archiveFinish - archiveStart);
+    const minimum = Math.min(2 * hour, archiveFinish - archiveStart);
     rangeStart = snap(a);
     rangeFinish = snap(b);
     if (rangeFinish < rangeStart + minimum) {
@@ -881,25 +1030,12 @@ if (root) {
     updateRangeLabels();
   }
 
-  function prepareChart(): void {
-    if (!month) return;
-    reset();
-    const steps = Math.max(1, Math.ceil((archiveFinish - archiveStart) / hour));
-    hours = [];
-    for (let i = 0; i <= steps; i++) {
-      const at = Math.min(archiveFinish, archiveStart + i * hour);
-      advance(at, false);
-      hours.push({ at, ...metrics() });
-    }
-    reset();
-    drawChart();
-  }
 
   function drawChart(): void {
     chart.replaceChildren();
     chartGuides.replaceChildren();
     const observed = hours.filter((item) => item.mean !== null).map((item) => item.mean!);
-    if (!observed.length) return;
+    if (!observed.length) { showNotice('No observations in range', 'Choose another period or fuel.'); return; }
     const min = Math.floor((Math.min(...observed) - 2) / 10) * 10;
     const max = Math.ceil((Math.max(...observed) + 2) / 10) * 10;
     const left = 12;
@@ -933,11 +1069,29 @@ if (root) {
       const time = archiveStart + (archiveFinish - archiveStart) * j / 3;
       const gx = x(time);
       el('line', { x1: String(gx), y1: String(top), x2: String(gx), y2: String(bottom), class: 'pulse__guide-line' });
-      guide(displayDate(time), gx, 133, `pulse__guide--date pulse__guide--date-${j}`);
+      guide(axisDate(time), gx, 133, `pulse__guide--date pulse__guide--date-${j}`);
     }
+    // Preserve the first, last, minimum and maximum point in each ~2px column.
+    // Multi-year hourly series stay crisp without a 40,000-segment SVG path.
+    const buckets = new Map<number, typeof hours>();
+    for (const item of hours) {
+      const key = Math.floor(x(item.at) / 2);
+      if (!buckets.has(key)) buckets.set(key, []);
+      buckets.get(key)!.push(item);
+    }
+    const chartPoints = [...buckets.values()].flatMap((bucket) => {
+      if (bucket.length <= 4) return bucket;
+      const known = bucket.filter((p) => p.mean !== null);
+      if (!known.length) return [bucket[0], bucket[bucket.length - 1]];
+      const low = known.reduce((a, b) => a.mean! < b.mean! ? a : b);
+      const high = known.reduce((a, b) => a.mean! > b.mean! ? a : b);
+      const firstGap = bucket.find((p) => p.mean === null);
+      const lastGap = [...bucket].reverse().find((p) => p.mean === null);
+      return [...new Set([bucket[0], low, high, firstGap, lastGap, bucket[bucket.length - 1]].filter((p): p is typeof bucket[number] => !!p))].sort((a, b) => a.at - b.at);
+    });
     let line = '';
     let active = false;
-    for (const item of hours) {
+    for (const item of chartPoints) {
       if (item.mean === null) { active = false; continue; }
       line += `${active ? 'L' : 'M'}${x(item.at).toFixed(2)},${y(item.mean).toFixed(2)} `;
       active = true;
@@ -999,9 +1153,13 @@ if (root) {
   }
 
   function render(t: number, effects = false): void {
-    if (!month) return;
+    if (!archive) return;
+    const target = Math.min(rangeFinish, Math.max(rangeStart, t));
+    const part = partForTime(target);
+    if (!part) return;
+    if (part.file !== activePart?.file || !month) { void activatePart(part, target, effects); return; }
     const old = cursor;
-    cursor = Math.min(rangeFinish, Math.max(rangeStart, t));
+    cursor = target;
     if (cursor < old) reset();
     // Apply all source reports up to the continuous playhead, in original timestamp order.
     advance(cursor, effects && cursor >= old);
@@ -1058,21 +1216,28 @@ if (root) {
         render(cursor + elapsedHours * hour, true);
       }
     }
+    // A month switch stops playback until its next event file is ready.
+    // Do not schedule a second loop while the asynchronous switch is pending.
+    if (!playing) return;
     lastFrame = now;
     if (cursor >= rangeFinish) { stop(); return; }
     frame = requestAnimationFrame(loop);
   }
 
+  // A single plot click is observational. A new A/B range is only previewed once
+  // the pointer has moved deliberately and spans at least two snapped hours.
+  function restoreDragRange(): void {
+    if (!dragHasPreview) return;
+    pickStage = dragOriginalStage;
+    cursor = dragOriginalCursor;
+    setRange(dragOriginalStart, dragOriginalFinish, true);
+    dragHasPreview = false;
+  }
+
   function beginDrag(event: PointerEvent): void {
-    if (!chartScene || !month || archiveStart === archiveFinish) return;
+    if (!chartScene || !month || archiveStart === archiveFinish || activePointer !== null) return;
     if (event.pointerType !== 'touch' && event.button !== 0) return;
-    stop();
-    chartFrame.classList.add('is-guides-visible');
-    activePointer = event.pointerId;
-    pressX = event.clientX;
-    startedPicking = false;
     const time = chartTimeFromClientX(event.clientX);
-    hoveredTime = time;
     const x = chartScene.x(time);
     const nearStart = Math.abs(x - chartScene.x(rangeStart)) <= 9;
     const nearEnd = Math.abs(x - chartScene.x(rangeFinish)) <= 9;
@@ -1081,18 +1246,24 @@ if (root) {
     if (y >= 109) dragMode = 'scrub';
     else if (pickStage === 'locked' && nearStart) dragMode = 'start';
     else if (pickStage === 'locked' && nearEnd) dragMode = 'end';
-    else if (pickStage === 'choosing-end') dragMode = 'end';
-    else {
-      dragMode = 'range';
-      pickStage = 'choosing-end';
-      dragAnchor = time;
-      setRange(time, time + hour);
-      startedPicking = true;
-      rangeStatus.textContent = `Start ${rangeTime(rangeStart)}. Choose the end.`;
-    }
+    else if (archiveFinish - archiveStart >= 2 * hour) dragMode = 'range';
+    else return; // There is no valid two-hour interval to select.
+    activePointer = event.pointerId;
+    pressX = event.clientX;
+    dragAnchor = time;
+    dragHasPreview = false;
+    dragOriginalStart = rangeStart;
+    dragOriginalFinish = rangeFinish;
+    dragOriginalCursor = cursor;
+    dragOriginalStage = pickStage;
+    hoveredTime = time;
+    chartFrame.classList.add('is-guides-visible');
     chart.setPointerCapture(event.pointerId);
-    if (dragMode === 'range' || dragMode === 'end' || dragMode === 'start') chartFrame.classList.add('is-selecting');
-    if (dragMode === 'scrub') { setScrubDragging(true); render(Math.min(rangeFinish, Math.max(rangeStart, time))); }
+    if (dragMode === 'scrub') {
+      stop();
+      setScrubDragging(true);
+      render(Math.min(rangeFinish, Math.max(rangeStart, time)));
+    }
     updateRangeLabels();
     stationInfo.hidden = true;
   }
@@ -1103,88 +1274,92 @@ if (root) {
     if (activePointer !== event.pointerId || !dragMode) {
       if (event.pointerType !== 'touch' && activePointer === null) {
         hoveredTime = time;
-        if (pickStage === 'choosing-end') setRange(rangeStart, time, true);
         updateRangeLabels();
       }
       return;
     }
     hoveredTime = time;
-    if (dragMode === 'scrub') render(Math.min(rangeFinish, Math.max(rangeStart, time)));
-    else if (dragMode === 'range') setRange(dragAnchor, Math.max(dragAnchor + hour, time), true);
-    else if (dragMode === 'start') setRange(Math.min(rangeFinish - hour, time), rangeFinish, true);
-    else if (dragMode === 'end') setRange(rangeStart, Math.max(rangeStart + hour, time), true);
+    if (dragMode === 'scrub') {
+      render(Math.min(rangeFinish, Math.max(rangeStart, time)));
+    } else if (Math.abs(event.clientX - pressX) > 6) {
+      const minimum = 2 * hour;
+      const start = dragMode === 'range' ? Math.min(dragAnchor, time)
+        : dragMode === 'start' ? Math.min(dragOriginalFinish - minimum, time) : dragOriginalStart;
+      const finish = dragMode === 'range' ? Math.max(dragAnchor, time)
+        : dragMode === 'end' ? Math.max(dragOriginalStart + minimum, time) : dragOriginalFinish;
+      if (finish - start >= minimum) {
+        if (!dragHasPreview) stop();
+        dragHasPreview = true;
+        if (dragMode === 'range') pickStage = 'choosing-end';
+        chartFrame.classList.add('is-selecting');
+        setRange(start, finish, true);
+      } else {
+        restoreDragRange();
+        chartFrame.classList.remove('is-selecting');
+      }
+    } else {
+      restoreDragRange();
+      chartFrame.classList.remove('is-selecting');
+    }
     updateRangeLabels();
   }
 
   function endDrag(event: PointerEvent): void {
     if (activePointer !== event.pointerId) return;
-    if (chart.hasPointerCapture(event.pointerId)) chart.releasePointerCapture(event.pointerId);
-    const moved = Math.abs(event.clientX - pressX) > 6;
-    if (dragMode === 'end' && pickStage === 'choosing-end') {
-      setRange(rangeStart, chartTimeFromClientX(event.clientX), true);
+    // Re-evaluate the final coordinate: pointerup may arrive without a last move.
+    if (event.type === 'pointerup' && dragMode !== 'scrub') moveDrag(event);
+    const committed = event.type === 'pointerup' && dragHasPreview;
+    if (!committed) restoreDragRange();
+    if (committed) {
       pickStage = 'locked';
       hoveredTime = null;
       rangeStatus.textContent = `Playback range ${rangeTime(rangeStart)} to ${rangeTime(rangeFinish)}.`;
-    } else if (dragMode === 'range' && moved) {
-      pickStage = 'locked';
-      hoveredTime = null;
-      rangeStatus.textContent = `Playback range ${rangeTime(rangeStart)} to ${rangeTime(rangeFinish)}.`;
-    } else if (dragMode === 'range' && startedPicking) {
-      pickStage = 'choosing-end';
     }
+    dragHasPreview = false;
     dragMode = null;
     activePointer = null;
+    if (chart.hasPointerCapture(event.pointerId)) chart.releasePointerCapture(event.pointerId);
     chartFrame.classList.remove('is-selecting');
     setScrubDragging(false);
     if (event.pointerType === 'touch') { chartFrame.classList.remove('is-guides-visible'); hoveredTime = null; }
     updateRangeLabels();
   }
 
-  async function loadMonth(): Promise<void> {
+  async function loadArchive(): Promise<void> {
     if (!index) return;
     const token = ++loading;
+    ++activation;
     stop();
+    month = null;
+    activePart = null;
+    archive = null;
+    openArchive(false);
+    filters.hidden = true;
+    transport.hidden = true;
+    chart.replaceChildren();
+    chartGuides.replaceChildren();
+    cachedMonths.clear();
     notice.hidden = false;
-    noticeTitle.textContent = 'Loading observations';
-    noticeText.textContent = `${monthSelect.value} · ${fuelSelect.value}`;
+    noticeTitle.textContent = 'Loading history';
+    noticeText.textContent = `Preparing the full ${fuelSelect.value} timeline`;
     retry.hidden = true;
-    const spec = index.partitions.find((p) => p.month === monthSelect.value && p.fuelCode === fuelSelect.value);
-    if (!spec) { showNotice('No history for this selection', 'Choose another month or fuel.'); return; }
     try {
-      const response = await fetch(`${endpoint}${spec.file}`);
-      if (!response.ok) throw new Error('Event file missing. Run the R exporter for this month and fuel.');
+      const response = await fetch(`${endpoint}summary/${fuelSelect.value}.json`, { cache: 'no-store' });
+      if (!response.ok) throw new Error('Archive summary missing. Run node scripts/data/pulse-of-adelaide/build_archive_summary.mjs after copying the full event export.');
       const raw: unknown = await response.json();
-      if (!validMonth(raw, spec)) throw new Error('Event file does not match its index. Rebuild the local export.');
+      if (!validArchive(raw, fuelSelect.value)) throw new Error('Archive summary is out of date. Rebuild it from the current full event export.');
       if (token !== loading) return;
-      month = raw;
-      archiveStart = firstWholeHour(Date.parse(month.start));
-      archiveFinish = lastWholeHour(Date.parse(month.end));
-      if (archiveFinish <= archiveStart) throw new Error('This export does not contain two complete hourly timestamps.');
-      rangeStart = archiveStart;
-      rangeFinish = archiveFinish;
-      pickStage = 'idle';
-      speedButton.textContent = speedModes[playbackModeIndex].label;
-      speedButton.setAttribute('aria-label', `Playback speed ${speedModes[playbackModeIndex].label}. Activate to switch to ${speedModes[(playbackModeIndex + 1) % speedModes.length].label}`);
-      hoveredTime = null;
-      events = month.events.map((item) => ({ ...item, time: Date.parse(item.observedAt) })).sort((a, b) => a.time - b.time || a.id.localeCompare(b.id));
-      if (events.some((item) => !siteLookup.has(item.id)) || month.seeds.some((seed) => !siteLookup.has(seed.id))) throw new Error('An observation has no Adelaide station metadata.');
-      cursor = rangeStart;
-      previousStep = -1;
-      pulseReferenceMean = null;
-      lastAveragePulse = -Infinity;
-      prepareChart();
-      updateScrubber();
-      await setupMap();
-      if (token !== loading) return;
-      notice.hidden = true;
+      archive = raw;
+      initialiseArchivePicker();
+      filters.hidden = false;
       transport.hidden = false;
-      stationInfo.hidden = true;
-      render(rangeStart);
-      updateRangeLabels();
-      if (!reduced() && !document.hidden) beginPlayback();
+      const ready = selectArchiveRange(0, archive.months.length - 1);
+      await Promise.all([setupMap(), ready]);
+      if (token !== loading) return;
+      if (!reduced() && !document.hidden && activePart) beginPlayback();
     } catch (error) {
       if (token !== loading) return;
-      showNotice('History unavailable', error instanceof Error ? error.message : 'Could not load the observations.');
+      showNotice('History unavailable', error instanceof Error ? error.message : 'Could not load the archive.');
     }
   }
 
@@ -1193,15 +1368,13 @@ if (root) {
       const response = await fetch(`${endpoint}index.json`, { cache: 'no-store' });
       if (!response.ok) throw new Error('Run build_event_playback.R to create a local event export.');
       const raw: unknown = await response.json();
-      if (!validIndex(raw)) throw new Error('Event index is incompatible. Rebuild it with the new R exporter.');
+      if (!validIndex(raw)) throw new Error('Event index is incompatible. Rebuild it with the R exporter.');
       index = raw;
       siteLookup = new Map(index.stations.map((site) => [site.id, site]));
       const fuels = [...new Set(index.partitions.map((p) => p.fuelCode))].sort();
       fuelSelect.replaceChildren(...fuels.map((fuel) => new Option(fuel, fuel)));
       fuelSelect.value = fuels.includes('ULP') ? 'ULP' : fuels[0];
-      populateMonths();
-      filters.hidden = false;
-      await loadMonth();
+      await loadArchive();
     } catch (error) {
       showNotice('Local export required', error instanceof Error ? error.message : 'No history loaded.');
     }
@@ -1213,8 +1386,31 @@ if (root) {
     updateRoadMode();
   });
   updateRoadMode();
-  fuelSelect.addEventListener('change', () => { populateMonths(); void loadMonth(); });
-  monthSelect.addEventListener('change', () => { void loadMonth(); });
+  fuelSelect.addEventListener('change', () => { void loadArchive(); });
+  archiveToggle.addEventListener('click', () => {
+    if (!archivePanel.hidden) { openArchive(false); return; }
+    if (!archive) return;
+    archiveFrom.value = archive.months[firstMonthIndex].month;
+    archiveTo.value = archive.months[lastMonthIndex].month;
+    syncArchivePicker();
+    openArchive(true);
+  });
+  archiveFrom.addEventListener('change', () => syncArchivePicker('from'));
+  archiveTo.addEventListener('change', () => syncArchivePicker('to'));
+  archiveStartSlider.addEventListener('input', () => syncArchivePicker('start'));
+  archiveEndSlider.addEventListener('input', () => syncArchivePicker('end'));
+  archiveAll.addEventListener('click', () => {
+    if (!archive) return;
+    archiveFrom.value = archive.months[0].month;
+    archiveTo.value = archive.months[archive.months.length - 1].month;
+    syncArchivePicker();
+  });
+  archiveApply.addEventListener('click', () => {
+    if (!archive) return;
+    void selectArchiveRange(archive.months.findIndex((p) => p.month === archiveFrom.value), archive.months.findIndex((p) => p.month === archiveTo.value));
+  });
+  document.addEventListener('pointerdown', (event) => { if (!archivePanel.hidden && !archiveControl.contains(event.target as Node)) openArchive(false); });
+  archiveControl.addEventListener('keydown', (event) => { if (event.key === 'Escape') { openArchive(false); archiveToggle.focus(); } });
   slider.addEventListener('input', () => {
     stop();
     render(rangeStart + Number(slider.value) * hour);
@@ -1267,7 +1463,7 @@ if (root) {
     speedButton.textContent = currentMode.label;
     speedButton.setAttribute('aria-label', `Playback speed ${currentMode.label}. Activate to switch to ${followingMode.label}`);
   });
-  retry.addEventListener('click', () => { if (index) void loadMonth(); else void start(); });
+  retry.addEventListener('click', () => { if (index) void loadArchive(); else void start(); });
   document.addEventListener('visibilitychange', () => { if (document.hidden) { stop(); setScrubDragging(false); } });
   mapWrap.addEventListener('pointerenter', (event) => { if (event.pointerType !== 'touch') root.classList.add('is-exploring'); });
   mapWrap.addEventListener('pointerleave', (event) => {
@@ -1288,10 +1484,10 @@ if (root) {
     const delta = event.key === 'ArrowLeft' ? -hour : hour;
     if (event.altKey) {
       pickStage = 'locked';
-      setRange(Math.min(rangeFinish - hour, Math.max(archiveStart, rangeStart + delta)), rangeFinish, true);
+      setRange(Math.min(rangeFinish - 2 * hour, Math.max(archiveStart, rangeStart + delta)), rangeFinish, true);
     } else if (event.shiftKey) {
       pickStage = 'locked';
-      setRange(rangeStart, Math.max(rangeStart + hour, Math.min(archiveFinish, rangeFinish + delta)), true);
+      setRange(rangeStart, Math.max(rangeStart + 2 * hour, Math.min(archiveFinish, rangeFinish + delta)), true);
     } else {
       render(cursor + delta);
     }
@@ -1302,11 +1498,11 @@ if (root) {
     event.preventDefault();
     stop();
     if (pickStage === 'choosing-end') {
-      setRange(rangeStart, Math.max(rangeStart + hour, cursor), true);
+      setRange(rangeStart, Math.max(rangeStart + 2 * hour, cursor), true);
       pickStage = 'locked';
     } else {
       pickStage = 'choosing-end';
-      setRange(cursor, cursor + hour, true);
+      setRange(cursor, cursor + 2 * hour, true);
     }
     chartFrame.classList.remove('is-selecting');
     updateRangeLabels();
