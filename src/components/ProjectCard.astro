@@ -1,6 +1,6 @@
 ---
 import { Image } from 'astro:assets';
-import { projectStatusLabels, projectUrl, type Project } from '../lib/projects';
+import { projectBadge, projectUrl, type Project } from '../lib/projects';
 
 interface Props {
   project: Project;
@@ -8,7 +8,7 @@ interface Props {
 }
 
 const { project, headingLevel: Heading = 'h3' } = Astro.props;
-const { title, category, summary, status, previewImage, previewAlt } = project.data;
+const { title, category, summary, previewImage, previewAlt } = project.data;
 ---
 <a class="project-card" href={projectUrl(project)}>
   {previewImage ? (
@@ -22,7 +22,7 @@ const { title, category, summary, status, previewImage, previewAlt } = project.d
   )}
   <div class="project-card__meta">
     <span>{category.toUpperCase()}</span>
-    <span>{projectStatusLabels[status]}</span>
+    <span>{projectBadge(project)}</span>
   </div>
   <Heading>{title}</Heading>
   <p>{summary}</p>

@@ -35,6 +35,7 @@ This directory is the project knowledge base for `marklee.au`.
 - [`exec-plans/active/001-foundation-project-system.md`](exec-plans/active/001-foundation-project-system.md): completed reusable project content and routing foundation
 - [`exec-plans/active/002-pulse-of-adelaide.md`](exec-plans/active/002-pulse-of-adelaide.md): historical Adelaide price-map prototype plan
 - [`exec-plans/active/008-sa-fuel-pricing.md`](exec-plans/active/008-sa-fuel-pricing.md): separate paused SA Government API project
+- [`exec-plans/active/009-local-admin.md`](exec-plans/active/009-local-admin.md): local admin and publishing controls, account recovery, future production backend and Formula Daily editorial stages
 - [`exec-plans/active/003-data-foundation.md`](exec-plans/active/003-data-foundation.md): completed static-first data foundation and validation record
 - [`exec-plans/active/004-south-australian-name-curve.md`](exec-plans/active/004-south-australian-name-curve.md): South Australian baby-name curve LAB implementation and release plan
 - [`exec-plans/active/005-formula-daily.md`](exec-plans/active/005-formula-daily.md): Formula Daily Stage 1 brief and proposed delivery plan

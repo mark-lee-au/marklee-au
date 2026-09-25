@@ -1,5 +1,10 @@
 # Execution Plan 002: The Pulse of Adelaide (historical-only)
 
+## 2026-09-25 temporary unpublication
+
+- Pulse is deliberately hidden from the public portfolio while source/data publication questions remain unresolved. The committed editorial override sets `pulse-of-adelaide.visible` to `false`, which removes listings and prevents the project route from being generated.
+- Production builds also prune `dist/data/pulse-of-adelaide/` after Astro so locally present ignored event files cannot leak into a deployment. This does not delete the local source/export files. Republishing later requires an explicit visibility change and a fresh publication/data-rights review.
+
 ## 2026-09-18 first-stage all-history range selector (local review)
 
 - Scope: replace the single-month dropdown with a compact History popover containing accessible From/To month selectors, individual month-index sliders and an All months reset. Month boundaries select a continuous calendar interval rather than independent toggles. Open with every available month for the chosen fuel; the existing chart A/B drag still chooses an hourly subset inside the month-range view and only commits after a deliberate 2-hour drag. Changing the fuel restores that fuel's full history.

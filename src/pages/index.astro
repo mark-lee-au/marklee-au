@@ -1,16 +1,15 @@
 ---
 import { getProjects } from '../lib/projects';
+import { siteAdminConfig } from '../lib/site-admin';
 import HomeGalleryPreviews from '../visualisations/home-gallery/HomeGalleryPreviews.astro';
 import '../styles/global.css';
 import '../visualisations/home-gallery/home-gallery.css';
 
 const allProjects = await getProjects();
-const gameProjects = allProjects.filter((project) => project.data.category === 'games');
-const labProjects = allProjects.filter((project) => project.data.category === 'lab');
-const homeProjectSlugs = ['south-australian-name-curve', 'formula-daily', 'ascend'];
-const homeProjects = homeProjectSlugs
-  .map((slug) => allProjects.find((project) => project.data.slug === slug))
-  .filter((project): project is (typeof allProjects)[number] => Boolean(project));
+const exampleProjects = (section: keyof typeof siteAdminConfig.examples) =>
+  siteAdminConfig.examples[section]
+    .map((slug) => allProjects.find((project) => project.data.slug === slug))
+    .filter((project): project is (typeof allProjects)[number] => Boolean(project));
 
 const slides = [
   {
@@ -23,7 +22,7 @@ const slides = [
     href: '/',
     linkLabel: 'Current view',
     listWeight: 1.1,
-    projects: homeProjects,
+    projects: exampleProjects('home'),
   },
   {
     id: 'data',
@@ -35,7 +34,7 @@ const slides = [
     href: '/data/',
     linkLabel: 'Open Data',
     listWeight: 1.2,
-    projects: [],
+    projects: exampleProjects('data'),
   },
   {
     id: 'maps',
@@ -47,7 +46,7 @@ const slides = [
     href: '/maps/',
     linkLabel: 'Open Maps',
     listWeight: 0.9,
-    projects: [],
+    projects: exampleProjects('maps'),
   },
   {
     id: 'games',
@@ -59,7 +58,7 @@ const slides = [
     href: '/games/',
     linkLabel: 'Open Games',
     listWeight: 1.25,
-    projects: gameProjects.slice(0, 3),
+    projects: exampleProjects('games'),
   },
   {
     id: 'lab',
@@ -71,7 +70,7 @@ const slides = [
     href: '/lab/',
     linkLabel: 'Open Lab',
     listWeight: 1.3,
-    projects: labProjects.slice(0, 4),
+    projects: exampleProjects('lab'),
   },
   {
     id: 'photography',
@@ -97,7 +96,7 @@ const slides = [
     listWeight: 0.62,
     projects: [],
   },
-];
+].sort((a, b) => siteAdminConfig.sectionOrder.indexOf(a.id as typeof siteAdminConfig.sectionOrder[number]) - siteAdminConfig.sectionOrder.indexOf(b.id as typeof siteAdminConfig.sectionOrder[number]));
 
 const structuredData = {
   '@context': 'https://schema.org',

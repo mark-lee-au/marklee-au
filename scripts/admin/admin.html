@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>ML Admin | Local editor</title>
+  <link rel="stylesheet" href="/mladmin/admin.css" />
+  <script src="/mladmin/admin.js" defer></script>
+</head>
+<body>
+  <header class="masthead"><a href="http://127.0.0.1:4321/" class="brand">ML<span> / ADMIN</span></a><span class="environment">LOCAL EDITOR</span><button type="button" id="logout" hidden>Sign out</button></header>
+  <main>
+    <section id="login-panel" class="login-panel" aria-labelledby="login-heading">
+      <p class="eyebrow">Private access</p><h1 id="login-heading">Sign in</h1>
+      <p>Local editorial controls for marklee.au. Your changes stay on this computer until you approve a build and publication.</p>
+      <form id="login-form"><label>Username<input name="username" autocomplete="username" required autofocus /></label><label>Password<input name="password" type="password" autocomplete="current-password" required /></label><button type="submit" class="primary">Sign in</button></form>
+      <p class="muted">First use or forgotten main password? Run <code>npm run admin:reset</code> in your project folder.</p>
+    </section>
+    <section id="workspace" hidden>
+      <div class="workspace-heading"><div><p class="eyebrow">Editorial workspace</p><h1>Site controls</h1><p id="account-label" class="muted"></p></div><button type="button" id="save" class="primary" hidden>Save local changes</button></div>
+      <nav class="tabs" aria-label="Admin sections"><button type="button" data-tab="home" aria-current="page">Homepage</button><button type="button" data-tab="projects">Projects</button><button type="button" data-tab="games">Games</button><button type="button" data-tab="accounts">Accounts</button></nav>
+      <section id="tab-home" class="tab-panel"><h2>Homepage</h2><p>Reorder the section cards and choose which project previews appear on each one. Empty sections show abstract artwork.</p><h3>Section order</h3><div id="section-order" class="reorder-list"></div><h3>Project examples</h3><div id="examples"></div></section>
+      <section id="tab-projects" class="tab-panel" hidden><h2>Projects</h2><p>Change category, maturity, badge, visibility and card order. A hidden project has no generated public route in the next build.</p><div id="project-list"></div></section>
+      <section id="tab-games" class="tab-panel" hidden><h2>Games</h2><p class="notice">Puzzle creation, daily scheduling, player events and aggregate reports are not connected in this first local stage. The existing Formula Daily sample remains unchanged. No play counts are collected.</p></section>
+      <section id="tab-accounts" class="tab-panel" hidden><h2>Accounts</h2><p>Only the main admin can add, change or delete accounts. Temporary passwords appear once; share them privately.</p><div id="users"></div><form id="create-user"><h3>Add account</h3><label>Username<input name="username" pattern="[a-z][a-z0-9_-]{2,31}" required placeholder="editor" /></label><fieldset><legend>Access</legend><label><input type="checkbox" name="permissions" value="home" checked /> Homepage</label><label><input type="checkbox" name="permissions" value="projects" /> Projects</label><label><input type="checkbox" name="permissions" value="games" /> Games (future)</label></fieldset><button type="submit">Create account</button></form><div id="credentials" class="credentials" role="status" hidden></div></section>
+    </section>
+    <p id="message" class="message" role="status" aria-live="polite"></p>
+  </main>
+</body>
+</html>

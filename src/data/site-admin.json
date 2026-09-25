@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "projects": {
+    "pulse-of-adelaide": {
+      "visible": false
+    }
+  },
+  "sectionOrder": [
+    "home",
+    "data",
+    "maps",
+    "games",
+    "lab",
+    "photography",
+    "about"
+  ],
+  "examples": {
+    "home": [
+      "south-australian-name-curve",
+      "formula-daily",
+      "ascend"
+    ],
+    "data": [],
+    "maps": [],
+    "games": [
+      "formula-daily",
+      "ascend"
+    ],
+    "lab": [
+      "south-australian-name-curve",
+      "adelaide-in-motion",
+      "powering-south-australia"
+    ]
+  }
+}

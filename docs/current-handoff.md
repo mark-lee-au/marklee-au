@@ -1,5 +1,26 @@
 # Current Handoff
 
+## 2026-09-25 Pulse temporarily unpublished for safe production build
+
+- Source snapshot: dirty `main` at full commit `d1efaea9c02f239b33b5f954ea5c02df524ee886`, captured 15:33 Adelaide time. Existing uncommitted local-admin work is preserved.
+- `src/data/site-admin.json` now sets `pulse-of-adelaide.visible` to `false` and removes Pulse from the LAB homepage examples. The existing `getProjects()` visibility filter therefore removes Pulse from public listings and from Astro `getStaticPaths()`, so a fresh build does not generate `/projects/pulse-of-adelaide/`.
+- `npm run build` now runs `scripts/build/prune-hidden-projects.mjs` after Astro. For every project explicitly hidden by the committed admin settings, the script removes any stale `dist/projects/<slug>/` route and `dist/data/<slug>/` directory. This prevents locally present ignored Pulse event files under `public/data/pulse-of-adelaide/` from being included in the production output while Pulse is hidden. Source Markdown, visualisation code, processing scripts and local Pulse data remain in the repository/worktree for later republication.
+- The local admin remains loopback-only. Publishing this static build does not expose `/mladmin`; no Cloudflare backend, credentials or account state are included.
+- Changed for this decision: `src/data/site-admin.json`, `package.json`, `scripts/build/prune-hidden-projects.mjs`, `docs/current-handoff.md`, and Plans 002/009. No source/data deletions.
+- Validation completed: `node --check scripts/build/prune-hidden-projects.mjs`; `npm run admin:test`; current `site-admin.json` through the admin validator; and an isolated synthetic `dist/` test confirming the prune step removes the Pulse route/data while preserving an unrelated project. Full Astro build was not run because this context archive has no `node_modules` and `npm ci --ignore-scripts` timed out in the execution environment. Run `npm ci` if needed and `npm run build` locally before publishing, then confirm `dist/projects/pulse-of-adelaide/` and `dist/data/pulse-of-adelaide/` do not exist.
+
+---
+
+## 2026-09-19 local admin Stage 1 (review patch)
+
+- Snapshot: clean `main` at full commit `d1efaea9c02f239b33b5f954ea5c02df524ee886` captured 09:04 Adelaide time. Source archive has no `.git` history. No remote comparison; check the user's latest local overlapping files before applying.
+- A separate loopback-only `http://127.0.0.1:4322/mladmin` Node editor now manages homepage section/exemplar order, per-project category/status/visibility/UPDATED badge/card order and restricted local accounts. The reserved `mark` account is created or reset by `npm run admin:reset`, generating a new one-time password locally. Account data stays ignored in `data/processed/mladmin/`; no credentials in the ZIP. Astro continues building static pages from new committed `src/data/site-admin.json`. Editing locally never publishes to Cloudflare. No link to the editor is added to the public site.
+- Implemented: homepage and project readers use editorial overrides; hidden projects are not generated on a fresh build; home preview choices read editorial settings. Local Node editor has salted scrypt hashes, loopback/Host/Origin checks, HTTP-only SameSite session cookie, CSRF, rate-limited sign-in, permissions and root-only account controls. Games controls and statistics are clearly marked unavailable; Formula Daily still uses its existing hard-coded sample. Public `/mladmin` and a Cloudflare Worker/D1 backend are NOT implemented.
+- Files: `package.json`, `src/data/site-admin.json`, `src/lib/{site-admin.ts,projects.ts}`, `src/pages/index.astro`, `src/components/ProjectCard.astro`, `scripts/admin/{store.mjs,server.mjs,reset-admin.mjs,admin.html,admin.css,admin.js,admin.test.mjs}`, `docs/{current-handoff.md,index.md}`, `docs/exec-plans/active/009-local-admin.md`. No separate deletions. No live deployment, commit, push, DNS or Cloudflare changes.
+- Validation: local API integration tests passed for authentication, editorial changes, role isolation and recovery. JS syntax passed. A full Astro build and browser layout review require local dependencies and have not run here. Next: apply and locally review; decide how the existing Cloudflare Worker can support a secure production admin before adding game scheduling and analytics. Detailed boundaries and commands: Plan 009.
+
+---
+
 ## 2026-09-18 Pulse full-history month-range prototype (review patch)
 
 - Source baseline: the supplied dirty `main` snapshot at `79770434464b4450ef55b00357464fdc82ccc29d`, with title Patch 1, timeline Patch 2 and drag-only Patch 3 layered over it. The user subsequently reported publishing a February-only data commit `c6a7067` and producing a complete local archive through September 2026. No fresh checkout, complete new commit hash, current working-tree comparison or actual full event files were supplied; compare the overlapping local files before applying this ZIP. Do not overwrite newer local changes.

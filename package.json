@@ -5,8 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build",
-    "preview": "astro preview"
+    "build": "astro build && node scripts/build/prune-hidden-projects.mjs",
+    "preview": "astro preview",
+    "admin:dev": "node scripts/admin/server.mjs",
+    "admin:reset": "node scripts/admin/reset-admin.mjs",
+    "admin:test": "node --test scripts/admin/admin.test.mjs"
   },
   "dependencies": {
     "astro": "^7.1.6"
