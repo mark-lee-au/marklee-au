@@ -1,0 +1,418 @@
+---
+import researchData from '../../data/fireworks-simulator/firework-presets.json';
+import './fireworks-simulator.css';
+import { NAV_DEFAULT_PROFILE } from './navigation-calibration';
+
+const prototypePresetIds = [
+  'red-peony-100',
+  'blue-chrysanthemum-100',
+  'gold-willow-150',
+  'blue-yellow-crossette-100',
+];
+
+const prototypePresets = researchData.presets.filter((preset) => prototypePresetIds.includes(preset.id));
+const prototypeFamilyIds = [...new Set(prototypePresets.map((preset) => preset.familyId))];
+const prototypeFamilies = researchData.effectFamilies.filter((family) => prototypeFamilyIds.includes(family.id));
+const prototypeProfileIds = [...new Set(prototypeFamilies.map((family) => family.physicsProfileId))];
+const prototypeProfiles = researchData.physicsProfiles.filter((profile) => prototypeProfileIds.includes(profile.id));
+const prototypeCalibres = researchData.scaleReference.shells.filter((shell) => [75, 100, 125, 150].includes(shell.calibreMm));
+const prototypePaletteIds = ['red', 'orange', 'yellow', 'green', 'blue', 'aqua', 'violet', 'white', 'gold', 'silver'];
+const prototypePalette = researchData.rendererPalette.filter((colour) => prototypePaletteIds.includes(colour.id));
+const peonyCalibration = researchData.empiricalCalibrations.find((calibration) => calibration.id === 'ams-peony-2017');
+
+const clientConfig = {
+  schemaVersion: researchData.schemaVersion,
+  cityUrl: '/data/fireworks-simulator/sydney-city.json',
+  presets: prototypePresets,
+  families: prototypeFamilies,
+  physicsProfiles: prototypeProfiles,
+  calibres: prototypeCalibres,
+  palette: prototypePalette,
+  peonyCalibration,
+};
+---
+<section class="fireworks-simulator" data-fireworks-simulator aria-labelledby="fireworks-simulator-title">
+  <!-- Local bright-star sky, behind the transparent city and fireworks canvases. -->
+  <canvas class="fireworks-simulator__sky" data-sky-canvas aria-hidden="true"></canvas>
+  <canvas
+    class="fireworks-simulator__city-webgl"
+    data-city-webgl
+    aria-hidden="true"
+  ></canvas>
+  <canvas
+    class="fireworks-simulator__canvas"
+    data-fireworks-canvas
+    aria-hidden="true"
+  ></canvas>
+
+  <div
+    class="fireworks-simulator__stage-interaction"
+    data-stage-interaction
+    role="region"
+    tabindex="0"
+    aria-label="Sydney camera. Left drag or one-finger drag pans the city. Right mouse drag grabs and rotates the map around its current pivot, with a 10 metre camera-height floor. Holding both mouse buttons and dragging combines pan and rotation so the full drag camera can be controlled with the mouse alone. Mouse wheel without a button moves in or out along the camera aim, marked by a temporary centre-dot crosshair. Hold the left mouse button and use the wheel to move the camera height directly. Hold the right mouse button and use the wheel to choose a target height on the right-side height indicator. A grey ghost shows the current height while the gold marker grows with distance from it. Up, level, or down cues show the target direction. Release the right button to move smoothly to that height. Control plus left drag rotates and Shift plus left drag moves in or out along the camera aim. A two-finger pinch moves in or out along the camera aim and a two-finger twist rotates. W A S D pan, arrow keys rotate and tilt, Q E move the map vertically, plus moves in, minus moves out, and R resets. Tap the scene to launch a firework."
+  ></div>
+
+  <div class="fireworks-simulator__key-labels" data-key-labels aria-label="Select key buildings in the scene"></div>
+
+  <div class="fireworks-simulator__camera-cursor" data-camera-cursor aria-hidden="true"></div>
+  <!-- Marks the 50%/50% camera aim during zoom.
+       Visible only while wheel, pinch, Shift-drag or keyboard zoom is active. -->
+  <div class="fireworks-simulator__zoom-aim" data-zoom-aim aria-hidden="true">
+    <span class="fireworks-simulator__zoom-aim-dot"></span>
+  </div>
+
+  <header class="fireworks-simulator__identity">
+    <p class="fireworks-simulator__kicker">LAB / SYDNEY SCENE PROTOTYPE</p>
+    <h1 id="fireworks-simulator-title">FIREWORKS</h1>
+    <p class="fireworks-simulator__effect" data-effect-label>RED PEONY</p>
+  </header>
+
+  <div class="fireworks-simulator__telemetry" aria-label="Prototype rendering telemetry">
+    <span data-fireworks-fps>FPS --</span>
+    <span data-fireworks-particles>PARTICLES --</span>
+    <span data-city-telemetry>CITY --</span>
+    <span data-city-renderer>CANVAS 2D</span>
+  </div>
+
+  <div class="fireworks-simulator__orientation" data-orientation-hud aria-label="View direction and camera orientation">
+    <div class="fireworks-simulator__orientation-copy">
+      <p data-camera-heading>VIEW / ---</p>
+      <p data-camera-elevation>ALT / --°</p>
+    </div>
+    <div class="fireworks-simulator__compass" data-camera-compass aria-hidden="true">
+      <span class="fireworks-simulator__compass-pointer"></span>
+      <div class="fireworks-simulator__compass-card">
+        <span class="fireworks-simulator__compass-ring"></span>
+        <span class="fireworks-simulator__compass-axis is-north">N</span>
+        <span class="fireworks-simulator__compass-axis is-east">E</span>
+        <span class="fireworks-simulator__compass-axis is-south">S</span>
+        <span class="fireworks-simulator__compass-axis is-west">W</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="fireworks-simulator__scene-controls" aria-label="Sydney scene view">
+    <p data-city-mode>SYDNEY / CITY LOADING</p>
+    <p class="fireworks-simulator__sky-clock" data-sky-clock>SKY / SYDNEY TIME --:--</p>
+    <div class="fireworks-simulator__view-switch" role="group" aria-label="View mode">
+      <button type="button" data-view-mode="skyline" aria-pressed="true">SKYLINE</button>
+      <button type="button" data-view-mode="plan" aria-pressed="false">PLAN</button>
+    </div>
+    <details class="fireworks-simulator__view-options" data-view-options>
+      <summary aria-label="Toggle map and view options" title="Map and view options">
+        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false"><path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="sr-only">Map and view options</span>
+      </summary>
+      <div class="fireworks-simulator__view-panel" aria-label="Map layers">
+        <p class="fireworks-simulator__panel-title">MAP / VIEW OPTIONS</p>
+        <div class="fireworks-simulator__highlight-row">
+          <label for="fireworks-highlight"><span>HIGHLIGHT KEY BUILDINGS</span></label>
+          <input id="fireworks-highlight" data-highlight-key type="checkbox" role="switch" checked />
+        </div>
+        <div class="fireworks-simulator__guide-setting fireworks-simulator__landmark-orbit-setting">
+          <label for="fireworks-landmark-orbit-switch">ROTATE AFTER SELECTING KEY BUILDING</label>
+          <input id="fireworks-landmark-orbit-switch" data-landmark-orbit-toggle type="checkbox" role="switch" checked />
+        </div>
+        <div class="fireworks-simulator__sky-setting" aria-label="Sky date and time preview">
+          <p class="fireworks-simulator__panel-subtitle">SKY / TIME <span>SYDNEY · AEDT/AEST</span></p>
+          <label for="fireworks-sky-date">LOCAL DATE</label>
+          <input id="fireworks-sky-date" type="date" data-sky-date />
+          <div class="fireworks-simulator__sky-time-heading">
+            <label for="fireworks-sky-time">LOCAL TIME</label>
+            <output for="fireworks-sky-time" data-sky-time-value>--:--</output>
+          </div>
+          <div class="fireworks-simulator__sky-time-track">
+            <input id="fireworks-sky-time" type="range" data-sky-time min="0" max="1439" step="1" value="1200" aria-label="Sydney time of day" />
+            <span class="fireworks-simulator__sky-solar-pin is-sunrise" data-sky-sunrise-pin aria-hidden="true"></span>
+            <span class="fireworks-simulator__sky-solar-pin is-sunset" data-sky-sunset-pin aria-hidden="true"></span>
+          </div>
+          <div class="fireworks-simulator__sky-solar-labels">
+            <span data-sky-sunrise>SUNRISE --:--</span>
+            <span data-sky-sunset>SUNSET --:--</span>
+          </div>
+          <div class="fireworks-simulator__sky-moon-row">
+            <canvas data-sky-moon-preview width="42" height="42" aria-hidden="true"></canvas>
+            <p class="fireworks-simulator__sky-moon-status" data-sky-moon>MOON / DRAFT</p>
+          </div>
+          <p class="fireworks-simulator__sky-note">DEFAULT: TODAY + 1 HR AFTER SUNSET. BRIGHT STARS + APPROXIMATE MOON; LIGHT POLLUTION NOT CALIBRATED.</p>
+        </div>
+        <div class="fireworks-simulator__guide-setting fireworks-simulator__advanced-viewport-setting">
+          <label for="fireworks-advanced-viewport">SHOW ADVANCED VIEWPORT SETTINGS</label>
+          <input id="fireworks-advanced-viewport" data-advanced-viewport type="checkbox" role="switch" />
+        </div>
+        <div class="fireworks-simulator__nav-calibration" data-advanced-viewport-panel aria-label="Navigation speed calibration" hidden inert>
+          <p class="fireworks-simulator__panel-subtitle">NAVIGATION SPEED <span>TEST SETTINGS</span></p>
+          <p class="fireworks-simulator__nav-curve-explainer">LOW = 10 M · HIGH = 2,000 M. Settings reset to the calibrated defaults on refresh.</p>
+          {[
+            { name: 'MOVE · LEFT BUTTON', slug: 'mouse-move', high: NAV_DEFAULT_PROFILE.mouseMoveHigh, low: NAV_DEFAULT_PROFILE.mouseMoveLow },
+            { name: 'PAN · RIGHT BUTTON', slug: 'mouse-pan', high: NAV_DEFAULT_PROFILE.mousePanHigh, low: NAV_DEFAULT_PROFILE.mousePanLow },
+            { name: 'KEYBOARD MOVE · WASD / Q/E / +/−', slug: 'keyboard-move', high: NAV_DEFAULT_PROFILE.keyboardMoveHigh, low: NAV_DEFAULT_PROFILE.keyboardMoveLow },
+            { name: 'KEYBOARD PAN / ROTATE · ARROWS', slug: 'keyboard-pan', high: NAV_DEFAULT_PROFILE.keyboardPanHigh, low: NAV_DEFAULT_PROFILE.keyboardPanLow },
+          ].map((speed) => (
+            <div class="fireworks-simulator__nav-speed-pair">
+              <p class="fireworks-simulator__nav-speed-title">{speed.name}</p>
+              <div class="fireworks-simulator__nav-speed-row">
+                <label for={`fireworks-${speed.slug}-low`}>LOW · 10 M <output for={`fireworks-${speed.slug}-low`} data-nav-speed-output={`${speed.slug}-low`}>{speed.low.toFixed(2)}×</output></label>
+                <input id={`fireworks-${speed.slug}-low`} type="range" min="0.25" max="10" step="0.05" value={speed.low} data-nav-speed={`${speed.slug}-low`} />
+              </div>
+              <div class="fireworks-simulator__nav-speed-row">
+                <label for={`fireworks-${speed.slug}-high`}>HIGH · 2,000 M <output for={`fireworks-${speed.slug}-high`} data-nav-speed-output={`${speed.slug}-high`}>{speed.high.toFixed(2)}×</output></label>
+                <input id={`fireworks-${speed.slug}-high`} type="range" min="0.25" max="10" step="0.05" value={speed.high} data-nav-speed={`${speed.slug}-high`} />
+              </div>
+            </div>
+          ))}
+          <div class="fireworks-simulator__nav-speed-row fireworks-simulator__nav-curve-control">
+            <label for="fireworks-nav-curve">ALTITUDE CURVE <output for="fireworks-nav-curve" data-nav-curve-output>{NAV_DEFAULT_PROFILE.curvePower.toFixed(1)}</output></label>
+            <input id="fireworks-nav-curve" data-nav-curve type="range" min="0.4" max="3" step="0.1" value={NAV_DEFAULT_PROFILE.curvePower} />
+            <p class="fireworks-simulator__nav-curve-explainer">Higher values keep the low-height boost longer. The graph plots effective multipliers, not metres per second.</p>
+          </div>
+          <div class="fireworks-simulator__nav-curve-preview" aria-label="Navigation multiplier by camera altitude">
+            <svg data-nav-curve-plot viewBox="0 0 270 142" role="img" aria-label="Navigation multiplier curves over logarithmic camera height, from 10 to 2000 metres">
+              <path d="M 28 12 V 116 H 258" class="fireworks-simulator__nav-axis" />
+              <path d="M 28 64 H 258 M 28 12 H 258" class="fireworks-simulator__nav-grid" />
+              <text x="2" y="17" data-nav-scale-top>4×</text><text x="9" y="69" data-nav-scale-mid>2×</text><text x="14" y="120">0×</text>
+              <text x="28" y="136">10 m</text><text x="126" y="136">~140 m</text><text x="226" y="136">2 km</text>
+              <path data-nav-curve-path="mouse-move" class="fireworks-simulator__nav-plot-line fireworks-simulator__nav-plot-line--move" />
+              <path data-nav-curve-path="mouse-pan" class="fireworks-simulator__nav-plot-line fireworks-simulator__nav-plot-line--pan" />
+              <path data-nav-curve-path="keyboard-move" class="fireworks-simulator__nav-plot-line fireworks-simulator__nav-plot-line--keyboard-move" />
+              <path data-nav-curve-path="keyboard-pan" class="fireworks-simulator__nav-plot-line fireworks-simulator__nav-plot-line--keyboard-pan" />
+              <path data-nav-curve-marker class="fireworks-simulator__nav-plot-marker" d="M 28 12 V 116" />
+              <circle data-nav-curve-dot="mouse-move" r="3.5" class="fireworks-simulator__nav-plot-dot--move" />
+              <circle data-nav-curve-dot="mouse-pan" r="3.5" class="fireworks-simulator__nav-plot-dot--pan" />
+              <circle data-nav-curve-dot="keyboard-move" r="3.5" class="fireworks-simulator__nav-plot-dot--keyboard-move" />
+              <circle data-nav-curve-dot="keyboard-pan" r="3.5" class="fireworks-simulator__nav-plot-dot--keyboard-pan" />
+            </svg>
+            <div class="fireworks-simulator__nav-curve-legend"><span class="is-move">MOVE</span><span class="is-pan">PAN</span><span class="is-keyboard-move">KEY MOVE</span><span class="is-keyboard-pan">KEY PAN</span></div>
+            <p class="fireworks-simulator__nav-curve-current" data-nav-curve-current aria-live="off">AT 10 M · MOVE 2.35× · PAN 1.50× · KEY MOVE 5.75× · KEY PAN 5.75×</p>
+          </div>
+          <label class="fireworks-simulator__nav-calibration-label" for="fireworks-navigation-config">COPY YOUR PREFERRED SETTINGS</label>
+          <textarea id="fireworks-navigation-config" data-navigation-config rows="3" readonly spellcheck="false" aria-label="Navigation calibration values to share"></textarea>
+          <div class="fireworks-simulator__nav-copy-actions">
+            <button type="button" data-navigation-copy>COPY SETTINGS</button>
+            <span data-navigation-copy-status role="status" aria-live="polite"></span>
+          </div>
+        </div>
+        <p class="fireworks-simulator__panel-subtitle">LAYERS <span>TRANSPARENCY</span></p>
+        {[
+          { id: 'structures', label: 'KEY BUILDINGS' },
+          { id: 'buildings', label: 'BUILDINGS' },
+          { id: 'roads', label: 'ROADS' },
+          { id: 'land', label: 'LAND / COASTLINE' },
+        ].map((layer) => (
+          <div class="fireworks-simulator__layer" data-layer-row={layer.id}>
+            <div class="fireworks-simulator__layer-heading">
+              <label for={`fireworks-layer-${layer.id}`}>{layer.label}</label>
+              <input id={`fireworks-layer-${layer.id}`} type="checkbox" role="switch" data-layer-toggle={layer.id} checked />
+            </div>
+            <div class="fireworks-simulator__layer-opacity">
+              <label class="sr-only" for={`fireworks-opacity-${layer.id}`}>{layer.label} transparency</label>
+              <input id={`fireworks-opacity-${layer.id}`} type="range" min="0" max="100" step="1" value="0" data-layer-opacity={layer.id} aria-valuetext="0% transparent" />
+              <output for={`fireworks-opacity-${layer.id}`} data-layer-output={layer.id}>0%</output>
+            </div>
+          </div>
+        ))}
+        <div class="fireworks-simulator__guide-setting">
+          <label for="fireworks-navigation-guide-switch">SHOW NAVIGATION GUIDE</label>
+          <input id="fireworks-navigation-guide-switch" data-navigation-guide-toggle type="checkbox" role="switch" checked />
+        </div>
+        <p class="fireworks-simulator__panel-footnote">0% OPAQUE · 100% INVISIBLE</p>
+      </div>
+    </details>
+    <div class="fireworks-simulator__camera-tools">
+      <span data-camera-readout>POV X -- Y -- Z --</span>
+      <button type="button" data-camera-reset aria-label="Reset Sydney camera to initial view">RESET VIEW</button>
+    </div>
+  </div>
+
+  <aside class="fireworks-simulator__landmark-drawer fireworks-simulator__edge-drawer" data-landmark-drawer aria-label="Key buildings">
+    <button class="fireworks-simulator__landmark-tab fireworks-simulator__edge-tab" data-landmark-toggle type="button"
+      aria-expanded="false" aria-controls="fireworks-landmark-list" aria-label="Show key buildings" title="Show key buildings">‹</button>
+    <div class="fireworks-simulator__landmark-panel" id="fireworks-landmark-list" inert aria-hidden="true">
+      <p class="fireworks-simulator__landmark-title">KEY BUILDINGS</p>
+      <p class="fireworks-simulator__landmark-note">SELECT TO FRAME IN VIEW</p>
+      <div class="fireworks-simulator__landmark-sort" aria-label="Sort key buildings">
+        <span>SORT</span>
+        <div role="group" aria-label="Sort order">
+          <button type="button" data-landmark-sort="abc" aria-pressed="false">ABC</button>
+          <button type="button" data-landmark-sort="height" aria-pressed="false">HEIGHT</button>
+        </div>
+        <label for="fireworks-landmark-group">TYPE
+          <input id="fireworks-landmark-group" data-landmark-group type="checkbox" role="switch" checked />
+        </label>
+      </div>
+      <nav data-landmark-list aria-label="Sydney key buildings"></nav>
+    </div>
+  </aside>
+
+  <div class="fireworks-simulator__scale" data-camera-height-scale aria-hidden="true">
+    <span data-camera-height-max>600 M</span>
+    <div class="fireworks-simulator__scale-track">
+      <i></i>
+      <b data-camera-height-node></b>
+      <b class="fireworks-simulator__scale-ghost" data-camera-height-ghost></b>
+    </div>
+    <span>0 M</span>
+  </div>
+
+  <div class="fireworks-simulator__height-cue" data-camera-height-cue data-direction="level" aria-hidden="true">
+    <span class="fireworks-simulator__height-cue-arrow" data-cue="above">
+      <svg viewBox="0 0 28 28" focusable="false" aria-hidden="true"><path d="M14 24V5m-8 8 8-8 8 8"/></svg>
+    </span>
+    <span class="fireworks-simulator__height-cue-level" data-cue="level"></span>
+    <output class="fireworks-simulator__height-cue-value" data-camera-target-height-value>0 M</output>
+    <span class="fireworks-simulator__height-cue-arrow" data-cue="below">
+      <svg viewBox="0 0 28 28" focusable="false" aria-hidden="true"><path d="M14 4v19m-8-8 8 8 8-8"/></svg>
+    </span>
+  </div>
+
+  <!-- Target-height comparison exists only during right-button + wheel selection
+       and the following camera-height travel. It never intercepts scene gestures. -->
+  <div class="fireworks-simulator__height-comparison" data-height-comparison aria-hidden="true">
+    <div class="fireworks-simulator__height-comparison-head">
+      <span>SYDNEY / HEIGHT COMPARE</span>
+      <strong data-height-comparison-value>0 M</strong>
+    </div>
+    <div class="fireworks-simulator__height-comparison-figures" data-height-comparison-figures></div>
+    <div class="fireworks-simulator__height-comparison-scan" data-height-comparison-scan></div>
+    <div class="fireworks-simulator__height-comparison-foot">
+      <span data-height-comparison-name>LANDMARK HEIGHTS</span>
+      <span data-height-comparison-roof></span>
+    </div>
+  </div>
+
+  <div class="fireworks-simulator__drawer fireworks-simulator__edge-drawer" data-control-drawer>
+    <form id="fireworks-control-form" class="fireworks-simulator__controls" data-fireworks-controls>
+      <div class="fireworks-simulator__control fireworks-simulator__control--wide">
+        <label for="fireworks-preset">PRESET</label>
+        <select id="fireworks-preset" data-preset>
+          {prototypePresets.map((preset) => (
+            <option value={preset.id}>{preset.name.toUpperCase()}</option>
+          ))}
+        </select>
+      </div>
+
+      <div class="fireworks-simulator__control">
+        <label for="fireworks-calibre">CALIBRE</label>
+        <select id="fireworks-calibre" data-calibre>
+          {prototypeCalibres.map((shell) => (
+            <option value={shell.calibreMm}>{shell.calibreMm} MM</option>
+          ))}
+        </select>
+      </div>
+
+      <div class="fireworks-simulator__control">
+        <label for="fireworks-colour">COLOUR</label>
+        <select id="fireworks-colour" data-colour>
+          {prototypePalette.map((colour) => (
+            <option value={colour.id}>{colour.label.toUpperCase()}</option>
+          ))}
+        </select>
+      </div>
+
+      <div class="fireworks-simulator__control fireworks-simulator__control--range">
+        <label for="fireworks-height">BURST HEIGHT <output data-height-output>132 M</output></label>
+        <input id="fireworks-height" data-height type="range" min="60" max="400" step="1" value="132" />
+      </div>
+
+      <div class="fireworks-simulator__control fireworks-simulator__control--range">
+        <label for="fireworks-spread">BURST SPREAD <output data-spread-output>108 M</output></label>
+        <input id="fireworks-spread" data-spread type="range" min="40" max="330" step="1" value="108" />
+      </div>
+
+      <div class="fireworks-simulator__actions">
+        <button class="fireworks-simulator__launch" type="button" data-launch>LAUNCH</button>
+        <span data-custom-state>RESEARCH PRESET</span>
+      </div>
+    </form>
+    <button class="fireworks-simulator__drawer-tab fireworks-simulator__edge-tab" type="button" data-drawer-toggle aria-expanded="true" aria-controls="fireworks-control-form" aria-label="Hide firework controls" title="Hide firework controls">
+      <span aria-hidden="true" data-drawer-symbol>‹</span>
+    </button>
+  </div>
+
+  <div class="fireworks-simulator__readout" aria-live="off">
+    <span data-readout-calibre>100 MM SHELL</span>
+    <span data-readout-height>132 M HEIGHT</span>
+    <span data-readout-spread>108 M SPREAD</span>
+    <span data-readout-duration>1.2 S EFFECT</span>
+  </div>
+
+  <details class="fireworks-simulator__method">
+    <summary>METHOD</summary>
+    <div>
+      <p>Firework scale uses published aerial-shell references and a measured Peony burst as a motion anchor. Buildings, streets and transport controls share one local-metre Sydney coordinate frame. Overture Buildings and building parts are the global building baseline. NSW Spatial Services RoadSegment supplies the Australia-first street centrelines and names, while OpenStreetMap can enrich exact lane counts where explicitly tagged and supplies traffic-signal and street-crossing points. SKYLINE uses a WebGL2 depth-tested city pass when available, while fireworks, Harbour Bridge and Opera House detail remain Canvas 2D. Sydney Tower shares the WebGL city depth buffer to avoid overlapping Overture geometry; browsers without WebGL2 fall back to the Canvas city renderer. If the top label says CALIBRATION, the real Overture building extract has not yet been generated on this installation.</p>
+      <p>CAMERA: left drag or one-finger drag pans the city. Right mouse drag rotates around the current map pivot with a 10 m minimum camera height: drag vertically to tilt the map and horizontally to turn it. At the minimum height the vertical orbit stops without switching to an in-place camera tilt. Ctrl + left drag is an equivalent rotation shortcut. Holding both mouse buttons and dragging applies the left-drag pan and right-drag rotation together, giving a mouse-only user access to both axes at once. Mouse wheel with no button moves along the camera aim point, shown briefly by a small crosshair. Left button + wheel changes camera height directly. Right button + wheel moves a gold height target that grows with its distance from the grey current-height ghost and displays up, level and down feedback; releasing the button sends the grey ghost smoothly toward the gold target until they meet. Reduced-motion preference applies that selected height without the easing animation. Shift + left drag moves forward/back along the same aim point. The controller retracts using its left-edge handle, fades while you move the camera, and the FIREWORKS heading reduces after five seconds or on first camera input. The scene cursor fades during movement. The browser context menu is disabled on this prototype page, including form fields. A two-finger pinch moves along the camera aim while a two-finger twist rotates. W/A/S/D pan in their established inverse-drag directions; arrow keys rotate and tilt the map in the same directions as physical right-drag, Q/E change camera height, +/- move forward/backward, and R resets. Tap the empty scene or use LAUNCH to replay.</p>
+      <p><a href="https://natural-resources.canada.ca/minerals-mining/explosives-fireworks-ammunition/explosives/display-fireworks-manual-2010" target="_blank" rel="noopener noreferrer">NRCan scale reference</a></p>
+      <p><a href="https://journals.ametsoc.org/view/journals/bams/101/2/bams-d-18-0248.1.xml" target="_blank" rel="noopener noreferrer">AMS measured burst study</a></p>
+      <p><a href="https://docs.overturemaps.org/guides/buildings/" target="_blank" rel="noopener noreferrer">Overture Maps Buildings</a> (ODbL-1.0). Source building features may include data from OpenStreetMap contributors; see <a href="https://docs.overturemaps.org/attribution/" target="_blank" rel="noopener noreferrer">Overture attribution</a>. The derived scene includes the source release and retrieval date when available.</p>
+      <p><a href="https://opendata.transport.nsw.gov.au/data/dataset/road-segment-data-from-datansw" target="_blank" rel="noopener noreferrer">NSW Road Segment</a> is the Sydney street-centreline source. Its <code>lanecount</code> field is categorical: unknown, one lane, or two-or-more lanes. It is not treated as an exact numeric lane count.</p>
+      <p><a href="https://docs.overturemaps.org/guides/transportation/segments-and-connectors/" target="_blank" rel="noopener noreferrer">Overture Transportation</a> defines the future international segment/connector contract. <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> (ODbL) is used only for explicit lane/width enrichment and traffic-signal/crossing points in this Sydney adapter. Street names are retained in the browser data but are not labelled yet.</p>
+      <p><a href="https://www.transport.nsw.gov.au/system/files/media/documents/2023/sydney-harbour-bridge-conservation-management-plan_0.pdf" target="_blank" rel="noopener noreferrer">Transport for NSW Harbour Bridge design history</a></p>
+      <p><a href="https://www.sydneyoperahouse.com/our-story/the-spherical-solution" target="_blank" rel="noopener noreferrer">Sydney Opera House spherical solution</a></p>
+    </div>
+  </details>
+
+  <aside class="fireworks-simulator__navigation-guide" data-navigation-guide data-active-input="pointer" data-pointer-type="mouse" aria-label="Camera navigation guide">
+    <div class="fireworks-simulator__navigation-guide-heading">
+      <span>CAMERA / NAVIGATION</span>
+      <button type="button" data-navigation-guide-hide aria-label="Hide camera navigation guide">HIDE GUIDE <span aria-hidden="true">×</span></button>
+    </div>
+    <div class="fireworks-simulator__navigation-cards">
+      <section class="fireworks-simulator__navigation-card fireworks-simulator__navigation-card--pointer" aria-label="Mouse and touch controls">
+        <div class="fireworks-simulator__navigation-card-heading">
+          <svg class="fireworks-simulator__mouse-icon" viewBox="0 0 32 40" fill="none" aria-hidden="true" focusable="false">
+            <rect x="5" y="2" width="22" height="34" rx="11" stroke="currentColor" stroke-width="1.5" />
+            <path d="M16 2v16M5 18h22" stroke="currentColor" stroke-width="1.3" />
+            <rect x="14.5" y="7" width="3" height="7" rx="1.5" fill="currentColor" />
+          </svg>
+          <svg class="fireworks-simulator__touch-icon" viewBox="0 0 32 40" fill="none" aria-hidden="true" focusable="false">
+            <path d="M13 21V7a3 3 0 0 1 6 0v12l2-3a3 3 0 0 1 5 2l-1 11c-.4 4-3 7-8 7h-2c-4 0-6-2-8-6L4 24a3 3 0 0 1 5-3l4 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          <span class="fireworks-simulator__navigation-card-name" data-pointer-guide-label>MOUSE</span>
+        </div>
+        <p class="fireworks-simulator__navigation-compact" data-pointer-guide-summary>DRAG / WHEEL</p>
+        <div class="fireworks-simulator__navigation-steps fireworks-simulator__navigation-steps--mouse">
+          <p><span class="fireworks-simulator__keycap">L</span> <span>DRAG</span> <strong>PAN</strong></p>
+          <p><span class="fireworks-simulator__keycap">R</span> <span>DRAG</span> <strong><span data-guide-skyline-only>ROTATE / TILT</span><span data-guide-plan-only>ROTATE</span></strong></p>
+          <p><span class="fireworks-simulator__keycap">L+R</span> <span>DRAG</span> <strong>PAN + ROTATE</strong></p>
+          <p><span class="fireworks-simulator__keycap fireworks-simulator__keycap--wheel" aria-label="Mouse wheel">↕</span> <span>WHEEL</span> <strong>MOVE / ZOOM</strong></p>
+          <p data-guide-skyline-only><span class="fireworks-simulator__keycap">L+↕</span> <span>WHEEL</span> <strong>HEIGHT</strong></p>
+          <p data-guide-skyline-only><span class="fireworks-simulator__keycap">R+↕</span> <span>WHEEL</span> <strong>TARGET HEIGHT</strong></p>
+        </div>
+        <div class="fireworks-simulator__navigation-steps fireworks-simulator__navigation-steps--touch">
+          <p><span class="fireworks-simulator__keycap">1</span> <span>FINGER</span> <strong>PAN</strong></p>
+          <p><span class="fireworks-simulator__keycap">2</span> <span>PINCH</span> <strong>MOVE / ZOOM</strong></p>
+          <p><span class="fireworks-simulator__keycap">2</span> <span>TWIST</span> <strong>ROTATE</strong></p>
+          <p><span class="fireworks-simulator__keycap">1</span> <span>TAP</span> <strong>LAUNCH</strong></p>
+        </div>
+      </section>
+      <section class="fireworks-simulator__navigation-card fireworks-simulator__navigation-card--keyboard" aria-label="Keyboard controls">
+        <div class="fireworks-simulator__navigation-card-heading">
+          <svg class="fireworks-simulator__keyboard-icon" viewBox="0 0 38 30" fill="none" aria-hidden="true" focusable="false">
+            <rect x="1.5" y="4" width="35" height="22" rx="4" stroke="currentColor" stroke-width="1.5" />
+            <path d="M7 10h3m4 0h3m4 0h3m4 0h3M7 15h3m4 0h3m4 0h3m4 0h3M9 21h20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+          </svg>
+          <span class="fireworks-simulator__navigation-card-name">KEYBOARD</span>
+        </div>
+        <p class="fireworks-simulator__navigation-compact">WASD / ARROWS</p>
+        <div class="fireworks-simulator__navigation-steps fireworks-simulator__navigation-steps--keyboard">
+          <p><span class="fireworks-simulator__keycap">WASD</span><strong>PAN</strong></p>
+          <p data-guide-skyline-only><span class="fireworks-simulator__keycap">↑←↓→</span><strong>ROTATE / TILT</strong></p>
+          <p data-guide-plan-only><span class="fireworks-simulator__keycap">← / →</span><strong>ROTATE</strong></p>
+          <p data-guide-skyline-only><span class="fireworks-simulator__keycap">Q / E</span><strong>HEIGHT</strong></p>
+          <p><span class="fireworks-simulator__keycap">+ / −</span><strong>MOVE / ZOOM</strong></p>
+          <p><span class="fireworks-simulator__keycap">R</span><strong>RESET VIEW</strong></p>
+        </div>
+      </section>
+    </div>
+  </aside>
+
+  <p class="fireworks-simulator__hint sr-only" data-fireworks-hint>WASD PAN · ARROWS ROTATE · Q/E HEIGHT · +/- MOVE · R RESET</p>
+  <p class="sr-only" role="status" aria-live="polite" data-fireworks-status></p>
+
+  <script type="application/json" data-fireworks-config set:html={JSON.stringify(clientConfig)}></script>
+</section>
+
+<script>
+  import './fireworks-simulator';
+</script>

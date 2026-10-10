@@ -1,0 +1,1429 @@
+{
+  "schemaVersion": "0.1.0",
+  "datasetStatus": "research-prototype",
+  "updated": "2026-10-06",
+  "projectSlug": "fireworks-simulator",
+  "scope": "Professional aerial-shell visual simulation research. No operational pyrotechnic construction or firing data.",
+  "units": {
+    "distance": "m",
+    "calibre": "mm",
+    "speed": "m/s",
+    "time": "s",
+    "angle": "deg",
+    "colourLifetime": "normalized 0-1"
+  },
+  "evidenceClasses": {
+    "measured": "Direct scientific measurement or fitted observation.",
+    "regulatory-approximation": "Approximation stated by an official government/regulatory technical reference.",
+    "manufacturer-declared": "Product value stated by a manufacturer or supplier.",
+    "professional-simulator-convention": "Field or semantic convention used by professional fireworks simulation/show software.",
+    "derived": "Calculated directly from cited source values.",
+    "rendering-hypothesis": "Provisional browser-visual tuning. Must not be presented as measured reality."
+  },
+  "sources": [
+    {
+      "id": "nrcan-display-manual-2010",
+      "title": "Display Fireworks Manual 2010",
+      "publisher": "Natural Resources Canada",
+      "url": "https://natural-resources.canada.ca/minerals-mining/explosives-fireworks-ammunition/explosives/display-fireworks-manual-2010",
+      "retrieved": "2026-10-06",
+      "role": "Official scale approximation and aerial-shell terminology"
+    },
+    {
+      "id": "ams-fireworks-radar-2020",
+      "title": "Fireworks on Weather Radar and Camera",
+      "publisher": "Bulletin of the American Meteorological Society",
+      "url": "https://doi.org/10.1175/BAMS-D-18-0248.1",
+      "retrieved": "2026-10-06",
+      "role": "Empirical burst dimensions, lifetime and star-motion calibration"
+    },
+    {
+      "id": "apa-display-glossary",
+      "title": "Display Fireworks Glossary",
+      "publisher": "American Pyrotechnics Association",
+      "url": "https://www.americanpyro.com/display-fireworks-glossary",
+      "retrieved": "2026-10-06",
+      "role": "Industry terminology cross-check"
+    },
+    {
+      "id": "finale-vdl-glossary",
+      "title": "Glossary of VDL Effect Terms",
+      "publisher": "Finale 3D",
+      "url": "https://finale3d.com/documentation/vdl-effect-glossary/",
+      "retrieved": "2026-10-06",
+      "role": "Professional simulator effect semantics"
+    },
+    {
+      "id": "finale-effect-adjustments",
+      "title": "VDL effect adjustment terms",
+      "publisher": "Finale 3D",
+      "url": "https://finale3d.com/documentation/vdl-effect-adjustment-terms-big-bright-etc/",
+      "retrieved": "2026-10-06",
+      "role": "Professional simulator parameter vocabulary"
+    },
+    {
+      "id": "finale-colours",
+      "title": "VDL colors",
+      "publisher": "Finale 3D",
+      "url": "https://finale3d.com/documentation/vdl-colors/",
+      "retrieved": "2026-10-06",
+      "role": "Professional colour/trail semantics"
+    },
+    {
+      "id": "finale-effect-fields",
+      "title": "Effects window columns and supplier import fields",
+      "publisher": "Finale 3D",
+      "url": "https://finale3d.com/documentation/effects-table-columns/",
+      "retrieved": "2026-10-06",
+      "role": "Professional simulator field separation: size, height, duration and description"
+    },
+    {
+      "id": "finale-prefire",
+      "title": "Prefire",
+      "publisher": "Finale 3D",
+      "url": "https://finale3d.com/documentation/prefire/",
+      "retrieved": "2026-10-06",
+      "role": "Lift/prefire timing convention"
+    },
+    {
+      "id": "jinping-75mm-shells",
+      "title": "3 inch series display shell",
+      "publisher": "JinPing Fireworks",
+      "url": "https://www.pyrotechnic-manufacture.com/3-series-display-shell-products/",
+      "retrieved": "2026-10-06",
+      "role": "Manufacturer-declared 75 mm effect-height example"
+    },
+    {
+      "id": "jinping-125mm-shells",
+      "title": "5 inch series display shell",
+      "publisher": "JinPing Fireworks",
+      "url": "https://www.pyrotechnic-manufacture.com/china-wholesale-cold-flame-indoor-fireworks-factories-5-series-display-shell-jinping-fireworks-products/",
+      "retrieved": "2026-10-06",
+      "role": "Manufacturer-declared 125 mm effect-height example"
+    },
+    {
+      "id": "jinping-150mm-shells",
+      "title": "6 inch series display shell",
+      "publisher": "JinPing Fireworks",
+      "url": "https://www.pyrotechnic-manufacture.com/china-wholesale-shells-fireworks-factories-6-series-display-shell-jinping-fireworks-products/",
+      "retrieved": "2026-10-06",
+      "role": "Manufacturer-declared 150 mm effect-height example"
+    }
+  ],
+  "scaleReference": {
+    "burstHeightPer25mmM": 33,
+    "maxSpreadDiameterPer25mmM": 27,
+    "sourceRefs": [
+      "nrcan-display-manual-2010"
+    ],
+    "shells": [
+      {
+        "calibreMm": 75,
+        "nominalInches": 3,
+        "approxBurstHeightM": 99.0,
+        "approxMaxSpreadDiameterM": 81.0,
+        "evidence": "regulatory-approximation",
+        "sourceRefs": [
+          "nrcan-display-manual-2010"
+        ]
+      },
+      {
+        "calibreMm": 100,
+        "nominalInches": 4,
+        "approxBurstHeightM": 132.0,
+        "approxMaxSpreadDiameterM": 108.0,
+        "evidence": "regulatory-approximation",
+        "sourceRefs": [
+          "nrcan-display-manual-2010"
+        ]
+      },
+      {
+        "calibreMm": 125,
+        "nominalInches": 5,
+        "approxBurstHeightM": 165.0,
+        "approxMaxSpreadDiameterM": 135.0,
+        "evidence": "regulatory-approximation",
+        "sourceRefs": [
+          "nrcan-display-manual-2010"
+        ]
+      },
+      {
+        "calibreMm": 150,
+        "nominalInches": 6,
+        "approxBurstHeightM": 198.0,
+        "approxMaxSpreadDiameterM": 162.0,
+        "evidence": "regulatory-approximation",
+        "sourceRefs": [
+          "nrcan-display-manual-2010"
+        ]
+      },
+      {
+        "calibreMm": 200,
+        "nominalInches": 8,
+        "approxBurstHeightM": 264.0,
+        "approxMaxSpreadDiameterM": 216.0,
+        "evidence": "regulatory-approximation",
+        "sourceRefs": [
+          "nrcan-display-manual-2010"
+        ]
+      },
+      {
+        "calibreMm": 250,
+        "nominalInches": 10,
+        "approxBurstHeightM": 330.0,
+        "approxMaxSpreadDiameterM": 270.0,
+        "evidence": "regulatory-approximation",
+        "sourceRefs": [
+          "nrcan-display-manual-2010"
+        ]
+      },
+      {
+        "calibreMm": 300,
+        "nominalInches": 12,
+        "approxBurstHeightM": 396.0,
+        "approxMaxSpreadDiameterM": 324.0,
+        "evidence": "regulatory-approximation",
+        "sourceRefs": [
+          "nrcan-display-manual-2010"
+        ]
+      }
+    ],
+    "manufacturerExamples": [
+      {
+        "calibreMm": 75,
+        "effectHeightRangeM": [
+          100,
+          110
+        ],
+        "evidence": "manufacturer-declared",
+        "sourceRefs": [
+          "jinping-75mm-shells"
+        ],
+        "note": "Example normal display-shell catalogue range; not universal."
+      },
+      {
+        "calibreMm": 125,
+        "effectHeightRangeM": [
+          130,
+          150
+        ],
+        "evidence": "manufacturer-declared",
+        "sourceRefs": [
+          "jinping-125mm-shells"
+        ],
+        "note": "Example normal display-shell catalogue range; not universal."
+      },
+      {
+        "calibreMm": 150,
+        "effectHeightRangeM": [
+          160,
+          170
+        ],
+        "evidence": "manufacturer-declared",
+        "sourceRefs": [
+          "jinping-150mm-shells"
+        ],
+        "note": "Example normal display-shell catalogue range; not universal."
+      }
+    ]
+  },
+  "empiricalCalibrations": [
+    {
+      "id": "ams-peony-2017",
+      "label": "Measured Peony example, Norman Oklahoma 2017 display",
+      "familyId": "peony",
+      "burstHeightM": 190,
+      "maxDiameterM": 100,
+      "visibleStarCount": 121,
+      "visibleDurationS": 1.0,
+      "initialExpansionMps": 170,
+      "velocityModel": "v(t)=170/(1+0.04*170*t)",
+      "radialDisplacementModel": "r(t)=ln(1+0.04*170*t)/0.04",
+      "evidence": "measured",
+      "sourceRefs": [
+        "ams-fireworks-radar-2020"
+      ],
+      "limitations": "Single analysed Peony-like burst; not a universal shell profile."
+    }
+  ],
+  "observedRanges": {
+    "typicalBurstHeightM": [
+      100,
+      200
+    ],
+    "highestObservedBurstM": 270,
+    "mostBurstDiameterM": [
+      100,
+      150
+    ],
+    "visibleDurationS": [
+      1,
+      6
+    ],
+    "peonyTerminalVelocityMps": [
+      14,
+      16
+    ],
+    "willowObservedTerminalVelocityMps": 22,
+    "evidence": "measured",
+    "sourceRefs": [
+      "ams-fireworks-radar-2020"
+    ],
+    "limitations": "Ranges come from one recorded display and are sanity bounds, not universal product specifications."
+  },
+  "rendererPalette": [
+    {
+      "id": "red",
+      "label": "Red",
+      "renderHex": "#ff334d",
+      "trailOriented": false,
+      "evidence": "rendering-hypothesis"
+    },
+    {
+      "id": "ruby",
+      "label": "Ruby",
+      "renderHex": "#ff356f",
+      "trailOriented": false,
+      "evidence": "rendering-hypothesis"
+    },
+    {
+      "id": "orange",
+      "label": "Orange",
+      "renderHex": "#ff8a2a",
+      "trailOriented": false,
+      "evidence": "rendering-hypothesis"
+    },
+    {
+      "id": "yellow",
+      "label": "Yellow",
+      "renderHex": "#ffe055",
+      "trailOriented": false,
+      "evidence": "rendering-hypothesis"
+    },
+    {
+      "id": "green",
+      "label": "Green",
+      "renderHex": "#54e65c",
+      "trailOriented": false,
+      "evidence": "rendering-hypothesis"
+    },
+    {
+      "id": "lime",
+      "label": "Lime",
+      "renderHex": "#a8ed56",
+      "trailOriented": false,
+      "evidence": "rendering-hypothesis"
+    },
+    {
+      "id": "blue",
+      "label": "Blue",
+      "renderHex": "#5a78ff",
+      "trailOriented": false,
+      "evidence": "rendering-hypothesis"
+    },
+    {
+      "id": "sea-blue",
+      "label": "Sea Blue",
+      "renderHex": "#4fa4ff",
+      "trailOriented": false,
+      "evidence": "rendering-hypothesis"
+    },
+    {
+      "id": "aqua",
+      "label": "Aqua",
+      "renderHex": "#52d9e8",
+      "trailOriented": false,
+      "evidence": "rendering-hypothesis"
+    },
+    {
+      "id": "violet",
+      "label": "Violet",
+      "renderHex": "#ba75ff",
+      "trailOriented": false,
+      "evidence": "rendering-hypothesis"
+    },
+    {
+      "id": "white",
+      "label": "White",
+      "renderHex": "#f3f6ff",
+      "trailOriented": false,
+      "evidence": "rendering-hypothesis"
+    },
+    {
+      "id": "gold",
+      "label": "Gold",
+      "renderHex": "#ffc857",
+      "trailOriented": true,
+      "evidence": "professional-simulator-convention"
+    },
+    {
+      "id": "silver",
+      "label": "Silver",
+      "renderHex": "#d9e1ef",
+      "trailOriented": true,
+      "evidence": "professional-simulator-convention"
+    },
+    {
+      "id": "charcoal",
+      "label": "Charcoal / Amber",
+      "renderHex": "#d48239",
+      "trailOriented": true,
+      "evidence": "professional-simulator-convention"
+    }
+  ],
+  "physicsProfiles": [
+    {
+      "id": "radial-drag",
+      "label": "Radial with strong drag",
+      "description": "High radial impulse followed by rapid deceleration; gravity becomes more visible as speed falls.",
+      "baseCalibrationRef": "ams-peony-2017",
+      "evidence": "rendering-hypothesis"
+    },
+    {
+      "id": "radial-droop",
+      "label": "Radial droop",
+      "description": "Radial break with longer-lived particles/trails and stronger late downward curvature.",
+      "baseCalibrationRef": "ams-peony-2017",
+      "evidence": "rendering-hypothesis"
+    },
+    {
+      "id": "sparse-arms",
+      "label": "Sparse arms",
+      "description": "Small number of coherent radial arms rather than a uniformly filled sphere.",
+      "baseCalibrationRef": null,
+      "evidence": "rendering-hypothesis"
+    },
+    {
+      "id": "soft-cascade",
+      "label": "Soft cascade",
+      "description": "Low outward impulse with an early transition into a downward cascade.",
+      "baseCalibrationRef": null,
+      "evidence": "rendering-hypothesis"
+    },
+    {
+      "id": "planar-pattern",
+      "label": "Planar pattern",
+      "description": "Stars are distributed on a plane in 3D and can be rotated relative to the camera.",
+      "baseCalibrationRef": null,
+      "evidence": "rendering-hypothesis"
+    },
+    {
+      "id": "branching",
+      "label": "Branching",
+      "description": "Parent trajectories split into child trajectories during the visible lifetime.",
+      "baseCalibrationRef": null,
+      "evidence": "rendering-hypothesis"
+    },
+    {
+      "id": "nested",
+      "label": "Nested layers",
+      "description": "Coordinated inner and outer layers with separate scale and colour.",
+      "baseCalibrationRef": null,
+      "evidence": "rendering-hypothesis"
+    },
+    {
+      "id": "phased-colour",
+      "label": "Phased colour",
+      "description": "Geometry remains coherent while colour transitions sweep spatially across the effect.",
+      "baseCalibrationRef": null,
+      "evidence": "rendering-hypothesis"
+    },
+    {
+      "id": "flutter-fall",
+      "label": "Flutter fall",
+      "description": "Irregular low-energy trajectories with visible downward drift and flutter.",
+      "baseCalibrationRef": null,
+      "evidence": "rendering-hypothesis"
+    },
+    {
+      "id": "spawn",
+      "label": "Spawn / multibreak",
+      "description": "Parent effect creates timed child bursts; deferred from the minimum renderer if necessary.",
+      "baseCalibrationRef": null,
+      "evidence": "rendering-hypothesis"
+    }
+  ],
+  "effectFamilies": [
+    {
+      "id": "peony",
+      "label": "Peony",
+      "geometry": "spherical",
+      "physicsProfileId": "radial-drag",
+      "researchTraits": [
+        "spherical break",
+        "stars without spark trails"
+      ],
+      "defaultTrail": "none",
+      "confidence": "high",
+      "sourceRefs": [
+        "apa-display-glossary",
+        "finale-vdl-glossary"
+      ]
+    },
+    {
+      "id": "chrysanthemum",
+      "label": "Chrysanthemum",
+      "geometry": "spherical",
+      "physicsProfileId": "radial-drag",
+      "researchTraits": [
+        "spherical break",
+        "stars leave visible spark trails"
+      ],
+      "defaultTrail": "spark",
+      "confidence": "high",
+      "sourceRefs": [
+        "apa-display-glossary",
+        "finale-vdl-glossary"
+      ]
+    },
+    {
+      "id": "dahlia",
+      "label": "Dahlia",
+      "geometry": "spherical-sparse",
+      "physicsProfileId": "radial-drag",
+      "researchTraits": [
+        "fewer large bright stars",
+        "longer travel than typical peony",
+        "no trail by default"
+      ],
+      "defaultTrail": "none",
+      "confidence": "high",
+      "sourceRefs": [
+        "apa-display-glossary",
+        "finale-vdl-glossary"
+      ]
+    },
+    {
+      "id": "brocade",
+      "label": "Brocade",
+      "geometry": "spherical-trailing",
+      "physicsProfileId": "radial-droop",
+      "researchTraits": [
+        "long gold glittering spark trails"
+      ],
+      "defaultTrail": "gold-glitter",
+      "confidence": "high",
+      "sourceRefs": [
+        "apa-display-glossary",
+        "finale-vdl-glossary"
+      ]
+    },
+    {
+      "id": "willow",
+      "label": "Willow",
+      "geometry": "spherical-drooping",
+      "physicsProfileId": "radial-droop",
+      "researchTraits": [
+        "long bright gold trails",
+        "hanging/drooping visual"
+      ],
+      "defaultTrail": "gold-long",
+      "confidence": "high",
+      "sourceRefs": [
+        "finale-vdl-glossary"
+      ]
+    },
+    {
+      "id": "crown",
+      "label": "Crown",
+      "geometry": "spherical-drooping",
+      "physicsProfileId": "radial-droop",
+      "researchTraits": [
+        "long-duration stars",
+        "droop toward ground late in life"
+      ],
+      "defaultTrail": "long",
+      "confidence": "high",
+      "sourceRefs": [
+        "finale-vdl-glossary"
+      ]
+    },
+    {
+      "id": "palm",
+      "label": "Palm",
+      "geometry": "sparse-arms",
+      "physicsProfileId": "sparse-arms",
+      "researchTraits": [
+        "few prominent radial arms"
+      ],
+      "defaultTrail": "thick",
+      "confidence": "medium",
+      "sourceRefs": [
+        "finale-vdl-glossary"
+      ]
+    },
+    {
+      "id": "coconut",
+      "label": "Coconut",
+      "geometry": "sparse-arms",
+      "physicsProfileId": "sparse-arms",
+      "researchTraits": [
+        "few large stars",
+        "bright thick short-duration trails"
+      ],
+      "defaultTrail": "thick-short",
+      "confidence": "high",
+      "sourceRefs": [
+        "finale-vdl-glossary"
+      ]
+    },
+    {
+      "id": "horsetail",
+      "label": "Horsetail / Waterfall",
+      "geometry": "cascade",
+      "physicsProfileId": "soft-cascade",
+      "researchTraits": [
+        "soft break",
+        "little outward travel",
+        "long-duration cascading stars"
+      ],
+      "defaultTrail": "long",
+      "confidence": "high",
+      "sourceRefs": [
+        "apa-display-glossary",
+        "finale-vdl-glossary"
+      ]
+    },
+    {
+      "id": "crossette",
+      "label": "Crossette",
+      "geometry": "branching",
+      "physicsProfileId": "branching",
+      "researchTraits": [
+        "stars split into four pieces mid-flight"
+      ],
+      "defaultTrail": "optional",
+      "confidence": "high",
+      "sourceRefs": [
+        "apa-display-glossary",
+        "finale-vdl-glossary"
+      ]
+    },
+    {
+      "id": "ring",
+      "label": "Ring",
+      "geometry": "planar-ring",
+      "physicsProfileId": "planar-pattern",
+      "researchTraits": [
+        "stars arranged in a ring"
+      ],
+      "defaultTrail": "optional",
+      "confidence": "high",
+      "sourceRefs": [
+        "finale-vdl-glossary"
+      ]
+    },
+    {
+      "id": "sweeper-ghost",
+      "label": "Sweeper Ghost",
+      "geometry": "spherical-phased-colour",
+      "physicsProfileId": "phased-colour",
+      "researchTraits": [
+        "colour changes occur at different times across sections of the break"
+      ],
+      "defaultTrail": "optional",
+      "confidence": "high",
+      "sourceRefs": [
+        "finale-vdl-glossary"
+      ]
+    },
+    {
+      "id": "falling-leaves",
+      "label": "Falling Leaves",
+      "geometry": "irregular-fall",
+      "physicsProfileId": "flutter-fall",
+      "researchTraits": [
+        "slow irregular descending stars"
+      ],
+      "defaultTrail": "short",
+      "confidence": "medium",
+      "sourceRefs": [
+        "finale-vdl-glossary"
+      ]
+    },
+    {
+      "id": "shell-of-shells",
+      "label": "Shell of Shells / Multibreak",
+      "geometry": "spawn",
+      "physicsProfileId": "spawn",
+      "researchTraits": [
+        "parent effect creates secondary bursts or successive breaks"
+      ],
+      "defaultTrail": "inherits",
+      "confidence": "medium",
+      "sourceRefs": [
+        "nrcan-display-manual-2010",
+        "finale-vdl-glossary"
+      ]
+    }
+  ],
+  "customControls": [
+    {
+      "id": "familyId",
+      "label": "Effect family",
+      "kind": "select",
+      "unit": null,
+      "researchGrounded": true,
+      "values": [
+        "peony",
+        "chrysanthemum",
+        "dahlia",
+        "brocade",
+        "willow",
+        "crown",
+        "palm",
+        "coconut",
+        "horsetail",
+        "crossette",
+        "ring",
+        "sweeper-ghost",
+        "falling-leaves"
+      ],
+      "note": "Named geometry/behaviour family."
+    },
+    {
+      "id": "calibreMm",
+      "label": "Shell calibre",
+      "kind": "select",
+      "unit": "mm",
+      "researchGrounded": true,
+      "values": [
+        75,
+        100,
+        125,
+        150
+      ],
+      "note": "First prototype choices. Larger researched scale references are retained for later."
+    },
+    {
+      "id": "burstHeightM",
+      "label": "Burst height",
+      "kind": "range",
+      "unit": "m",
+      "researchGrounded": true,
+      "min": 60,
+      "max": 400,
+      "step": 1,
+      "note": "Default from preset or calibre approximation; user override allowed."
+    },
+    {
+      "id": "spreadDiameterM",
+      "label": "Burst spread",
+      "kind": "range",
+      "unit": "m",
+      "researchGrounded": true,
+      "min": 40,
+      "max": 330,
+      "step": 1,
+      "note": "Maximum visual spread target."
+    },
+    {
+      "id": "visibleDurationS",
+      "label": "Visible duration",
+      "kind": "range",
+      "unit": "s",
+      "researchGrounded": true,
+      "min": 0.5,
+      "max": 6.0,
+      "step": 0.1,
+      "note": "Observed display range is roughly 1-6 s; some custom values may intentionally fall outside typical observations later."
+    },
+    {
+      "id": "modifiers",
+      "label": "Modifiers",
+      "kind": "multi-select",
+      "unit": null,
+      "researchGrounded": true,
+      "values": [
+        "pistil",
+        "strobing",
+        "glitter",
+        "crackle",
+        "rising-tail",
+        "colour-transition",
+        "multicolour"
+      ],
+      "note": "Composable effect properties such as pistil, strobing or colour transition."
+    },
+    {
+      "id": "trailStyle",
+      "label": "Trail style",
+      "kind": "select",
+      "unit": null,
+      "researchGrounded": true,
+      "values": [
+        "none",
+        "spark",
+        "gold-long",
+        "gold-glitter",
+        "thick",
+        "thick-short",
+        "long",
+        "short",
+        "charcoal"
+      ],
+      "note": "Effect-family default can be overridden in custom mode."
+    },
+    {
+      "id": "primaryColour",
+      "label": "Primary colour",
+      "kind": "palette",
+      "unit": null,
+      "researchGrounded": false,
+      "note": "Renderer palette choice."
+    },
+    {
+      "id": "secondaryColour",
+      "label": "Secondary colour",
+      "kind": "palette",
+      "unit": null,
+      "researchGrounded": false,
+      "note": "Used for transitions/pistils where supported."
+    },
+    {
+      "id": "density",
+      "label": "Star density",
+      "kind": "range",
+      "unit": "ratio",
+      "researchGrounded": false,
+      "min": 0.2,
+      "max": 1.5,
+      "step": 0.05,
+      "note": "Rendering control; not a physical star-count claim."
+    },
+    {
+      "id": "breakSpeedScale",
+      "label": "Break speed",
+      "kind": "range",
+      "unit": "ratio",
+      "researchGrounded": false,
+      "min": 0.25,
+      "max": 1.5,
+      "step": 0.05,
+      "note": "Relative to selected physics profile calibration."
+    },
+    {
+      "id": "dragScale",
+      "label": "Drag",
+      "kind": "range",
+      "unit": "ratio",
+      "researchGrounded": false,
+      "min": 0.5,
+      "max": 1.8,
+      "step": 0.05,
+      "note": "Renderer multiplier, not measured coefficient."
+    },
+    {
+      "id": "droopScale",
+      "label": "Droop",
+      "kind": "range",
+      "unit": "ratio",
+      "researchGrounded": false,
+      "min": 0.0,
+      "max": 1.5,
+      "step": 0.05,
+      "note": "Controls late downward curvature."
+    },
+    {
+      "id": "symmetry",
+      "label": "Symmetry",
+      "kind": "range",
+      "unit": "ratio",
+      "researchGrounded": false,
+      "min": 0.4,
+      "max": 1.0,
+      "step": 0.02,
+      "note": "1.0 is highly uniform."
+    },
+    {
+      "id": "raggedness",
+      "label": "Raggedness",
+      "kind": "range",
+      "unit": "ratio",
+      "researchGrounded": false,
+      "min": 0.0,
+      "max": 0.6,
+      "step": 0.02,
+      "note": "Variation in star travel distance/direction."
+    },
+    {
+      "id": "trailWidth",
+      "label": "Trail width",
+      "kind": "range",
+      "unit": "ratio",
+      "researchGrounded": false,
+      "min": 0.0,
+      "max": 1.2,
+      "step": 0.05,
+      "note": "Renderer width factor."
+    },
+    {
+      "id": "trailLifetimeS",
+      "label": "Trail lifetime",
+      "kind": "range",
+      "unit": "s",
+      "researchGrounded": false,
+      "min": 0.0,
+      "max": 4.0,
+      "step": 0.1,
+      "note": "Renderer trail-particle lifetime."
+    },
+    {
+      "id": "strobeHz",
+      "label": "Strobe rate",
+      "kind": "range",
+      "unit": "Hz",
+      "researchGrounded": false,
+      "min": 0.0,
+      "max": 15.0,
+      "step": 0.5,
+      "note": "Renderer frequency; current values are not measured physical rates."
+    }
+  ],
+  "presets": [
+    {
+      "id": "red-peony-100",
+      "name": "Red Peony",
+      "familyId": "peony",
+      "calibreMm": 100,
+      "tipColours": [
+        "red"
+      ],
+      "trailColour": null,
+      "renderDefaults": {
+        "durationS": 1.2,
+        "density": 1.0,
+        "breakSpeedScale": 1.0,
+        "dragScale": 1.0,
+        "gravityScale": 1.0,
+        "droopScale": 0.2,
+        "symmetry": 0.95,
+        "raggedness": 0.08,
+        "trailWidth": 0.0,
+        "trailLifetimeS": 0.0,
+        "strobeHz": 0.0,
+        "splitAt": null
+      },
+      "evidenceNote": "Scale from NRCan 100 mm approximation; motion anchored to the measured AMS Peony case; renderer values remain provisional.",
+      "liftTimeS": null,
+      "burstHeightOverrideM": null,
+      "spreadDiameterOverrideM": null,
+      "modifiers": [],
+      "colourPattern": "single"
+    },
+    {
+      "id": "blue-chrysanthemum-100",
+      "name": "Blue Chrysanthemum",
+      "familyId": "chrysanthemum",
+      "calibreMm": 100,
+      "tipColours": [
+        "blue"
+      ],
+      "trailColour": "gold",
+      "renderDefaults": {
+        "durationS": 2.0,
+        "density": 1.0,
+        "breakSpeedScale": 0.95,
+        "dragScale": 1.0,
+        "gravityScale": 1.0,
+        "droopScale": 0.25,
+        "symmetry": 0.94,
+        "raggedness": 0.1,
+        "trailWidth": 0.65,
+        "trailLifetimeS": 1.1,
+        "strobeHz": 0.0,
+        "splitAt": null
+      },
+      "evidenceNote": "Chrysanthemum trail semantics are source-backed; duration and trail rendering values are provisional.",
+      "liftTimeS": null,
+      "burstHeightOverrideM": null,
+      "spreadDiameterOverrideM": null,
+      "modifiers": [],
+      "colourPattern": "single"
+    },
+    {
+      "id": "pastel-dahlia-125",
+      "name": "Pastel Dahlia",
+      "familyId": "dahlia",
+      "calibreMm": 125,
+      "tipColours": [
+        "aqua",
+        "yellow",
+        "lime",
+        "orange",
+        "violet"
+      ],
+      "trailColour": null,
+      "renderDefaults": {
+        "durationS": 2.2,
+        "density": 0.45,
+        "breakSpeedScale": 1.06,
+        "dragScale": 0.95,
+        "gravityScale": 1.0,
+        "droopScale": 0.15,
+        "symmetry": 0.9,
+        "raggedness": 0.14,
+        "trailWidth": 0.0,
+        "trailLifetimeS": 0.0,
+        "strobeHz": 0.0,
+        "splitAt": null
+      },
+      "evidenceNote": "Sparse large-star behaviour is source-backed; numeric renderer tuning is provisional.",
+      "liftTimeS": null,
+      "burstHeightOverrideM": null,
+      "spreadDiameterOverrideM": null,
+      "modifiers": [
+        "multicolour"
+      ],
+      "colourPattern": "multicolour"
+    },
+    {
+      "id": "gold-brocade-150",
+      "name": "Gold Brocade",
+      "familyId": "brocade",
+      "calibreMm": 150,
+      "tipColours": [
+        "gold"
+      ],
+      "trailColour": "gold",
+      "renderDefaults": {
+        "durationS": 4.2,
+        "density": 1.1,
+        "breakSpeedScale": 0.82,
+        "dragScale": 1.05,
+        "gravityScale": 1.05,
+        "droopScale": 0.95,
+        "symmetry": 0.9,
+        "raggedness": 0.16,
+        "trailWidth": 0.85,
+        "trailLifetimeS": 2.8,
+        "strobeHz": 0.0,
+        "splitAt": null
+      },
+      "evidenceNote": "Long gold glitter trail semantics are source-backed; numeric renderer tuning is provisional.",
+      "liftTimeS": null,
+      "burstHeightOverrideM": null,
+      "spreadDiameterOverrideM": null,
+      "modifiers": [],
+      "colourPattern": "single"
+    },
+    {
+      "id": "gold-willow-150",
+      "name": "Gold Willow",
+      "familyId": "willow",
+      "calibreMm": 150,
+      "tipColours": [
+        "gold"
+      ],
+      "trailColour": "gold",
+      "renderDefaults": {
+        "durationS": 5.0,
+        "density": 0.95,
+        "breakSpeedScale": 0.72,
+        "dragScale": 1.08,
+        "gravityScale": 1.12,
+        "droopScale": 1.0,
+        "symmetry": 0.88,
+        "raggedness": 0.18,
+        "trailWidth": 0.8,
+        "trailLifetimeS": 3.2,
+        "strobeHz": 0.0,
+        "splitAt": null
+      },
+      "evidenceNote": "Long drooping gold-trail behaviour is source-backed; numeric renderer tuning is provisional.",
+      "liftTimeS": null,
+      "burstHeightOverrideM": null,
+      "spreadDiameterOverrideM": null,
+      "modifiers": [],
+      "colourPattern": "single"
+    },
+    {
+      "id": "gold-crown-150",
+      "name": "Gold Crown",
+      "familyId": "crown",
+      "calibreMm": 150,
+      "tipColours": [
+        "gold"
+      ],
+      "trailColour": "gold",
+      "renderDefaults": {
+        "durationS": 4.5,
+        "density": 0.9,
+        "breakSpeedScale": 0.8,
+        "dragScale": 1.04,
+        "gravityScale": 1.08,
+        "droopScale": 0.9,
+        "symmetry": 0.91,
+        "raggedness": 0.12,
+        "trailWidth": 0.72,
+        "trailLifetimeS": 2.5,
+        "strobeHz": 0.0,
+        "splitAt": null
+      },
+      "evidenceNote": "Crown droop semantics are source-backed; numeric renderer tuning is provisional.",
+      "liftTimeS": null,
+      "burstHeightOverrideM": null,
+      "spreadDiameterOverrideM": null,
+      "modifiers": [],
+      "colourPattern": "single"
+    },
+    {
+      "id": "silver-palm-125",
+      "name": "Silver Palm",
+      "familyId": "palm",
+      "calibreMm": 125,
+      "tipColours": [
+        "silver"
+      ],
+      "trailColour": "silver",
+      "renderDefaults": {
+        "durationS": 2.8,
+        "density": 0.28,
+        "breakSpeedScale": 0.9,
+        "dragScale": 0.98,
+        "gravityScale": 1.0,
+        "droopScale": 0.45,
+        "symmetry": 0.82,
+        "raggedness": 0.22,
+        "trailWidth": 1.0,
+        "trailLifetimeS": 1.8,
+        "strobeHz": 0.0,
+        "splitAt": null
+      },
+      "evidenceNote": "Sparse-arm structure is qualitative; numeric renderer tuning is provisional.",
+      "liftTimeS": null,
+      "burstHeightOverrideM": null,
+      "spreadDiameterOverrideM": null,
+      "modifiers": [],
+      "colourPattern": "single"
+    },
+    {
+      "id": "gold-coconut-100",
+      "name": "Gold Coconut",
+      "familyId": "coconut",
+      "calibreMm": 100,
+      "tipColours": [
+        "gold"
+      ],
+      "trailColour": "gold",
+      "renderDefaults": {
+        "durationS": 2.2,
+        "density": 0.34,
+        "breakSpeedScale": 0.92,
+        "dragScale": 1.0,
+        "gravityScale": 1.0,
+        "droopScale": 0.35,
+        "symmetry": 0.84,
+        "raggedness": 0.18,
+        "trailWidth": 1.0,
+        "trailLifetimeS": 1.0,
+        "strobeHz": 0.0,
+        "splitAt": null
+      },
+      "evidenceNote": "Few large stars with thick short trails are source-backed; numeric renderer tuning is provisional.",
+      "liftTimeS": null,
+      "burstHeightOverrideM": null,
+      "spreadDiameterOverrideM": null,
+      "modifiers": [],
+      "colourPattern": "single"
+    },
+    {
+      "id": "brocade-horsetail-125",
+      "name": "Brocade Horsetail",
+      "familyId": "horsetail",
+      "calibreMm": 125,
+      "tipColours": [
+        "gold"
+      ],
+      "trailColour": "gold",
+      "renderDefaults": {
+        "durationS": 4.2,
+        "density": 0.75,
+        "breakSpeedScale": 0.34,
+        "dragScale": 1.08,
+        "gravityScale": 1.18,
+        "droopScale": 1.0,
+        "symmetry": 0.78,
+        "raggedness": 0.2,
+        "trailWidth": 0.82,
+        "trailLifetimeS": 2.8,
+        "strobeHz": 0.0,
+        "splitAt": null
+      },
+      "evidenceNote": "Soft break/cascade semantics are source-backed; numeric renderer tuning is provisional.",
+      "liftTimeS": null,
+      "burstHeightOverrideM": null,
+      "spreadDiameterOverrideM": null,
+      "modifiers": [],
+      "colourPattern": "single"
+    },
+    {
+      "id": "blue-yellow-crossette-100",
+      "name": "Blue to Yellow Crossette",
+      "familyId": "crossette",
+      "calibreMm": 100,
+      "tipColours": [
+        "blue",
+        "yellow"
+      ],
+      "trailColour": null,
+      "renderDefaults": {
+        "durationS": 2.1,
+        "density": 0.55,
+        "breakSpeedScale": 0.9,
+        "dragScale": 1.0,
+        "gravityScale": 1.0,
+        "droopScale": 0.2,
+        "symmetry": 0.9,
+        "raggedness": 0.1,
+        "trailWidth": 0.18,
+        "trailLifetimeS": 0.35,
+        "strobeHz": 0.0,
+        "splitAt": 0.52
+      },
+      "evidenceNote": "Four-way split semantics are source-backed; split timing and other numeric tuning are provisional.",
+      "liftTimeS": null,
+      "burstHeightOverrideM": null,
+      "spreadDiameterOverrideM": null,
+      "modifiers": [
+        "colour-transition"
+      ],
+      "colourPattern": "transition"
+    },
+    {
+      "id": "rainbow-ring-125",
+      "name": "Rainbow Ring",
+      "familyId": "ring",
+      "calibreMm": 125,
+      "tipColours": [
+        "red",
+        "orange",
+        "yellow",
+        "green",
+        "blue",
+        "violet"
+      ],
+      "trailColour": null,
+      "renderDefaults": {
+        "durationS": 2.1,
+        "density": 0.72,
+        "breakSpeedScale": 0.92,
+        "dragScale": 1.0,
+        "gravityScale": 0.9,
+        "droopScale": 0.1,
+        "symmetry": 0.98,
+        "raggedness": 0.03,
+        "trailWidth": 0.0,
+        "trailLifetimeS": 0.0,
+        "strobeHz": 0.0,
+        "splitAt": null
+      },
+      "evidenceNote": "Planar ring semantics are source-backed; numeric renderer tuning is provisional.",
+      "liftTimeS": null,
+      "burstHeightOverrideM": null,
+      "spreadDiameterOverrideM": null,
+      "modifiers": [
+        "multicolour"
+      ],
+      "colourPattern": "segmented-multicolour"
+    },
+    {
+      "id": "blue-peony-red-pistil-125",
+      "name": "Blue Peony with Red Pistil",
+      "familyId": "peony",
+      "calibreMm": 125,
+      "tipColours": [
+        "blue",
+        "red"
+      ],
+      "trailColour": null,
+      "renderDefaults": {
+        "durationS": 1.8,
+        "density": 1.0,
+        "breakSpeedScale": 0.96,
+        "dragScale": 1.0,
+        "gravityScale": 1.0,
+        "droopScale": 0.2,
+        "symmetry": 0.95,
+        "raggedness": 0.08,
+        "trailWidth": 0.0,
+        "trailLifetimeS": 0.0,
+        "strobeHz": 0.0,
+        "splitAt": null
+      },
+      "evidenceNote": "Nested centre/pistil semantics are source-backed; numeric renderer tuning is provisional.",
+      "liftTimeS": null,
+      "burstHeightOverrideM": null,
+      "spreadDiameterOverrideM": null,
+      "modifiers": [
+        "pistil"
+      ],
+      "colourPattern": "layered"
+    },
+    {
+      "id": "white-strobing-willow-150",
+      "name": "White Strobing Willow",
+      "familyId": "willow",
+      "calibreMm": 150,
+      "tipColours": [
+        "white"
+      ],
+      "trailColour": "gold",
+      "renderDefaults": {
+        "durationS": 5.0,
+        "density": 0.9,
+        "breakSpeedScale": 0.72,
+        "dragScale": 1.08,
+        "gravityScale": 1.12,
+        "droopScale": 1.0,
+        "symmetry": 0.87,
+        "raggedness": 0.18,
+        "trailWidth": 0.78,
+        "trailLifetimeS": 3.0,
+        "strobeHz": 8.0,
+        "splitAt": null
+      },
+      "evidenceNote": "Strobe semantics and Willow behaviour are source-backed; strobe frequency and numeric tuning are provisional.",
+      "liftTimeS": null,
+      "burstHeightOverrideM": null,
+      "spreadDiameterOverrideM": null,
+      "modifiers": [
+        "strobing"
+      ],
+      "colourPattern": "single"
+    },
+    {
+      "id": "green-purple-ghost-150",
+      "name": "Green to Purple Ghost",
+      "familyId": "sweeper-ghost",
+      "calibreMm": 150,
+      "tipColours": [
+        "green",
+        "violet"
+      ],
+      "trailColour": null,
+      "renderDefaults": {
+        "durationS": 3.2,
+        "density": 1.0,
+        "breakSpeedScale": 0.9,
+        "dragScale": 1.0,
+        "gravityScale": 1.0,
+        "droopScale": 0.3,
+        "symmetry": 0.95,
+        "raggedness": 0.08,
+        "trailWidth": 0.12,
+        "trailLifetimeS": 0.4,
+        "strobeHz": 0.0,
+        "splitAt": null
+      },
+      "evidenceNote": "Spatially phased colour-change semantics are source-backed; timing and numeric tuning are provisional.",
+      "liftTimeS": null,
+      "burstHeightOverrideM": null,
+      "spreadDiameterOverrideM": null,
+      "modifiers": [
+        "colour-transition"
+      ],
+      "colourPattern": "phased-transition"
+    },
+    {
+      "id": "red-green-falling-leaves-75",
+      "name": "Red and Green Falling Leaves",
+      "familyId": "falling-leaves",
+      "calibreMm": 75,
+      "tipColours": [
+        "red",
+        "green"
+      ],
+      "trailColour": "charcoal",
+      "renderDefaults": {
+        "durationS": 4.0,
+        "density": 0.55,
+        "breakSpeedScale": 0.45,
+        "dragScale": 1.12,
+        "gravityScale": 0.9,
+        "droopScale": 0.92,
+        "symmetry": 0.62,
+        "raggedness": 0.45,
+        "trailWidth": 0.35,
+        "trailLifetimeS": 1.4,
+        "strobeHz": 0.0,
+        "splitAt": null
+      },
+      "evidenceNote": "Irregular falling behaviour is qualitative; numeric renderer tuning is provisional.",
+      "liftTimeS": null,
+      "burstHeightOverrideM": null,
+      "spreadDiameterOverrideM": null,
+      "modifiers": [
+        "multicolour"
+      ],
+      "colourPattern": "multicolour"
+    }
+  ],
+  "effectModifiers": [
+    {
+      "id": "pistil",
+      "label": "Pistil / Core",
+      "description": "Adds a smaller central pattern inside the outer break.",
+      "confidence": "high",
+      "sourceRefs": [
+        "apa-display-glossary",
+        "finale-vdl-glossary"
+      ]
+    },
+    {
+      "id": "strobing",
+      "label": "Strobing",
+      "description": "Oscillates star brightness between visible and dark states.",
+      "confidence": "high",
+      "sourceRefs": [
+        "apa-display-glossary",
+        "finale-vdl-glossary"
+      ]
+    },
+    {
+      "id": "glitter",
+      "label": "Glitter",
+      "description": "Adds intermittent bright spark accents to a trail.",
+      "confidence": "high",
+      "sourceRefs": [
+        "finale-vdl-glossary"
+      ]
+    },
+    {
+      "id": "crackle",
+      "label": "Crackle visual",
+      "description": "Adds delayed secondary spark/flash events; audio is outside current scope.",
+      "confidence": "high",
+      "sourceRefs": [
+        "finale-vdl-glossary"
+      ]
+    },
+    {
+      "id": "rising-tail",
+      "label": "Rising Tail",
+      "description": "Adds a visible trail to the ascending shell before the break.",
+      "confidence": "high",
+      "sourceRefs": [
+        "finale-vdl-glossary"
+      ]
+    },
+    {
+      "id": "colour-transition",
+      "label": "Colour Transition",
+      "description": "Changes star tip colour over normalized lifetime.",
+      "confidence": "high",
+      "sourceRefs": [
+        "finale-vdl-glossary"
+      ]
+    },
+    {
+      "id": "multicolour",
+      "label": "Multicolour",
+      "description": "Distributes multiple colours across stars in the same break.",
+      "confidence": "high",
+      "sourceRefs": [
+        "finale-vdl-glossary"
+      ]
+    }
+  ]
+}

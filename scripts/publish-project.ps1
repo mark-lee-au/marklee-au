@@ -128,8 +128,8 @@ try {
     Write-Host 'This will:'
     if ($hasWorkingChanges) {
         Write-Host '  1. Archive the current local project state when the archive helper is installed.'
-        Write-Host '  2. Run npm run build and Git whitespace checks.'
-        Write-Host '  3. Stage ALL current non-ignored project changes and commit them.'
+        Write-Host '  2. Stage ALL non-ignored changes and automatically fix safe Git whitespace errors.'
+        Write-Host '  3. Run npm run build and commit the verified changes.'
         Write-Host "  4. Fast-forward '$ProductionBranch' to this branch."
         Write-Host "  5. Push '$Remote/$ProductionBranch'."
     }
@@ -160,6 +160,34 @@ try {
         }
     }
 
+    if ($hasWorkingChanges) {
+        Write-Step 'Staging and fixing whitespace'
+        Invoke-Checked 'git' @('add', '-A') 'git add failed. Nothing was committed or pushed.'
+
+        $nodeCommand = Get-Command node.exe -ErrorAction SilentlyContinue
+        if ($null -eq $nodeCommand) {
+            $nodeCommand = Get-Command node -ErrorAction SilentlyContinue
+        }
+        if ($null -eq $nodeCommand) {
+            throw 'Node.js was not found. Nothing was committed or pushed.'
+        }
+
+        & $nodeCommand.Source (Join-Path $PSScriptRoot 'fix-staged-whitespace.mjs')
+        if ($LASTEXITCODE -ne 0) {
+            throw 'Automatic whitespace repair could not safely finish. Review the errors above. Nothing was committed or pushed.'
+        }
+
+        & git -c core.whitespace=cr-at-eol diff --cached --check
+        if ($LASTEXITCODE -ne 0) {
+            throw 'Git still found whitespace errors after automatic repair. Nothing was committed or pushed.'
+        }
+
+        & git status --short
+        if ($LASTEXITCODE -ne 0) {
+            throw 'Could not display the staged changes.'
+        }
+    }
+
     Write-Step 'Building site'
     & $npmCommand.Source run build
     if ($LASTEXITCODE -ne 0) {
@@ -167,17 +195,9 @@ try {
     }
 
     if ($hasWorkingChanges) {
-        Write-Step 'Staging and checking changes'
-        Invoke-Checked 'git' @('add', '-A') 'git add failed. Nothing was committed or pushed.'
-
-        & git diff --cached --check
+        & git diff --quiet
         if ($LASTEXITCODE -ne 0) {
-            throw 'Git found whitespace errors in the staged changes. Nothing was committed or pushed.'
-        }
-
-        & git status --short
-        if ($LASTEXITCODE -ne 0) {
-            throw 'Could not display the staged changes.'
+            throw 'Tracked files changed after staging (possibly during the build). Review and rerun publish. Nothing was committed or pushed.'
         }
 
         Write-Step 'Creating commit'

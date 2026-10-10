@@ -7,6 +7,7 @@ import SouthAustralianNameCurve from '../../visualisations/south-australian-name
 import FormulaDaily from '../../visualisations/formula-daily/FormulaDaily.astro';
 import Ascend from '../../visualisations/ascend/Ascend.astro';
 import PulseOfAdelaide from '../../visualisations/pulse-of-adelaide/PulseOfAdelaide.astro';
+import FireworksSimulator from '../../visualisations/fireworks-simulator/FireworksSimulator.astro';
 
 export const getStaticPaths = (async () => {
   const projects = await getProjects();
@@ -32,6 +33,9 @@ const { Content } = await render(project);
   )}
   {project.data.slug === 'pulse-of-adelaide' && (
     <PulseOfAdelaide slot="visual" />
+  )}
+  {project.data.slug === 'fireworks-simulator' && (
+    <FireworksSimulator slot="visual" />
   )}
   <Content />
 </ProjectLayout>

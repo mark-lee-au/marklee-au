@@ -1,0 +1,1715 @@
+.project-page:has(.fireworks-simulator) {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+}
+
+.project-page:has(.fireworks-simulator) .page-hero,
+.project-page:has(.fireworks-simulator) .project-content,
+.project-page:has(.fireworks-simulator) .project-details {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  padding: 0;
+  margin: 0;
+}
+
+body:has(.fireworks-simulator) {
+  overflow: hidden;
+  background: #050607;
+}
+
+body:has(.fireworks-simulator) > .site-footer { display: none; }
+
+.fireworks-simulator {
+  --fireworks-paper: #f3f0e8;
+  --fireworks-muted: rgba(226, 231, 228, .54);
+  --fireworks-line: rgba(222, 230, 226, .16);
+  --fireworks-panel: rgba(8, 10, 11, .72);
+  --fireworks-focus: #f0d594;
+  position: relative;
+  width: 100%;
+  height: calc(100dvh - var(--fullscreen-nav-offset));
+  min-height: 480px;
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(44, 55, 60, .18), transparent 36%),
+    linear-gradient(180deg, #07090b 0%, #050607 72%, #090b0b 100%);
+  color: var(--fireworks-paper);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI", Inter, Roboto, sans-serif;
+  letter-spacing: .03em;
+}
+
+.fireworks-simulator [hidden] { display: none !important; }
+.fireworks-simulator .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.fireworks-simulator button:focus-visible,
+.fireworks-simulator select:focus-visible,
+.fireworks-simulator input:focus-visible,
+.fireworks-simulator summary:focus-visible,
+.fireworks-simulator a:focus-visible {
+  outline: 2px solid var(--fireworks-focus);
+  outline-offset: 3px;
+}
+
+.fireworks-simulator__city-webgl,
+.fireworks-simulator__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* SKYLINE/WebGL paints city in front of Canvas fireworks. Geometry is
+   depth-tested once, with no duplicate Canvas building outlines. */
+.fireworks-simulator__city-webgl { z-index: 1; }
+.fireworks-simulator__canvas { z-index: 0; }
+
+.fireworks-simulator__stage-interaction {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: none;
+  user-select: none;
+}
+
+/* The native cursor has no opacity animation. A custom pointer tracks the
+   scene and fades smoothly to fully transparent during camera motion. */
+.fireworks-simulator__camera-cursor {
+  position: absolute;
+  z-index: 3;
+  left: 0;
+  top: 0;
+  width: 22px;
+  height: 22px;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate3d(0, 0, 0) translate(-50%, -50%);
+  transition: opacity 65ms ease;
+  will-change: transform, opacity;
+}
+.fireworks-simulator__camera-cursor::before,
+.fireworks-simulator__camera-cursor::after {
+  content: '';
+  position: absolute;
+  background: rgba(243, 240, 232, .86);
+  box-shadow: 0 0 2px #050607;
+}
+.fireworks-simulator__camera-cursor::before { width: 1px; height: 20px; left: 10px; top: 1px; }
+.fireworks-simulator__camera-cursor::after { height: 1px; width: 20px; top: 10px; left: 1px; }
+.fireworks-simulator.is-cursor-present:not(.is-camera-moving):not(.is-zooming) .fireworks-simulator__camera-cursor { opacity: .88; }
+@media (hover: none) { .fireworks-simulator__camera-cursor { display: none; } }
+
+/* Show exactly where an ordinary zoom travels. The marker uses the camera's
+   projection origin (not the hidden OS cursor), and never intercepts input. */
+.fireworks-simulator__zoom-aim {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  top: 50%;
+  width: 26px;
+  height: 26px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 180ms ease-out;
+}
+.fireworks-simulator.is-zooming .fireworks-simulator__zoom-aim { opacity: 1; }
+.fireworks-simulator__zoom-aim::before,
+.fireworks-simulator__zoom-aim::after {
+  content: '';
+  position: absolute;
+  background: #f5df9c;
+  box-shadow: 0 0 0 1px rgba(5, 8, 9, .75), 0 0 5px rgba(245, 223, 156, .25);
+}
+.fireworks-simulator__zoom-aim::before {
+  width: 22px;
+  height: 1px;
+  left: 2px;
+  top: 12.5px;
+}
+.fireworks-simulator__zoom-aim::after {
+  height: 22px;
+  width: 1px;
+  top: 2px;
+  left: 12.5px;
+}
+.fireworks-simulator__zoom-aim-dot {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  top: 50%;
+  width: 5px;
+  height: 5px;
+  transform: translate(-50%, -50%);
+  border: 1px solid #101514;
+  border-radius: 50%;
+  background: #fff3cb;
+  box-shadow: 0 0 0 1px rgba(245, 223, 156, .8), 0 0 7px rgba(245, 223, 156, .42);
+}
+
+
+/* The camera viewport is keyboard focusable. Keep its focus treatment subtle
+   but visible around the scene, independently of the form controls. */
+.fireworks-simulator__stage-interaction:focus-visible {
+  outline: 2px solid rgba(240, 213, 148, .75);
+  outline-offset: -4px;
+}
+
+.fireworks-simulator__identity {
+  position: absolute;
+  z-index: 4;
+  top: clamp(24px, 4.5vh, 52px);
+  left: clamp(20px, 4vw, 64px);
+  pointer-events: none;
+}
+
+.fireworks-simulator__kicker,
+.fireworks-simulator__effect {
+  margin: 0;
+  font: 650 clamp(.56rem, .72vw, .7rem)/1.2 ui-monospace, SFMono-Regular, Consolas, monospace;
+  letter-spacing: .16em;
+}
+
+.fireworks-simulator__kicker { color: rgba(220, 226, 220, .42); }
+
+.fireworks-simulator__identity h1 {
+  margin: .18em 0 .08em;
+  font-size: clamp(2.4rem, 7.6vw, 7.4rem);
+  font-weight: 590;
+  line-height: .83;
+  letter-spacing: -.07em;
+  color: rgba(244, 242, 233, .94);
+  transition: font-size 680ms cubic-bezier(.2,.8,.2,1), margin 680ms cubic-bezier(.2,.8,.2,1), line-height 680ms ease, letter-spacing 680ms ease;
+}
+.fireworks-simulator.is-identity-compact .fireworks-simulator__identity h1 {
+  font-size: clamp(1.65rem, 2.9vw, 2.55rem);
+  line-height: 1;
+  margin: .28em 0 .18em;
+  letter-spacing: -.065em;
+  color: #f3f0e8;
+}
+
+.fireworks-simulator__effect { color: rgba(240, 213, 148, .78); }
+
+.fireworks-simulator__telemetry {
+  position: absolute;
+  z-index: 4;
+  top: clamp(24px, 4.5vh, 52px);
+  right: clamp(20px, 3vw, 48px);
+  display: flex;
+  gap: 15px;
+  color: rgba(214, 222, 219, .42);
+  font: 600 .58rem/1 ui-monospace, SFMono-Regular, Consolas, monospace;
+  letter-spacing: .11em;
+  pointer-events: none;
+}
+
+
+.fireworks-simulator__orientation {
+  position: absolute;
+  z-index: 4;
+  top: clamp(52px, 8.2vh, 96px);
+  right: clamp(20px, 3vw, 48px);
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  gap: 10px 12px;
+  pointer-events: none;
+}
+.fireworks-simulator__orientation-copy {
+  display: grid;
+  justify-items: end;
+  gap: 3px;
+}
+.fireworks-simulator__orientation-copy p {
+  margin: 0;
+  color: rgba(216, 224, 221, .48);
+  font: 650 .53rem/1 ui-monospace, SFMono-Regular, Consolas, monospace;
+  letter-spacing: .11em;
+  white-space: nowrap;
+}
+.fireworks-simulator__orientation-copy [data-camera-heading] { color: rgba(240, 213, 148, .84); }
+.fireworks-simulator__compass {
+  position: relative;
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  perspective: 340px;
+  transform-style: preserve-3d;
+}
+.fireworks-simulator__compass-card {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  transform-style: preserve-3d;
+  transform: rotateX(calc(var(--compass-tilt, 78deg) * 1)) rotateZ(calc(var(--compass-heading, 0) * -1deg));
+  transition: transform 180ms ease-out;
+}
+.fireworks-simulator__compass-ring,
+.fireworks-simulator__compass-ring::before,
+.fireworks-simulator__compass-ring::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+}
+.fireworks-simulator__compass-ring {
+  border: 1px solid rgba(228, 233, 226, .26);
+  background: radial-gradient(circle at 50% 42%, rgba(18, 25, 29, .44), rgba(7, 10, 11, .02) 70%);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.03), 0 0 12px rgba(4, 7, 8, .24);
+}
+.fireworks-simulator__compass-ring::before {
+  inset: 7px;
+  border: 1px solid rgba(228, 233, 226, .11);
+}
+.fireworks-simulator__compass-ring::after {
+  inset: 50% auto auto 50%;
+  width: 2px;
+  height: 2px;
+  margin: -1px 0 0 -1px;
+  background: rgba(240, 213, 148, .8);
+  box-shadow: 0 0 0 1px rgba(5, 8, 9, .5), 0 0 6px rgba(240, 213, 148, .26);
+}
+.fireworks-simulator__compass-pointer {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  top: 7px;
+  width: 0;
+  height: 0;
+  margin-left: -5px;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 12px solid rgba(240, 213, 148, .9);
+  filter: drop-shadow(0 0 4px rgba(240, 213, 148, .18));
+}
+.fireworks-simulator__compass-axis {
+  position: absolute;
+  z-index: 1;
+  color: rgba(224, 229, 222, .62);
+  font: 700 .46rem/1 ui-monospace, SFMono-Regular, Consolas, monospace;
+  letter-spacing: .08em;
+  transform: translate(-50%, -50%);
+  text-shadow: 0 1px 0 rgba(0,0,0,.45);
+}
+.fireworks-simulator__compass-axis.is-north { left: 50%; top: 9px; color: rgba(240, 213, 148, .9); }
+.fireworks-simulator__compass-axis.is-east { left: calc(100% - 10px); top: 50%; }
+.fireworks-simulator__compass-axis.is-south { left: 50%; top: calc(100% - 9px); }
+.fireworks-simulator__compass-axis.is-west { left: 10px; top: 50%; }
+
+
+.fireworks-simulator__scale {
+  position: absolute;
+  z-index: 4;
+  top: 19%;
+  right: clamp(18px, 2.4vw, 38px);
+  bottom: 15%;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  justify-items: end;
+  gap: 8px;
+  color: rgba(208, 216, 213, .32);
+  font: 600 .53rem/1 ui-monospace, SFMono-Regular, Consolas, monospace;
+  letter-spacing: .08em;
+  pointer-events: none;
+}
+
+.fireworks-simulator__scale-track {
+  position: relative;
+  width: 13px;
+  height: 100%;
+}
+
+.fireworks-simulator__scale i {
+  position: absolute;
+  top: 0;
+  right: 3px;
+  bottom: 0;
+  width: 1px;
+  background: linear-gradient(180deg, rgba(216, 224, 220, .24), rgba(216, 224, 220, .04));
+}
+
+.fireworks-simulator__scale b {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 7px;
+  height: 7px;
+  border: 1px solid rgba(229, 234, 232, .72);
+  border-radius: 50%;
+  background: rgba(183, 192, 190, .78);
+  box-shadow: 0 0 0 2px rgba(5, 7, 8, .72);
+  transform: translate3d(0, var(--height-node-offset, 0px), 0) translateY(-50%) scale(1);
+  transform-origin: center center;
+  transition: transform 90ms linear, border-color 140ms ease, background-color 140ms ease, box-shadow 140ms ease;
+  will-change: transform;
+}
+
+.fireworks-simulator__scale.is-height-targeting b {
+  border-color: rgba(244, 222, 170, .98);
+  background: var(--fireworks-focus);
+  box-shadow: 0 0 0 2px rgba(5, 7, 8, .72), 0 0 10px rgba(240, 213, 148, .42);
+}
+
+/* The gold node grows from 1x to 3x based on actual separation from the
+   ghost, including on the camera's return trip after the button is released. */
+.fireworks-simulator__scale.is-height-targeting [data-camera-height-node] {
+  transform: translate3d(0, var(--height-node-offset, 0px), 0) translateY(-50%) scale(var(--target-node-scale, 1));
+}
+.fireworks-simulator__scale-track .fireworks-simulator__scale-ghost {
+  border-color: rgba(229, 234, 232, .72);
+  background: rgba(183, 192, 190, .78);
+  box-shadow: 0 0 0 2px rgba(5, 7, 8, .72);
+  transform: translate3d(0, var(--height-node-offset, 0px), 0) translateY(-50%);
+  opacity: 0;
+  z-index: 2;
+  transition: transform 90ms linear, opacity 110ms ease;
+}
+.fireworks-simulator__scale.is-height-targeting .fireworks-simulator__scale-ghost { opacity: 1; }
+.fireworks-simulator__scale.is-height-targeting [data-camera-height-node] { z-index: 3; }
+.fireworks-simulator[data-view='plan'] .fireworks-simulator__scale b { display: none; }
+
+/* Show direction and strength relative to the camera's *current* height,
+   not the scale's zero point. This is intentionally visual-only feedback. */
+.fireworks-simulator__height-cue {
+  --cue-opacity: .38;
+  position: absolute;
+  z-index: 5;
+  right: clamp(56px, 6.3vw, 106px);
+  top: 50%;
+  display: grid;
+  justify-items: center;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 8px;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-50%) scale(.86);
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+.fireworks-simulator__height-cue.is-active {
+  opacity: 1;
+  transform: translateY(-50%) scale(1);
+}
+.fireworks-simulator__height-cue-arrow {
+  display: block;
+  width: 28px;
+  height: 28px;
+  color: rgba(217, 226, 224, .38);
+  opacity: .5;
+  transform: scale(.86);
+  transition: color 140ms ease, opacity 140ms ease, transform 160ms ease;
+}
+.fireworks-simulator__height-cue-arrow svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.fireworks-simulator__height-cue-level {
+  width: 22px;
+  height: 2px;
+  background: rgba(217, 226, 224, .32);
+  opacity: .56;
+  transition: background-color 140ms ease, opacity 140ms ease, transform 160ms ease;
+}
+.fireworks-simulator__height-cue[data-direction='above'] [data-cue='above'],
+.fireworks-simulator__height-cue[data-direction='below'] [data-cue='below'] {
+  color: var(--fireworks-focus);
+  opacity: var(--cue-opacity);
+  transform: scale(1.18);
+}
+.fireworks-simulator__height-cue[data-direction='level'] [data-cue='level'] {
+  background: var(--fireworks-focus);
+  opacity: 1;
+  transform: scaleX(1.2);
+}
+.fireworks-simulator[data-view='plan'] .fireworks-simulator__height-cue { display: none; }
+
+.fireworks-simulator__drawer {
+  --drawer-left: clamp(16px, 2.8vw, 44px);
+  position: absolute;
+  z-index: 6;
+  left: var(--drawer-left);
+  bottom: clamp(16px, 3.6vh, 38px);
+  width: min(390px, calc(100vw - 32px));
+  transition: transform 315ms cubic-bezier(.21,.8,.24,1);
+}
+.fireworks-simulator__drawer.is-collapsed {
+  transform: translateX(calc(-100% - var(--drawer-left) + 36px));
+}
+.fireworks-simulator__drawer.is-dragging { transition: none; }
+.fireworks-simulator__drawer-tab {
+  position: absolute;
+  z-index: 2;
+  left: -16px;
+  top: 50%;
+  width: 32px;
+  height: 64px;
+  border: 1px solid rgba(217, 224, 220, .27);
+  border-radius: 7px;
+  background: rgba(18, 22, 23, .9);
+  color: var(--fireworks-paper);
+  font: 600 1.6rem/1 sans-serif;
+  cursor: grab;
+  touch-action: none;
+  transform: translateY(-50%);
+  transition: left 315ms cubic-bezier(.21,.8,.24,1), background-color 150ms ease;
+}
+.fireworks-simulator__drawer-tab:hover { background: rgba(44, 48, 48, .98); }
+.fireworks-simulator__drawer-tab:active { cursor: grabbing; }
+.fireworks-simulator__drawer.is-collapsed .fireworks-simulator__drawer-tab { left: calc(100% - 32px); }
+.fireworks-simulator__drawer.is-collapsed .fireworks-simulator__controls {
+  pointer-events: none;
+  opacity: 0;
+}
+/* Camera fade is applied to the whole drawer with the other overlays below. */
+.fireworks-simulator__drawer.is-collapsed .fireworks-simulator__controls {
+  opacity: 0;
+}
+.fireworks-simulator__drawer-tab:focus-visible { outline: 2px solid var(--fireworks-focus); outline-offset: 3px; }
+
+.fireworks-simulator__controls {
+  position: relative;
+  left: auto;
+  bottom: auto;
+  display: grid;
+  grid-template-columns: minmax(130px, 1.15fr) minmax(92px, .7fr);
+  gap: 12px 14px;
+  width: 100%;
+  padding: 16px;
+  border: 1px solid rgba(217, 224, 220, .15);
+  border-radius: 10px;
+  background: var(--fireworks-panel);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .2);
+  backdrop-filter: blur(18px);
+  transition: opacity 125ms ease;
+}
+
+.fireworks-simulator__control {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+}
+
+.fireworks-simulator__control--wide,
+.fireworks-simulator__control--range,
+.fireworks-simulator__actions { grid-column: 1 / -1; }
+
+.fireworks-simulator__control label,
+.fireworks-simulator__actions span {
+  color: rgba(225, 231, 227, .48);
+  font: 650 .56rem/1 ui-monospace, SFMono-Regular, Consolas, monospace;
+  letter-spacing: .13em;
+}
+
+.fireworks-simulator__control label {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.fireworks-simulator__control output {
+  color: rgba(240, 213, 148, .82);
+  font: inherit;
+}
+
+.fireworks-simulator select {
+  width: 100%;
+  min-width: 0;
+  height: 34px;
+  padding: 0 28px 0 9px;
+  border: 1px solid rgba(215, 224, 219, .15);
+  border-radius: 5px;
+  background: rgba(5, 7, 8, .74);
+  color: rgba(242, 241, 234, .88);
+  font: 600 .68rem/1 ui-monospace, SFMono-Regular, Consolas, monospace;
+  letter-spacing: .04em;
+}
+
+.fireworks-simulator input[type='range'] {
+  width: 100%;
+  height: 18px;
+  margin: 0;
+  accent-color: #e1c585;
+  cursor: ew-resize;
+}
+
+.fireworks-simulator__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 1px;
+}
+
+.fireworks-simulator__launch {
+  min-width: 108px;
+  min-height: 36px;
+  padding: 0 16px;
+  border: 1px solid rgba(240, 213, 148, .55);
+  border-radius: 5px;
+  background: rgba(240, 213, 148, .12);
+  color: #f3dfad;
+  font: 700 .64rem/1 ui-monospace, SFMono-Regular, Consolas, monospace;
+  letter-spacing: .14em;
+  cursor: pointer;
+}
+
+.fireworks-simulator__launch:hover { background: rgba(240, 213, 148, .2); }
+
+.fireworks-simulator__actions span { margin-left: auto; text-align: right; }
+
+.fireworks-simulator__readout {
+  position: absolute;
+  z-index: 4;
+  right: clamp(20px, 3vw, 48px);
+  bottom: clamp(18px, 3.8vh, 42px);
+  display: grid;
+  justify-items: end;
+  gap: 3px;
+  color: rgba(218, 225, 222, .42);
+  font: 600 .58rem/1.35 ui-monospace, SFMono-Regular, Consolas, monospace;
+  letter-spacing: .09em;
+  pointer-events: none;
+}
+
+.fireworks-simulator__method {
+  position: absolute;
+  z-index: 7;
+  right: clamp(18px, 2.8vw, 44px);
+  top: clamp(58px, 8vh, 88px);
+  width: min(310px, calc(100vw - 36px));
+  color: rgba(224, 230, 227, .58);
+  font-size: .72rem;
+}
+
+.fireworks-simulator__method summary {
+  width: max-content;
+  margin-left: auto;
+  color: rgba(224, 230, 227, .45);
+  font: 650 .56rem/1 ui-monospace, SFMono-Regular, Consolas, monospace;
+  letter-spacing: .13em;
+  cursor: pointer;
+  list-style: none;
+}
+
+.fireworks-simulator__method summary::-webkit-details-marker { display: none; }
+.fireworks-simulator__method summary::before { content: '＋ '; }
+.fireworks-simulator__method[open] summary::before { content: '− '; }
+
+.fireworks-simulator__method > div {
+  margin-top: 10px;
+  padding: 13px 14px;
+  border: 1px solid rgba(215, 224, 219, .14);
+  border-radius: 7px;
+  background: rgba(6, 8, 9, .88);
+  backdrop-filter: blur(14px);
+}
+
+.fireworks-simulator__method p { margin: 0 0 9px; }
+.fireworks-simulator__method p:last-child { margin-bottom: 0; }
+.fireworks-simulator__method a { color: rgba(243, 223, 173, .8); text-decoration: underline; text-underline-offset: .2em; }
+
+.fireworks-simulator__hint {
+  position: absolute;
+  z-index: 4;
+  left: 50%;
+  bottom: clamp(18px, 3.8vh, 42px);
+  margin: 0;
+  transform: translateX(-50%);
+  color: rgba(216, 224, 221, .28);
+  font: 600 .54rem/1 ui-monospace, SFMono-Regular, Consolas, monospace;
+  letter-spacing: .11em;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+@media (max-width: 760px) {
+  .fireworks-simulator__identity { top: 24px; left: 18px; }
+  .fireworks-simulator__identity h1 { font-size: clamp(2.5rem, 15vw, 4.6rem); }
+  .fireworks-simulator__orientation {
+    top: clamp(56px, 8.4vh, 90px);
+    right: 18px;
+    gap: 8px;
+  }
+  .fireworks-simulator__compass { width: 52px; height: 52px; }
+  .fireworks-simulator__telemetry {
+    top: 22px;
+    right: 16px;
+    flex-direction: column;
+    align-items: end;
+    gap: 5px;
+  }
+  .fireworks-simulator__scale { display: none; }
+  .fireworks-simulator__drawer {
+    --drawer-left: 12px;
+    bottom: 12px;
+    width: min(340px, calc(100vw - 24px));
+  }
+  .fireworks-simulator__drawer-tab { left: -6px; }
+  .fireworks-simulator__controls {
+    max-height: 43vh;
+    padding: 12px;
+    gap: 9px 10px;
+    overflow-y: auto;
+  }
+  .fireworks-simulator__readout { display: none; }
+  .fireworks-simulator__method { top: 104px; right: 15px; width: min(270px, calc(100vw - 30px)); }
+  .fireworks-simulator__hint { display: none; }
+}
+
+@media (max-width: 430px) {
+  .fireworks-simulator__controls { grid-template-columns: 1fr 1fr; }
+  .fireworks-simulator__control--wide,
+  .fireworks-simulator__control--range,
+  .fireworks-simulator__actions { grid-column: 1 / -1; }
+  .fireworks-simulator__identity h1 { font-size: 3.2rem; }
+  .fireworks-simulator__method { top: 104px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fireworks-simulator__stage-interaction { cursor: none; }
+  .fireworks-simulator__scale b,
+  .fireworks-simulator__drawer,
+  .fireworks-simulator__drawer-tab,
+  .fireworks-simulator__controls,
+  .fireworks-simulator__identity h1,
+  .fireworks-simulator__camera-cursor,
+  .fireworks-simulator__zoom-aim,
+  .fireworks-simulator__height-cue,
+  .fireworks-simulator__height-cue-arrow,
+  .fireworks-simulator__height-cue-level,
+  .fireworks-simulator__view-panel input[type='checkbox'] { transition: none; }
+  .fireworks-simulator__key-flag [data-landmark-name], .fireworks-simulator__key-flag::after { animation: none; }
+  .fireworks-simulator__hint { display: none; }
+}
+
+.fireworks-simulator__scene-controls {
+  position: absolute;
+  z-index: 7;
+  top: clamp(24px, 4.5vh, 52px);
+  left: 50%;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  transform: translateX(-50%);
+}
+
+.fireworks-simulator__scene-controls p {
+  margin: 0;
+  color: rgba(216, 224, 221, .36);
+  font: 650 .54rem/1 ui-monospace, SFMono-Regular, Consolas, monospace;
+  letter-spacing: .12em;
+  white-space: nowrap;
+}
+
+.fireworks-simulator__view-switch {
+  display: flex;
+  padding: 3px;
+  border: 1px solid rgba(217, 224, 220, .13);
+  border-radius: 999px;
+  background: rgba(6, 8, 9, .62);
+  backdrop-filter: blur(14px);
+}
+
+.fireworks-simulator__view-switch button {
+  min-height: 27px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(220, 228, 224, .42);
+  font: 700 .54rem/1 ui-monospace, SFMono-Regular, Consolas, monospace;
+  letter-spacing: .1em;
+  cursor: pointer;
+}
+
+.fireworks-simulator__view-switch button.is-active {
+  background: rgba(226, 231, 226, .1);
+  color: rgba(245, 241, 230, .88);
+}
+
+/* A native disclosure below SKYLINE / PLAN keeps the controls out of view
+   until requested. Sliders remain keyboard operable. */
+.fireworks-simulator__view-options { position: relative; z-index: 2; width: 34px; }
+.fireworks-simulator__view-options summary {
+  display: grid;
+  place-items: center;
+  list-style: none;
+  width: 34px;
+  height: 18px;
+  cursor: pointer;
+  color: rgba(241, 222, 177, .72);
+  border: 1px solid rgba(230, 222, 192, .13);
+  border-radius: 0 0 8px 8px;
+  background: rgba(6, 8, 9, .72);
+  line-height: 1;
+}
+.fireworks-simulator__view-options summary svg { display: block; flex: none; transform-origin: center; }
+.fireworks-simulator__view-options summary::-webkit-details-marker { display: none; }
+.fireworks-simulator__view-options[open] summary svg { transform: rotate(180deg); }
+.fireworks-simulator__view-options summary:focus-visible {
+  outline: 2px solid var(--fireworks-focus);
+  outline-offset: 2px;
+}
+.fireworks-simulator__view-panel {
+  position: absolute;
+  top: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  box-sizing: border-box;
+  width: min(320px, calc(100vw - 32px));
+  max-height: min(490px, calc(100dvh - 180px));
+  overflow-y: auto;
+  padding: 17px 18px 14px;
+  border: 1px solid rgba(230, 234, 226, .17);
+  border-radius: 11px;
+  background: rgba(8, 11, 13, .96);
+  box-shadow: 0 15px 42px rgba(0, 0, 0, .6);
+  backdrop-filter: blur(16px);
+  text-align: left;
+}
+.fireworks-simulator__view-panel .fireworks-simulator__panel-title,
+.fireworks-simulator__view-panel .fireworks-simulator__panel-subtitle,
+.fireworks-simulator__view-panel .fireworks-simulator__panel-footnote {
+  color: rgba(226, 230, 224, .57);
+  font: 680 .62rem/1.35 ui-monospace, SFMono-Regular, Consolas, monospace;
+  letter-spacing: .12em;
+}
+.fireworks-simulator__view-panel .fireworks-simulator__panel-title {
+  margin: 0 0 19px;
+  color: var(--fireworks-focus);
+}
+.fireworks-simulator__highlight-row,
+.fireworks-simulator__layer-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  color: rgba(234, 238, 233, .88);
+  font: 680 .66rem/1.35 ui-monospace, SFMono-Regular, Consolas, monospace;
+  letter-spacing: .055em;
+}
+.fireworks-simulator__highlight-row { padding-bottom: 17px; border-bottom: 1px solid rgba(231, 232, 230, .11); }
+.fireworks-simulator__highlight-row label, .fireworks-simulator__layer-heading label { cursor: pointer; }
+.fireworks-simulator__view-panel input[type='checkbox'] {
+  appearance: none;
+  flex: 0 0 auto;
+  width: 31px;
+  height: 17px;
+  margin: 0;
+  border: 1px solid rgba(208, 213, 211, .35);
+  border-radius: 999px;
+  background: rgba(152, 162, 161, .19);
+  cursor: pointer;
+  transition: background 140ms ease;
+}
+.fireworks-simulator__view-panel input[type='checkbox']::after {
+  content: '';
+  display: block;
+  width: 11px;
+  height: 11px;
+  margin: 2px;
+  border-radius: 50%;
+  background: rgba(225, 231, 224, .76);
+  transition: transform 140ms ease;
+}
+.fireworks-simulator__view-panel input[type='checkbox']:checked { background: rgba(240, 213, 148, .52); border-color: rgba(240, 213, 148, .72); }
+.fireworks-simulator__view-panel input[type='checkbox']:checked::after { transform: translateX(14px); background: #fff2c9; }
+.fireworks-simulator__view-panel input[type='checkbox']:disabled { opacity: .3; cursor: not-allowed; }
+.fireworks-simulator__view-panel .fireworks-simulator__panel-subtitle {
+  display: flex;
+  justify-content: space-between;
+  margin: 18px 0 13px;
+  font-size: .56rem;
+}
+.fireworks-simulator__layer { margin: 0 0 15px; }
+.fireworks-simulator__layer.is-off .fireworks-simulator__layer-opacity { opacity: .27; }
+.fireworks-simulator__layer-opacity { display: flex; gap: 12px; align-items: center; margin-top: 8px; }
+.fireworks-simulator__layer-opacity input[type='range'] { flex: 1; min-width: 0; accent-color: var(--fireworks-focus); cursor: pointer; }
+.fireworks-simulator__layer-opacity input[type='range']:disabled { cursor: not-allowed; }
+.fireworks-simulator__layer-opacity output {
+  color: rgba(239, 224, 186, .8);
+  font: 650 .6rem/1 ui-monospace, monospace;
+  min-width: 34px;
+  text-align: right;
+}
+.fireworks-simulator__view-panel .fireworks-simulator__panel-footnote { margin: 14px 0 0; font-size: .54rem; }
+
+/* Temporary calibration lives in the existing disclosure; it does not
+   introduce another always-visible camera control. */
+.fireworks-simulator__nav-calibration { margin-top: 16px; padding-bottom: 13px; border-bottom: 1px solid rgba(231,232,230,.11); }
+.fireworks-simulator__view-panel .fireworks-simulator__nav-calibration .fireworks-simulator__panel-subtitle { margin-top: 0; }
+.fireworks-simulator__nav-speed-row { margin-top: 13px; }
+.fireworks-simulator__nav-speed-row label { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; font: 680 .65rem/1.4 ui-monospace, Consolas, monospace; letter-spacing: .05em; color: rgba(234,238,233,.88); }
+.fireworks-simulator__nav-speed-row output { color: var(--fireworks-focus); font-variant-numeric: tabular-nums; }
+.fireworks-simulator__nav-speed-row input { display: block; width: 100%; min-height: 26px; margin: 5px 0 0; accent-color: var(--fireworks-focus); cursor: pointer; }
+/* Test-only navigation calibration: three altitude profiles share one smooth
+   log-height curve. Plot is intentionally compact within the existing drawer. */
+.fireworks-simulator__nav-speed-pair { padding-top: 9px; margin-top: 11px; border-top: 1px solid rgba(230,234,226,.10); }
+.fireworks-simulator__nav-speed-title { margin: 0; color: rgba(245,244,238,.88); font: 700 .63rem/1.35 ui-monospace,Consolas,monospace; letter-spacing: .065em; }
+.fireworks-simulator__nav-speed-pair .fireworks-simulator__nav-speed-row { margin-top: 9px; }
+.fireworks-simulator__nav-speed-pair .fireworks-simulator__nav-speed-row label { font-size: .6rem; color: rgba(235,239,232,.69); }
+.fireworks-simulator__nav-curve-explainer { margin: 5px 0 8px; color: rgba(222,228,219,.58); font: 550 .59rem/1.5 ui-monospace,Consolas,monospace; letter-spacing: .005em; }
+.fireworks-simulator__nav-curve-control { margin-top: 18px; }
+.fireworks-simulator__nav-curve-preview { padding: 10px 5px 8px; border: 1px solid rgba(224,232,223,.13); border-radius: 6px; background: rgba(255,255,255,.025); }
+.fireworks-simulator__nav-curve-preview svg { display: block; width: 100%; height: auto; overflow: visible; }
+.fireworks-simulator__nav-curve-preview svg text { fill: rgba(221,230,222,.58); font: 9px ui-monospace,monospace; }
+.fireworks-simulator__nav-axis { fill: none; stroke: rgba(230,235,228,.3); stroke-width: 1; }
+.fireworks-simulator__nav-grid { fill: none; stroke: rgba(230,235,228,.12); stroke-width: 1; stroke-dasharray: 3 5; }
+.fireworks-simulator__nav-plot-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.fireworks-simulator__nav-plot-line--move { stroke: #f0d594; }
+.fireworks-simulator__nav-plot-line--pan { stroke: #8ec8e8; stroke-dasharray: 6 3; }
+.fireworks-simulator__nav-plot-line--keyboard-move { stroke: #b8dfa3; stroke-dasharray: 2 4; }
+.fireworks-simulator__nav-plot-line--keyboard-pan { stroke: #d5acde; stroke-dasharray: 7 3 2 3; }
+.fireworks-simulator__nav-plot-marker { fill: none; stroke: rgba(255,255,255,.58); stroke-width: 1; stroke-dasharray: 3 3; }
+.fireworks-simulator__nav-plot-dot--move { fill: #f0d594; }
+.fireworks-simulator__nav-plot-dot--pan { fill: #8ec8e8; }
+.fireworks-simulator__nav-plot-dot--keyboard-move { fill: #b8dfa3; }
+.fireworks-simulator__nav-plot-dot--keyboard-pan { fill: #d5acde; }
+.fireworks-simulator__nav-curve-legend { display: flex; justify-content: space-between; gap: 6px; padding: 5px 10px; font: 700 .57rem/1.2 ui-monospace,monospace; }
+.fireworks-simulator__nav-curve-legend .is-move { color: #f0d594; }
+.fireworks-simulator__nav-curve-legend .is-pan { color: #8ec8e8; }
+.fireworks-simulator__nav-curve-legend .is-keyboard-move { color: #b8dfa3; }
+.fireworks-simulator__nav-curve-legend .is-keyboard-pan { color: #d5acde; }
+.fireworks-simulator__nav-curve-current { margin: 5px 0 0; color: rgba(242,241,233,.8); font: 590 .55rem/1.55 ui-monospace,monospace; font-variant-numeric: tabular-nums; text-align: center; }
+.fireworks-simulator__nav-calibration-label { display: block; margin: 14px 0 7px; font: 650 .57rem/1.4 ui-monospace, Consolas, monospace; letter-spacing: .07em; color: rgba(230,233,224,.68); }
+.fireworks-simulator__nav-calibration textarea { display: block; width: 100%; min-height: 58px; box-sizing: border-box; resize: vertical; padding: 8px; border: 1px solid rgba(230,234,226,.2); border-radius: 5px; background: rgba(255,255,255,.04); color: rgba(239,235,224,.84); font: 600 .61rem/1.55 ui-monospace, Consolas, monospace; overflow-wrap: anywhere; }
+.fireworks-simulator__nav-copy-actions { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 8px; }
+.fireworks-simulator__nav-copy-actions button { padding: 7px 10px; border: 1px solid rgba(239,222,177,.42); border-radius: 5px; background: rgba(239,222,177,.07); color: var(--fireworks-focus); font: 700 .59rem ui-monospace, Consolas, monospace; letter-spacing: .05em; cursor: pointer; }
+.fireworks-simulator__nav-copy-actions button:hover { background: rgba(239,222,177,.18); }
+.fireworks-simulator__nav-copy-actions span { font: 600 .56rem ui-monospace, monospace; color: rgba(233,236,227,.72); }
+
+/* Right-edge landmark navigation does not occupy the camera viewport unless
+   requested. Buttons remain accessible to keyboard and touch users. */
+.fireworks-simulator__landmark-drawer {
+  position: absolute;
+  top: 32%;
+  right: 0;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  transform: translateX(calc(100% - 30px));
+  transition: transform 230ms ease;
+  max-height: min(60vh, 580px);
+}
+.fireworks-simulator__landmark-drawer.is-open { transform: translateX(0); }
+.fireworks-simulator__landmark-tab {
+  flex: 0 0 30px;
+  height: 54px;
+  padding: 0;
+  border: 1px solid rgba(229, 233, 224, .23);
+  border-right: 0;
+  border-radius: 8px 0 0 8px;
+  background: rgba(10, 13, 14, .93);
+  color: var(--fireworks-focus);
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+.fireworks-simulator__landmark-panel {
+  box-sizing: border-box;
+  width: min(270px, calc(100vw - 65px));
+  max-height: min(60vh, 580px);
+  display: flex;
+  flex-direction: column;
+  padding: 20px 14px 18px;
+  background: rgba(8, 11, 13, .97);
+  border: 1px solid rgba(230, 234, 226, .2);
+  border-right: 0;
+  border-radius: 8px 0 0 8px;
+  box-shadow: -16px 10px 40px rgba(0, 0, 0, .4);
+}
+.fireworks-simulator__landmark-title,
+.fireworks-simulator__landmark-note {
+  margin: 0;
+  color: var(--fireworks-focus);
+  font: 700 .65rem/1.45 ui-monospace, Consolas, monospace;
+  letter-spacing: .12em;
+}
+.fireworks-simulator__landmark-note { color: var(--fireworks-muted); font-size: .53rem; margin: 5px 0 16px; }
+.fireworks-simulator__landmark-panel nav { min-height: 0; overflow-y: auto; display: grid; gap: 3px; }
+.fireworks-simulator__landmark-panel nav button {
+  display: block;
+  width: 100%;
+  padding: 10px 8px;
+  border: 0;
+  border-left: 2px solid transparent;
+  background: transparent;
+  color: rgba(230, 236, 233, .75);
+  text-align: left;
+  font: 650 .62rem/1.3 ui-monospace, Consolas, monospace;
+  cursor: pointer;
+}
+.fireworks-simulator__landmark-panel nav button { transition: color 230ms ease, border-color 230ms ease, background-color 230ms ease; }
+.fireworks-simulator__landmark-category {
+  margin: 16px 8px 3px;
+  padding: 0 0 5px;
+  border-bottom: 1px solid rgba(224, 230, 226, .1);
+  color: rgba(240, 213, 148, .66);
+  font: 700 .56rem/1.3 ui-monospace, Consolas, monospace;
+  letter-spacing: .12em;
+}
+.fireworks-simulator__landmark-category:first-child { margin-top: 2px; }
+.fireworks-simulator__landmark-panel nav button:hover,
+.fireworks-simulator__landmark-panel nav button[data-hovered='true'] {
+  color: #fff0aa;
+  border-left-color: #fff0aa;
+  background: rgba(255, 240, 170, .12);
+}
+.fireworks-simulator__landmark-panel nav button[data-selected='true'] {
+  color: #d3ae65;
+  border-left-color: #d3ae65;
+  background: rgba(211, 174, 101, .13);
+}
+@media (max-width: 760px) {
+  .fireworks-simulator__landmark-drawer { top: 39%; }
+  .fireworks-simulator__landmark-panel { max-height: 50vh; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fireworks-simulator__landmark-drawer { transition: none; }
+}
+
+/* Native landmark buttons remain pointer-accessible above the camera stage.
+   The container itself does not intercept any other scene gestures. */
+.fireworks-simulator__key-labels { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+.fireworks-simulator__key-flag {
+  position: absolute;
+  transform: translate(-50%, calc(-100% - 28px));
+  box-sizing: border-box;
+  appearance: none;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  pointer-events: none;
+  display: flex;
+  align-items: flex-start;
+  width: max-content;
+  max-width: 195px;
+  text-align: center;
+  font: 700 .59rem/1.25 ui-monospace, SFMono-Regular, Consolas, monospace;
+  letter-spacing: .08em;
+  color: #f0e1b8;
+  white-space: normal;
+  filter: drop-shadow(0 2px 4px #000);
+}
+.fireworks-simulator__key-flag button:focus-visible { outline: 2px solid #fff0aa; outline-offset: 4px; }
+.fireworks-simulator__key-flag [data-landmark-name] {
+  display: block;
+  appearance: none;
+  cursor: pointer;
+  pointer-events: auto;
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  padding: 5px 8px;
+  border: 1px solid rgba(240, 213, 148, .64);
+  border-radius: 3px;
+  background: rgba(9, 13, 14, .94);
+  animation: fireworks-flag-arrive 340ms ease-out both;
+  transition: color 260ms ease, border-color 260ms ease, background-color 260ms ease, box-shadow 260ms ease;
+}
+.fireworks-simulator__key-flag::after {
+  content: '';
+  display: block;
+  width: 1px;
+  height: 27px;
+  margin: 0 auto;
+  background: linear-gradient(rgba(240, 213, 148, .94), rgba(240, 213, 148, .19));
+  transform-origin: top;
+  animation: fireworks-pole-arrive 450ms ease-out both;
+  transition: background 260ms ease;
+}
+/* Hover is pale yellow; the retained selection is a darker, calmer gold. */
+.fireworks-simulator__key-flag:hover [data-landmark-name],
+.fireworks-simulator__key-flag[data-hovered='true']:not([data-selected='true']) [data-landmark-name] {
+  color: #fff0aa;
+  border-color: rgba(255, 240, 170, .95);
+  background: rgba(52, 44, 20, .96);
+  box-shadow: 0 0 13px rgba(255, 236, 147, .24);
+}
+.fireworks-simulator__key-flag[data-selected='true'] [data-landmark-name] {
+  color: #d3ae65;
+  border-color: rgba(211, 174, 101, .83);
+  background: rgba(41, 34, 20, .96);
+  box-shadow: 0 0 11px rgba(211, 174, 101, .16);
+}
+.fireworks-simulator__key-flag [data-landmark-clear] {
+  display: none;
+  padding: 4px 7px;
+  margin-left: 3px;
+  border: 1px solid rgba(211, 174, 101, .7);
+  border-radius: 3px;
+  background: rgba(25, 22, 17, .97);
+  color: #e4c58b;
+  font: 750 .85rem/1 ui-monospace, Consolas, monospace;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: color 220ms ease, background-color 220ms ease;
+}
+.fireworks-simulator__key-flag[data-selected='true'] [data-landmark-clear] { display: block; }
+.fireworks-simulator__key-flag [data-landmark-clear]:hover { color: #fff0aa; background: rgba(75, 56, 28, .98); }
+
+@keyframes fireworks-flag-arrive { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fireworks-pole-arrive { from { transform: scaleY(.25); } to { transform: scaleY(1); } }
+
+.fireworks-simulator__camera-tools {
+  position: absolute;
+  top: 124px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  min-height: 22px;
+  color: rgba(208, 217, 215, .4);
+  font: 600 .54rem/1.2 ui-monospace, SFMono-Regular, Consolas, monospace;
+  letter-spacing: .09em;
+  white-space: nowrap;
+}
+
+.fireworks-simulator__camera-tools button {
+  border: 0;
+  border-bottom: 1px solid rgba(238, 217, 169, .45);
+  background: transparent;
+  padding: 4px 0;
+  color: rgba(238, 217, 169, .76);
+  font: inherit;
+  cursor: pointer;
+}
+.fireworks-simulator__camera-tools button:hover { color: #f1d99d; }
+
+.fireworks-simulator[data-view='plan'] {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(38, 54, 59, .15), transparent 50%),
+    linear-gradient(180deg, #07090b 0%, #050607 100%);
+}
+
+@media (max-width: 760px) {
+  .fireworks-simulator__scene-controls {
+    top: 116px;
+    left: 18px;
+    transform: none;
+    justify-items: start;
+  }
+  .fireworks-simulator__scene-controls p { display: none; }
+  .fireworks-simulator__view-switch button { padding: 0 10px; }
+  .fireworks-simulator__camera-tools { position: static; font-size: .5rem; gap: 10px; }
+  .fireworks-simulator__view-panel { left: 0; transform: none; max-height: min(470px, calc(100dvh - 230px)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fireworks-simulator .fireworks-simulator__key-flag [data-landmark-name],
+  .fireworks-simulator .fireworks-simulator__key-flag::after { animation: none; }
+}
+
+
+/* Viewfinding: moving the camera makes screen furniture translucent, but never
+   dims the rendered scene, height ruler, target marker or height-direction cue. */
+.fireworks-simulator__identity,
+.fireworks-simulator__telemetry,
+.fireworks-simulator__scene-controls,
+.fireworks-simulator__landmark-drawer,
+.fireworks-simulator__key-labels,
+.fireworks-simulator__drawer,
+.fireworks-simulator__readout,
+.fireworks-simulator__method,
+.fireworks-simulator__navigation-guide {
+  opacity: 1;
+  transition-property: opacity;
+  transition-duration: 240ms;
+  transition-timing-function: ease;
+}
+/* Drawer/landmark panels animate their transforms as well as opacity. */
+.fireworks-simulator__drawer { transition: transform 315ms cubic-bezier(.21,.8,.24,1), opacity 240ms ease; }
+.fireworks-simulator__landmark-drawer { transition: transform 230ms ease, opacity 240ms ease; }
+.fireworks-simulator.is-camera-moving :is(
+  .fireworks-simulator__identity,
+  .fireworks-simulator__telemetry,
+  .fireworks-simulator__scene-controls,
+  .fireworks-simulator__orientation,
+  .fireworks-simulator__landmark-drawer,
+  .fireworks-simulator__key-labels,
+  .fireworks-simulator__drawer,
+  .fireworks-simulator__readout,
+  .fireworks-simulator__method,
+  .fireworks-simulator__navigation-guide
+) { opacity: .23; }
+/* No interception of drag gestures by a semi-visible settings panel. */
+.fireworks-simulator.is-camera-moving .fireworks-simulator__controls { pointer-events: none; }
+
+.fireworks-simulator__view-panel .fireworks-simulator__guide-setting {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(231, 232, 230, .11);
+  color: rgba(234, 238, 233, .88);
+  font: 680 .66rem/1.35 ui-monospace, SFMono-Regular, Consolas, monospace;
+  letter-spacing: .055em;
+}
+.fireworks-simulator__guide-setting label { cursor: pointer; }
+
+/* Adaptive mouse/keyboard reference. Only the active input expands; the other
+   stays visible so users can recognise and switch back without opening menus. */
+.fireworks-simulator__navigation-guide {
+  position: absolute;
+  z-index: 5;
+  right: clamp(18px, 3vw, 48px);
+  bottom: clamp(88px, 11vh, 116px);
+  width: min(432px, calc(100vw - 36px));
+  box-sizing: border-box;
+  padding: 11px;
+  border: 1px solid rgba(223, 231, 225, .18);
+  border-radius: 12px;
+  background: rgba(7, 10, 12, .85);
+  box-shadow: 0 16px 50px rgba(0, 0, 0, .24);
+  backdrop-filter: blur(14px);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  letter-spacing: .035em;
+}
+.fireworks-simulator__navigation-guide-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 0 3px;
+  color: var(--fireworks-focus);
+  font: 700 .62rem/1.35 ui-monospace, SFMono-Regular, Consolas, monospace;
+  letter-spacing: .11em;
+}
+.fireworks-simulator__navigation-guide-heading button {
+  padding: 2px 0 2px 8px;
+  border: 0;
+  background: none;
+  color: rgba(235, 238, 232, .55);
+  font: 650 .54rem/1 ui-monospace, SFMono-Regular, Consolas, monospace;
+  letter-spacing: .06em;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.fireworks-simulator__navigation-guide-heading button:hover { color: var(--fireworks-focus); }
+.fireworks-simulator__navigation-guide-heading button span { font-size: 1rem; margin-left: 4px; vertical-align: -1px; }
+.fireworks-simulator__navigation-cards {
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) minmax(0, .86fr);
+  align-items: start;
+  gap: 8px;
+  transition: grid-template-columns 320ms cubic-bezier(.2,.8,.2,1);
+}
+.fireworks-simulator__navigation-guide[data-active-input='keyboard'] .fireworks-simulator__navigation-cards {
+  grid-template-columns: minmax(0, .86fr) minmax(0, 1.8fr);
+}
+.fireworks-simulator__navigation-card {
+  min-width: 0;
+  padding: 10px 10px 9px;
+  border: 1px solid rgba(230, 235, 228, .11);
+  border-radius: 8px;
+  background: rgba(20, 25, 28, .5);
+  color: rgba(224, 233, 228, .62);
+  transition: border-color 260ms ease, background-color 260ms ease;
+}
+.fireworks-simulator__navigation-guide[data-active-input='pointer'] .fireworks-simulator__navigation-card--pointer,
+.fireworks-simulator__navigation-guide[data-active-input='keyboard'] .fireworks-simulator__navigation-card--keyboard {
+  border-color: rgba(240, 213, 148, .48);
+  background: rgba(46, 45, 37, .36);
+  color: rgba(246, 244, 235, .94);
+}
+.fireworks-simulator__navigation-card-heading { display: flex; align-items: center; gap: 7px; min-height: 28px; }
+.fireworks-simulator__navigation-card-heading svg { flex: 0 0 auto; width: 22px; height: 28px; color: rgba(235, 221, 183, .76); }
+.fireworks-simulator__navigation-card-heading .fireworks-simulator__keyboard-icon { width: 27px; }
+.fireworks-simulator__navigation-card-name { font-size: .63rem; font-weight: 750; letter-spacing: .09em; }
+.fireworks-simulator__navigation-compact {
+  margin: 9px 0 0;
+  font: 600 .5rem/1.45 ui-monospace, SFMono-Regular, Consolas, monospace;
+  letter-spacing: .03em;
+  white-space: normal;
+}
+.fireworks-simulator__navigation-steps { display: none; gap: 7px; margin-top: 12px; }
+.fireworks-simulator__navigation-guide[data-active-input='pointer'][data-pointer-type='mouse'] .fireworks-simulator__navigation-steps--mouse,
+.fireworks-simulator__navigation-guide[data-active-input='pointer'][data-pointer-type='touch'] .fireworks-simulator__navigation-steps--touch,
+.fireworks-simulator__navigation-guide[data-active-input='keyboard'] .fireworks-simulator__navigation-steps--keyboard { display: grid; }
+.fireworks-simulator__navigation-guide[data-active-input='pointer'] .fireworks-simulator__navigation-card--pointer .fireworks-simulator__navigation-compact,
+.fireworks-simulator__navigation-guide[data-active-input='keyboard'] .fireworks-simulator__navigation-card--keyboard .fireworks-simulator__navigation-compact { display: none; }
+.fireworks-simulator__navigation-steps p { display: flex; align-items: center; gap: 6px; margin: 0; min-width: 0; font: 600 .57rem/1.25 ui-monospace, SFMono-Regular, Consolas, monospace; }
+.fireworks-simulator__navigation-steps p > span:nth-child(2) { color: rgba(226, 231, 226, .59); }
+.fireworks-simulator__navigation-steps p strong { margin-left: auto; text-align: right; font-size: .57rem; font-weight: 700; }
+.fireworks-simulator__keycap {
+  flex: 0 0 auto;
+  min-width: 20px;
+  box-sizing: border-box;
+  padding: 4px 5px 3px;
+  border: 1px solid rgba(237, 221, 179, .36);
+  border-radius: 4px;
+  color: var(--fireworks-focus);
+  background: rgba(240, 213, 148, .06);
+  text-align: center;
+  font: 700 .58rem/1.1 ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+.fireworks-simulator__touch-icon { display: none; }
+.fireworks-simulator__navigation-guide[data-pointer-type='touch'] .fireworks-simulator__mouse-icon { display: none; }
+.fireworks-simulator__navigation-guide[data-pointer-type='touch'] .fireworks-simulator__touch-icon { display: block; }
+.fireworks-simulator__navigation-steps--keyboard p strong { margin-left: auto; }
+.fireworks-simulator__navigation-steps [data-guide-plan-only] { display: none; }
+.fireworks-simulator[data-view='plan'] .fireworks-simulator__navigation-steps [data-guide-skyline-only] { display: none; }
+.fireworks-simulator[data-view='plan'] .fireworks-simulator__navigation-steps [data-guide-plan-only] { display: inline; }
+.fireworks-simulator[data-view='plan'] .fireworks-simulator__navigation-steps p[data-guide-plan-only] { display: flex; }
+@media (max-width: 600px) {
+  .fireworks-simulator__navigation-guide {
+    z-index: 7;
+    right: 10px;
+    bottom: 12px;
+    width: min(280px, calc(100vw - 20px));
+    max-height: 40vh;
+    overflow-y: auto;
+    padding: 9px;
+  }
+  .fireworks-simulator__navigation-cards { display: flex; flex-direction: column; }
+  .fireworks-simulator__navigation-card--pointer { order: 1; }
+  .fireworks-simulator__navigation-card--keyboard { order: 2; }
+  .fireworks-simulator__navigation-guide[data-active-input='keyboard'] .fireworks-simulator__navigation-card--keyboard { order: 0; }
+  .fireworks-simulator__navigation-card { padding: 8px 9px; }
+  .fireworks-simulator__navigation-card-heading { min-height: 24px; }
+  .fireworks-simulator__navigation-card-heading svg { height: 24px; }
+  .fireworks-simulator__navigation-compact { margin: 3px 0 0 34px; }
+  .fireworks-simulator__navigation-steps { gap: 5px; margin-top: 9px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fireworks-simulator__navigation-cards,
+  .fireworks-simulator__navigation-card,
+  .fireworks-simulator__navigation-guide,
+  .fireworks-simulator__identity,
+  .fireworks-simulator__telemetry,
+  .fireworks-simulator__scene-controls,
+  .fireworks-simulator__orientation,
+  .fireworks-simulator__landmark-drawer,
+  .fireworks-simulator__key-labels,
+  .fireworks-simulator__drawer,
+  .fireworks-simulator__readout,
+  .fireworks-simulator__method { transition-duration: 0ms; }
+}
+
+/* Height atlas: temporarily pulls the real altitude ruler into the composition.
+   It is visual-only; the right-button wheel input remains on the stage. */
+.fireworks-simulator__scale {
+  transition: right 400ms cubic-bezier(.2,.8,.2,1);
+}
+.fireworks-simulator.is-height-comparing .fireworks-simulator__scale {
+  right: calc(50% - 28px);
+  width: 56px;
+  justify-items: center;
+  z-index: 9;
+  color: rgba(240, 213, 148, .85);
+}
+.fireworks-simulator.is-height-comparing .fireworks-simulator__scale i {
+  background: linear-gradient(180deg, rgba(240, 213, 148, .65), rgba(240, 213, 148, .1));
+}
+.fireworks-simulator__height-cue {
+  transition: right 400ms cubic-bezier(.2,.8,.2,1), top 100ms linear, opacity 180ms ease, transform 180ms ease;
+}
+.fireworks-simulator.is-height-comparing .fireworks-simulator__height-cue {
+  right: calc(50% - 114px);
+  z-index: 9;
+}
+.fireworks-simulator__height-comparison {
+  position: absolute;
+  z-index: 8;
+  left: clamp(18px, 4vw, 70px);
+  right: clamp(18px, 4vw, 70px);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(26px);
+  transition: opacity 260ms ease, transform 420ms cubic-bezier(.2,.8,.2,1), visibility 0s linear 420ms;
+  color: rgba(226, 231, 228, .55);
+  font: 650 .59rem/1.3 ui-monospace, SFMono-Regular, Consolas, monospace;
+  letter-spacing: .1em;
+}
+.fireworks-simulator.is-height-comparing .fireworks-simulator__height-comparison {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(0);
+  transition: opacity 260ms ease, transform 420ms cubic-bezier(.2,.8,.2,1), visibility 0s;
+}
+.fireworks-simulator__height-comparison-head {
+  position: absolute;
+  bottom: calc(100% + 18px);
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(240, 213, 148, .16);
+}
+.fireworks-simulator__height-comparison-head strong {
+  color: var(--fireworks-focus);
+  font-size: .74rem;
+  white-space: nowrap;
+}
+.fireworks-simulator__height-comparison-figures {
+  position: absolute;
+  inset: 0 0 -70px 0;
+  overflow: hidden;
+  mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,.2) 5%, black 13%, black 80%, rgba(0,0,0,.25) 94%, transparent 100%);
+}
+.fireworks-simulator__height-figure {
+  position: absolute;
+  bottom: 70px;
+  left: calc(28% + var(--figure-step, 0) * clamp(70px, 6vw, 105px));
+  display: grid;
+  justify-items: center;
+  align-content: end;
+  width: clamp(82px, 8vw, 118px);
+  margin-left: calc(clamp(82px, 8vw, 118px) / -2);
+  transform-origin: bottom center;
+  opacity: var(--figure-base-alpha, .18);
+  transition: left 420ms cubic-bezier(.2,.8,.2,1), opacity 260ms ease;
+}
+.fireworks-simulator__height-figure[data-phase='active'] { opacity: 1; z-index: 2; }
+.fireworks-simulator__height-silhouette {
+  display: block;
+  width: min(100%, 112px);
+  overflow: visible;
+  transform-origin: bottom center;
+  transition: height 260ms cubic-bezier(.2,.8,.2,1), opacity 260ms ease;
+}
+.fireworks-simulator__height-silhouette-outline {
+  fill: rgba(172, 188, 194, .09);
+  stroke: rgba(207, 218, 221, .62);
+  stroke-width: 2.5;
+  vector-effect: non-scaling-stroke;
+}
+.fireworks-simulator__height-silhouette-detail {
+  fill: none;
+  stroke: rgba(208, 220, 224, .36);
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+}
+.fireworks-simulator__height-silhouette-fill {
+  fill: rgba(240, 213, 148, .42);
+  stroke: rgba(240, 213, 148, .78);
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+  clip-path: inset(var(--hide-fill, 100%) 0 0);
+  opacity: 0;
+  transition: clip-path 110ms linear, opacity 160ms ease;
+}
+.fireworks-simulator__height-figure[data-phase='active'] .fireworks-simulator__height-silhouette-fill { opacity: 1; }
+.fireworks-simulator__height-figure[data-miniature='true'] .fireworks-simulator__height-silhouette-detail { opacity: 0; }
+.fireworks-simulator__height-figure[data-phase='active'] .fireworks-simulator__height-silhouette-outline { stroke: rgba(240, 213, 148, .82); }
+.fireworks-simulator__height-figure-label,
+.fireworks-simulator__height-figure small {
+  position: absolute;
+  top: calc(100% + 9px);
+  max-width: 128px;
+  line-height: 1.2;
+  text-align: center;
+  font-size: .56rem;
+  overflow-wrap: anywhere;
+}
+.fireworks-simulator__height-figure small {
+  top: calc(100% + 39px);
+  color: rgba(240, 213, 148, .62);
+  font-size: .53rem;
+}
+.fireworks-simulator__height-figure-label { color: rgba(214, 222, 219, .42); }
+.fireworks-simulator__height-figure[data-phase='active'] .fireworks-simulator__height-figure-label { color: var(--fireworks-focus); }
+.fireworks-simulator__height-comparison-scan {
+  position: absolute;
+  z-index: 3;
+  left: 28%;
+  right: 48%;
+  bottom: var(--scan-height, 0px);
+  height: 1px;
+  background: linear-gradient(90deg, rgba(240, 213, 148, .18), var(--fireworks-focus));
+  box-shadow: 0 0 7px rgba(240, 213, 148, .3);
+  transition: bottom 100ms linear;
+}
+.fireworks-simulator__height-comparison-scan::before {
+  content: '';
+  position: absolute;
+  left: -2px;
+  top: -3px;
+  width: 7px;
+  height: 7px;
+  border: 1px solid var(--fireworks-focus);
+  border-radius: 50%;
+  background: #060808;
+}
+.fireworks-simulator__height-comparison[data-above-all='true'] .fireworks-simulator__height-comparison-scan {
+  left: 32%;
+}
+.fireworks-simulator__height-comparison-foot {
+  position: absolute;
+  top: calc(100% + 65px);
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  text-transform: uppercase;
+  font-size: .58rem;
+  color: rgba(240, 213, 148, .7);
+}
+.fireworks-simulator__height-comparison-foot span:last-child { color: rgba(214, 222, 219, .42); white-space: nowrap; }
+@media (max-width: 760px) {
+  .fireworks-simulator.is-height-comparing .fireworks-simulator__scale { display: grid; }
+  .fireworks-simulator__height-comparison { left: 10px; right: 10px; }
+  .fireworks-simulator__height-comparison-head { flex-direction: column; gap: 3px; }
+  .fireworks-simulator__height-figure { left: calc(30% + var(--figure-step, 0) * 72px); width: 80px; margin-left: -40px; }
+  .fireworks-simulator__height-comparison-scan { left: 30%; right: 48%; }
+  .fireworks-simulator__height-comparison-foot { flex-direction: column; align-items: start; top: calc(100% + 66px); }
+  .fireworks-simulator.is-height-comparing .fireworks-simulator__height-cue { right: calc(50% - 91px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fireworks-simulator__scale,
+  .fireworks-simulator__height-cue,
+  .fireworks-simulator__height-comparison,
+  .fireworks-simulator__height-figure,
+  .fireworks-simulator__height-silhouette,
+  .fireworks-simulator__height-silhouette-fill,
+  .fireworks-simulator__height-comparison-scan { transition: none; }
+}
+
+/* Height inspection takes visual priority without intercepting map gestures.
+   Stacking above all regular scene furniture but below the atlas/ruler/cues. */
+.fireworks-simulator::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  background: rgba(0, 0, 0, .56);
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  transition: opacity 280ms ease, visibility 0s linear 280ms;
+}
+.fireworks-simulator.is-height-comparing::after {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 280ms ease, visibility 0s;
+}
+/* The height readout travels with the up/level/down cue at the ruler's node. */
+.fireworks-simulator__height-cue-value {
+  position: absolute;
+  left: calc(100% + 13px);
+  top: 50%;
+  transform: translateY(-50%);
+  display: block;
+  min-width: 58px;
+  padding: 6px 8px;
+  border-left: 1px solid rgba(240, 213, 148, .52);
+  color: var(--fireworks-focus);
+  background: rgba(5, 7, 8, .78);
+  font: 750 .72rem/1.1 ui-monospace, SFMono-Regular, Consolas, monospace;
+  letter-spacing: .08em;
+  white-space: nowrap;
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 760px) {
+  .fireworks-simulator__height-cue-value { left: calc(100% + 4px); font-size: .62rem; padding: 5px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fireworks-simulator::after { transition: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fireworks-simulator__key-flag [data-landmark-name],
+  .fireworks-simulator__landmark-panel nav button { transition: none; }
+}
+
+/* Shared edge drawer contract. Both tabs use the same hit target, opacity,
+   pointer capture and vertical positioning logic in edge-drawer.ts. */
+.fireworks-simulator__edge-drawer {
+  position: absolute;
+  z-index: 6;
+  bottom: auto;
+  max-height: calc(100% - 12px);
+  transition: transform 300ms cubic-bezier(.2,.8,.2,1), opacity 240ms ease;
+  will-change: transform;
+}
+.fireworks-simulator__edge-drawer.is-dragging { transition: opacity 240ms ease; }
+.fireworks-simulator__edge-drawer--left {
+  left: 0;
+  width: min(390px, calc(100vw - 48px));
+  transform: translateX(0);
+}
+.fireworks-simulator__edge-drawer--right {
+  right: 0;
+  left: auto;
+  display: block;
+  width: min(334px, calc(100vw - 48px));
+  transform: translateX(0);
+}
+.fireworks-simulator__edge-drawer--left.is-collapsed { transform: translateX(-100%); }
+.fireworks-simulator__edge-drawer--right.is-collapsed { transform: translateX(100%); }
+.fireworks-simulator__edge-drawer--left .fireworks-simulator__controls { width: 100%; }
+.fireworks-simulator__edge-drawer--right .fireworks-simulator__landmark-panel {
+  box-sizing: border-box;
+  width: 100%;
+  max-height: min(68vh, 650px);
+  border: 1px solid rgba(230, 234, 226, .2);
+  border-radius: 8px 0 0 8px;
+}
+.fireworks-simulator__edge-drawer .fireworks-simulator__edge-tab {
+  position: absolute;
+  z-index: 7;
+  top: 50%;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 60px;
+  padding: 0;
+  border: 1px solid rgba(229, 233, 224, .26);
+  border-radius: 7px;
+  background: rgba(10, 13, 14, .94);
+  color: var(--fireworks-focus);
+  font: 600 1.35rem/1 ui-monospace, Consolas, monospace;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  transform: translateY(-50%);
+  transition: background-color 180ms ease, border-color 180ms ease;
+}
+.fireworks-simulator__edge-drawer .fireworks-simulator__edge-tab:hover {
+  background: rgba(43, 43, 39, .97);
+  border-color: rgba(240, 213, 148, .65);
+}
+.fireworks-simulator__edge-drawer .fireworks-simulator__edge-tab:active { cursor: grabbing; }
+.fireworks-simulator__edge-drawer--left .fireworks-simulator__edge-tab { left: auto; right: -32px; }
+.fireworks-simulator__edge-drawer--right .fireworks-simulator__edge-tab { left: -32px; right: auto; }
+.fireworks-simulator__edge-drawer .fireworks-simulator__edge-tab:focus-visible {
+  outline: 2px solid var(--fireworks-focus);
+  outline-offset: 3px;
+}
+.fireworks-simulator__edge-drawer--left.is-collapsed .fireworks-simulator__controls,
+.fireworks-simulator__edge-drawer--right.is-collapsed .fireworks-simulator__landmark-panel {
+  opacity: 0;
+  pointer-events: none;
+}
+/* Keep tab interactions possible while the viewport furniture fades. */
+.fireworks-simulator.is-camera-moving .fireworks-simulator__edge-drawer { opacity: .35; }
+.fireworks-simulator__landmark-sort {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0 12px;
+  color: rgba(224, 228, 224, .55);
+  font: 700 .58rem/1.2 ui-monospace, Consolas, monospace;
+  letter-spacing: .06em;
+}
+.fireworks-simulator__landmark-sort > div { display: flex; flex: 1 1 auto; gap: 3px; }
+.fireworks-simulator__landmark-sort button {
+  min-height: 30px;
+  padding: 4px 7px;
+  border: 1px solid rgba(220, 224, 219, .22);
+  border-radius: 4px;
+  background: transparent;
+  color: rgba(228, 230, 227, .66);
+  cursor: pointer;
+  font: inherit;
+}
+.fireworks-simulator__landmark-sort button[aria-pressed='true'] {
+  border-color: rgba(240, 213, 148, .68);
+  color: var(--fireworks-focus);
+  background: rgba(240, 213, 148, .09);
+}
+.fireworks-simulator__landmark-sort label { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; }
+.fireworks-simulator__landmark-sort input { accent-color: var(--fireworks-focus); }
+.fireworks-simulator__landmark-panel nav button[data-landmark-id] {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+.fireworks-simulator__landmark-panel nav button[data-landmark-id] > span { flex: 1 1 auto; min-width: 0; }
+.fireworks-simulator__landmark-panel nav button[data-landmark-id] > small {
+  flex: 0 0 auto;
+  color: rgba(204, 212, 210, .46);
+  font: 500 .54rem/1.2 ui-monospace, Consolas, monospace;
+  white-space: nowrap;
+}
+.fireworks-simulator__landmark-orbit-setting { margin: 12px 0 0; padding: 12px 0 14px; }
+@media (max-width: 760px) {
+  .fireworks-simulator__edge-drawer--right .fireworks-simulator__landmark-panel { max-height: min(55vh, 500px); }
+  .fireworks-simulator__edge-drawer .fireworks-simulator__edge-tab { width: 32px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fireworks-simulator__edge-drawer { transition: none; }
+}
+
+/* Higher specificity than the retired horizontal-pull tab rules. */
+.fireworks-simulator__edge-drawer--left.is-collapsed .fireworks-simulator__edge-tab { left: auto; right: -32px; }
+.fireworks-simulator__edge-drawer--right.is-collapsed .fireworks-simulator__edge-tab { left: -32px; right: auto; }
+
+/* Astronomy draft: independent sky layer beneath both the effects and the
+   depth-tested city. A view change never draws stars on top of buildings. */
+.fireworks-simulator__sky {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.fireworks-simulator__sky-setting { margin: 16px 0; padding: 9px 0 15px; border-block: 1px solid rgba(231,232,230,.12); }
+.fireworks-simulator__sky-setting > label,
+.fireworks-simulator__sky-time-heading label { color: rgba(234,238,233,.85); font: 680 .64rem/1.4 ui-monospace,monospace; letter-spacing: .06em; }
+.fireworks-simulator__sky-setting input[type='date'] {
+  width: 100%; min-height: 33px; box-sizing: border-box; margin: 7px 0 15px; padding: 5px 8px;
+  border: 1px solid rgba(231,232,230,.26); border-radius: 5px; background: #161b1d;
+  color: #f3f0e8; color-scheme: dark; font: 650 .72rem ui-monospace,monospace;
+}
+.fireworks-simulator__sky-time-heading { display: flex; align-items: center; justify-content: space-between; }
+.fireworks-simulator__sky-time-heading output { color: #f0d594; font: 700 .86rem ui-monospace,monospace; font-variant-numeric: tabular-nums; }
+.fireworks-simulator__sky-time-track { position: relative; height: 32px; margin: 7px 6px 0; }
+.fireworks-simulator__sky-time-track input[type='range'] { position: relative; z-index: 2; width: 100%; height: 30px; margin: 0; background: transparent; accent-color: #f0d594; cursor: ew-resize; }
+.fireworks-simulator__sky-solar-pin { position: absolute; z-index: 1; top: 2px; height: 26px; width: 2px; pointer-events: none; opacity: .92; }
+.fireworks-simulator__sky-solar-pin.is-sunrise { background: #b0cbe8; }
+.fireworks-simulator__sky-solar-pin.is-sunset { background: #efc67b; }
+.fireworks-simulator__sky-solar-labels { display: flex; justify-content: space-between; gap: 10px; font: 650 .58rem/1.4 ui-monospace,monospace; }
+.fireworks-simulator__sky-solar-labels span:first-child { color: #b0cbe8; }
+.fireworks-simulator__sky-solar-labels span:last-child { color: #efc67b; }
+.fireworks-simulator__sky-moon-status { margin: 13px 0 0; color: rgba(237,239,233,.89); font: 650 .61rem/1.5 ui-monospace,monospace; }
+.fireworks-simulator__sky-note { margin: 9px 0 0; color: rgba(231,231,225,.53); font: 530 .57rem/1.5 ui-monospace,monospace; letter-spacing: .02em; }
+.fireworks-simulator__advanced-viewport-setting { padding: 10px 0; }
+.fireworks-simulator__nav-calibration[hidden] { display: none; }
+
+.fireworks-simulator__scene-controls .fireworks-simulator__sky-clock { color: rgba(225, 221, 210, .65); font-variant-numeric: tabular-nums; }
+
+.fireworks-simulator__sky-moon-row { display: flex; align-items: center; gap: 10px; margin-top: 11px; }
+.fireworks-simulator__sky-moon-row canvas { flex: none; width: 42px; height: 42px; border-radius: 50%; background: rgba(167,177,186,.035); }
+.fireworks-simulator__sky-moon-row .fireworks-simulator__sky-moon-status { margin: 0; }

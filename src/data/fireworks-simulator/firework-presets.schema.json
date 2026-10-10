@@ -1,0 +1,699 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://marklee.au/schemas/fireworks-simulator/firework-presets.schema.json",
+  "title": "Fireworks Simulator research preset dataset",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "datasetStatus",
+    "updated",
+    "projectSlug",
+    "scope",
+    "units",
+    "evidenceClasses",
+    "sources",
+    "scaleReference",
+    "empiricalCalibrations",
+    "observedRanges",
+    "rendererPalette",
+    "physicsProfiles",
+    "effectFamilies",
+    "effectModifiers",
+    "customControls",
+    "presets"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "datasetStatus": {
+      "const": "research-prototype"
+    },
+    "updated": {
+      "type": "string",
+      "format": "date"
+    },
+    "projectSlug": {
+      "const": "fireworks-simulator"
+    },
+    "scope": {
+      "type": "string",
+      "minLength": 1
+    },
+    "units": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "evidenceClasses": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/source"
+      }
+    },
+    "scaleReference": {
+      "$ref": "#/$defs/scaleReference"
+    },
+    "empiricalCalibrations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/calibration"
+      }
+    },
+    "observedRanges": {
+      "type": "object"
+    },
+    "rendererPalette": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/palette"
+      }
+    },
+    "physicsProfiles": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/profile"
+      }
+    },
+    "effectFamilies": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/family"
+      }
+    },
+    "customControls": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/control"
+      }
+    },
+    "presets": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/preset"
+      }
+    },
+    "effectModifiers": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/modifier"
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "publisher",
+        "url",
+        "retrieved",
+        "role"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "title": {
+          "type": "string"
+        },
+        "publisher": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "retrieved": {
+          "type": "string",
+          "format": "date"
+        },
+        "role": {
+          "type": "string"
+        }
+      }
+    },
+    "shell": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "calibreMm",
+        "nominalInches",
+        "approxBurstHeightM",
+        "approxMaxSpreadDiameterM",
+        "evidence",
+        "sourceRefs"
+      ],
+      "properties": {
+        "calibreMm": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "nominalInches": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "approxBurstHeightM": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "approxMaxSpreadDiameterM": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "evidence": {
+          "type": "string"
+        },
+        "sourceRefs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        }
+      }
+    },
+    "manufacturerExample": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "calibreMm",
+        "effectHeightRangeM",
+        "evidence",
+        "sourceRefs",
+        "note"
+      ],
+      "properties": {
+        "calibreMm": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "effectHeightRangeM": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
+        },
+        "evidence": {
+          "type": "string"
+        },
+        "sourceRefs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+    "scaleReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "burstHeightPer25mmM",
+        "maxSpreadDiameterPer25mmM",
+        "sourceRefs",
+        "shells",
+        "manufacturerExamples"
+      ],
+      "properties": {
+        "burstHeightPer25mmM": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "maxSpreadDiameterPer25mmM": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "sourceRefs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "shells": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/shell"
+          }
+        },
+        "manufacturerExamples": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/manufacturerExample"
+          }
+        }
+      }
+    },
+    "calibration": {
+      "type": "object",
+      "required": [
+        "id",
+        "label",
+        "familyId",
+        "evidence",
+        "sourceRefs",
+        "limitations"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "label": {
+          "type": "string"
+        },
+        "familyId": {
+          "$ref": "#/$defs/id"
+        },
+        "burstHeightM": {
+          "type": "number"
+        },
+        "maxDiameterM": {
+          "type": "number"
+        },
+        "visibleStarCount": {
+          "type": "integer"
+        },
+        "visibleDurationS": {
+          "type": "number"
+        },
+        "initialExpansionMps": {
+          "type": "number"
+        },
+        "velocityModel": {
+          "type": "string"
+        },
+        "radialDisplacementModel": {
+          "type": "string"
+        },
+        "evidence": {
+          "type": "string"
+        },
+        "sourceRefs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "limitations": {
+          "type": "string"
+        }
+      }
+    },
+    "palette": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label",
+        "renderHex",
+        "trailOriented",
+        "evidence"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "label": {
+          "type": "string"
+        },
+        "renderHex": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        "trailOriented": {
+          "type": "boolean"
+        },
+        "evidence": {
+          "type": "string"
+        }
+      }
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label",
+        "description",
+        "baseCalibrationRef",
+        "evidence"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "label": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "baseCalibrationRef": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "evidence": {
+          "type": "string"
+        }
+      }
+    },
+    "family": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label",
+        "geometry",
+        "physicsProfileId",
+        "researchTraits",
+        "defaultTrail",
+        "confidence",
+        "sourceRefs"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "label": {
+          "type": "string"
+        },
+        "geometry": {
+          "type": "string"
+        },
+        "physicsProfileId": {
+          "$ref": "#/$defs/id"
+        },
+        "researchTraits": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "defaultTrail": {
+          "type": "string"
+        },
+        "confidence": {
+          "enum": [
+            "high",
+            "medium",
+            "low"
+          ]
+        },
+        "sourceRefs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        }
+      }
+    },
+    "control": {
+      "type": "object",
+      "required": [
+        "id",
+        "label",
+        "kind",
+        "unit",
+        "researchGrounded",
+        "note"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "select",
+            "multi-select",
+            "range",
+            "palette"
+          ]
+        },
+        "unit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "researchGrounded": {
+          "type": "boolean"
+        },
+        "values": {
+          "type": "array"
+        },
+        "min": {
+          "type": "number"
+        },
+        "max": {
+          "type": "number"
+        },
+        "step": {
+          "type": "number"
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+    "renderDefaults": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "durationS",
+        "density",
+        "breakSpeedScale",
+        "dragScale",
+        "gravityScale",
+        "droopScale",
+        "symmetry",
+        "raggedness",
+        "trailWidth",
+        "trailLifetimeS",
+        "strobeHz",
+        "splitAt"
+      ],
+      "properties": {
+        "durationS": {
+          "type": "number",
+          "minimum": 0
+        },
+        "density": {
+          "type": "number",
+          "minimum": 0
+        },
+        "breakSpeedScale": {
+          "type": "number",
+          "minimum": 0
+        },
+        "dragScale": {
+          "type": "number",
+          "minimum": 0
+        },
+        "gravityScale": {
+          "type": "number",
+          "minimum": 0
+        },
+        "droopScale": {
+          "type": "number",
+          "minimum": 0
+        },
+        "symmetry": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "raggedness": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "trailWidth": {
+          "type": "number",
+          "minimum": 0
+        },
+        "trailLifetimeS": {
+          "type": "number",
+          "minimum": 0
+        },
+        "strobeHz": {
+          "type": "number",
+          "minimum": 0
+        },
+        "splitAt": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "preset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "familyId",
+        "calibreMm",
+        "tipColours",
+        "trailColour",
+        "liftTimeS",
+        "burstHeightOverrideM",
+        "spreadDiameterOverrideM",
+        "colourPattern",
+        "modifiers",
+        "renderDefaults",
+        "evidenceNote"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "name": {
+          "type": "string"
+        },
+        "familyId": {
+          "$ref": "#/$defs/id"
+        },
+        "calibreMm": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "tipColours": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "trailColour": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "renderDefaults": {
+          "$ref": "#/$defs/renderDefaults"
+        },
+        "evidenceNote": {
+          "type": "string"
+        },
+        "liftTimeS": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "burstHeightOverrideM": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "spreadDiameterOverrideM": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "colourPattern": {
+          "enum": [
+            "single",
+            "multicolour",
+            "segmented-multicolour",
+            "transition",
+            "phased-transition",
+            "layered"
+          ]
+        },
+        "modifiers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "modifier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label",
+        "description",
+        "confidence",
+        "sourceRefs"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "label": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "confidence": {
+          "enum": [
+            "high",
+            "medium",
+            "low"
+          ]
+        },
+        "sourceRefs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        }
+      }
+    }
+  }
+}

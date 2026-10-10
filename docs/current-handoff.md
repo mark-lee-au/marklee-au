@@ -1,4 +1,639 @@
+## 2026-10-11 Publish helper: safe whitespace repair
+
+- **Base:** user-supplied dirty `main` snapshot at `17a011695370cdf5985fbb76be725ea9d284849f`. This patch changes only publishing support, tests and documentation. The current Fireworks working tree is not rewritten by applying the patch; no commit, push or Cloudflare changes.
+- The publish helper now stages changes, uses Git's staged-diff diagnostics to repair **only flagged trailing spaces/tabs and extra blank lines at EOF**, restages those files, then runs `git diff --cached --check` and `npm run build` before committing. It accepts CRLF as a valid line ending and preserves existing LF/CRLF and UTF-8, and stops safely on unsupported whitespace checks, encoding errors or build failures. LF-to-CRLF Git notices remain non-blocking warnings.
+- Files: `scripts/publish-project.ps1`, new `scripts/fix-staged-whitespace.mjs`, new `scripts/fix-staged-whitespace.test.mjs`, `docs/git-workflow.md`, `docs/current-handoff.md`. Deletions: none.
+- Validation: Node unit/integration tests in temporary Git repositories and patch ZIP integrity (see delivery). Not run: Windows PowerShell live publisher, full Astro build or actual GitHub/Cloudflare publication. **Next:** apply the patch to the matching working tree and rerun `publish-project.bat` after checking the staged file list, particularly temporary Python bytecode and local acquisition logs.
+
+---
+
+## 2026-10-10 Fireworks: Sydney sky prototype and advanced viewport disclosure
+
+- **Base:** supplied dirty `main` at full commit `17a011695370cdf5985fbb76be725ea9d284849f`, with reviewed Fireworks patches through 10 m upward tilt applied. No commit, push, release or Cloudflare changes.
+- Verified existing `FW-NAV:v4` defaults already exactly match the requested profile: mouse move LOW/HIGH 2.35/1.00, mouse pan 1.50/0.75, keyboard move 5.75/2.25, keyboard pan 5.75/2.25, curve 1.6, 10–2000 m. They remain reset-on-refresh; no alteration to speed values or navigation mechanics.
+- Added **SHOW ADVANCED VIEWPORT SETTINGS** switch (initially off) inside Map/View Options. The full calibration sliders, plot and copyable FW-NAV output stay available but start hidden and inert.
+- Added first-stage Sydney SKYLINE astronomy: local date/time, 1-minute time slider, calculated sunrise/sunset markers, default **today in Sydney one hour after sunset** (IANA Australia/Sydney with daylight saving). Top scene-controls readout shows chosen date/time. Actual star direction is projected into the same east/north/up camera basis as Sydney; the real 53 documented bright stars are drawn, and the prototype now supplements them with 420 deterministic faint background speckle stars so the sky reads fuller at night. Bright stars still use apparent-magnitude-based size/brightness; the supplemental speckle layer uses approximate faint magnitudes and subtle reduced-motion-aware twinkle. Follow-up prototype tweak: the skyline Moon is drawn larger for readability, and a new top-right orientation HUD reports heading/elevation with a small perspective compass. Moon has low-order estimated sky position/illumination, a draft phase texture and a settings preview, and appears in the scene only above the ideal horizon. Time-of-day atmosphere is restrained for city-wireframe readability. PLAN hides sky; WebGL and Canvas fallback remain separate from the sky layer.
+- New source/provenance and limitations: `data/sources/fireworks-simulator-sky.md`, linked from `docs/index.md`. No external runtime fetch, new npm dependency, new site route or Sydney city data regenerated. **This is not a complete star atlas, a geographically accurate city-light-pollution model or a precision lunar ephemeris.**
+- Included changes: `src/visualisations/fireworks-simulator/{FireworksSimulator.astro,fireworks-simulator.ts,fireworks-simulator.css,bright-stars.ts,night-sky.ts,night-sky.test.mjs}`, `data/sources/fireworks-simulator-sky.md`, `docs/{index.md,current-handoff.md,exec-plans/active/010-fireworks-simulator.md,ux-accessibility-features.md}`. Deletions: none.
+- Validation: focused Node regressions including Sydney daylight saving, solar events, star horizon, Moon phase, DOM wiring; scoped TypeScript compile with TS extensions; CSS syntax parse and ZIP integrity. **Not run:** full Astro build (dependencies not bundled), browser/WebGL visual and touch QA, precision comparison with reference astronomical software. **Next:** test 10 Oct near-new-Moon (the Moon may be invisible), then pick a full-Moon night; compare actual sky directions and test slider at narrow widths before considering a complete catalogue.
+
+---
+
+## 2026-10-10 Fireworks upward camera tilt at the 10 m floor
+
+- **Source:** dirty `main` snapshot at `17a011695370cdf5985fbb76be725ea9d284849f` with all previously delivered Fireworks patches through the exact 50% projection-centre change. This package does not commit or deploy anything.
+- **Behaviour:** right-drag up and Up Arrow may increase the upward camera pitch at exactly 10 m, with the same manual map-orbit path used at 11 m and higher. When the orbit would put the eye below 10 m, translate **both** the rotated eye and look target upward by the smallest required amount; do not clip the pitch or switch to the former eye-only look-up branch. The 10 m floor and world-up pitch limit still apply, and camera direction, left-drag, zoom and calibration remain unchanged.
+- **Files:** `src/visualisations/fireworks-simulator/camera-map-rotation.ts`, its `.test.mjs`, this handoff, the active Fireworks plan and UX inventory. No deletion, city-data or renderer changes.
+- **Validation:** focused rotation and Fireworks tests and narrowed TypeScript compilation (see delivery); full Astro build and physical Windows mouse feel remain for local review. Test upward tilt at 10 m, then just above 10 m, with both right-drag and Up Arrow; reverse direction and confirm height does not drop below 10 m.
+
+---
+
+## 2026-10-10 Fireworks exact viewport-centre projection
+
+- **Base:** latest supplied dirty `main` snapshot at `17a011695370cdf5985fbb76be725ea9d284849f`, with reviewed Fireworks patches through the centre-aimed zoom/crosshair overlaid. No commit, push or deployment.
+- SKYLINE and PLAN camera projection origins are both exactly the **geometric viewport centre** (50% width, 50% height) at every breakpoint. Removed the legacy 57%/47% desktop SKYLINE, 50%/38% mobile SKYLINE, and offset PLAN origins. The same origin feeds Canvas geometry/labels, WebGL uniforms, screen-to-world pointer rays and the temporary zoom crosshair; resize and view changes recalculate it. Zoom direction remains the camera's optical axis, independent of OS cursor location.
+- Files: `src/visualisations/fireworks-simulator/{fireworks-simulator.ts,camera-zoom-aim.ts,camera-zoom-aim.test.mjs}`, `docs/{current-handoff.md,exec-plans/active/010-fireworks-simulator.md,ux-accessibility-features.md}`. No camera sensitivity, height limit, controls, data, renderer code, UI settings or deletions.
+- **Validation:** 63/63 focused Fireworks tests pass, including screen-centre integration and desktop/mobile dimensions; scoped Fireworks TypeScript compile passes; ZIP integrity verified. No full Astro build or live browser visual test. **Next:** check centred target marker, city framing and landmark labels in SKYLINE and PLAN at desktop/mobile widths; verify Pointer Lock zoom and dragging stay aligned.
+
+---
+
+## 2026-10-10 Fireworks aim-centred zoom marker
+
+- **Source:** latest available supplied dirty `main` snapshot `17a011695370cdf5985fbb76be725ea9d284849f`, with all previously delivered Fireworks patches through the calibrated default / keyboard-speed split applied. This focused patch changes only zoom input/feedback and instructions; no commit, push or deployment.
+- Ordinary SKYLINE wheel zoom no longer follows the OS pointer ray, which is especially confusing while Pointer Lock hides the cursor. Instead, the camera moves along its **current view/aim direction**, matching existing +/- travel. Shift + left drag and two-finger pinch use the same centred ray, keeping their existing amount, gesture directions and floor protection. PLAN retains its established centred orthographic zoom.
+- Added a small, non-interactive crosshair with a central dot at the scene's *actual projected aim* (the perspective projection is intentionally offset on desktop). It is visible for active wheel/pinch/Shift-drag/keyboard zoom and its easing, then fades after interaction ends. The old pointer cursor is suppressed while the aim marker is shown. Reduced-motion disables the fade. Screen-space positioning is updated on resize and SKYLINE/PLAN changes, and the ray uses the same projection aim source as the overlay.
+- Files: `src/visualisations/fireworks-simulator/{FireworksSimulator.astro,fireworks-simulator.ts,fireworks-simulator.css,camera-zoom-aim.ts,camera-zoom-aim.test.mjs}`, `docs/{current-handoff.md,exec-plans/active/010-fireworks-simulator.md,ux-accessibility-features.md}`. No file deletions, renderer/shader, Sydney city asset, or calibration-profile changes.
+- Validation: scoped Fireworks TypeScript compilation; focused Node regression suite including aim-screen geometry and actual wheel/pinch/Shift-drag call-site checks; CSS parsed with PostCSS. The full Astro build is unavailable (no project `node_modules` in the supplied snapshot). **Next review:** check pointer-locked wheel, mouse-centred versus visual-aim zoom at different cursor positions, pinch and Shift-drag, and crosshair visibility on the local browser.
+
+---
+
+## 2026-10-10 Fireworks confirmed navigation baseline and split keyboard tuning
+
+- **Base:** supplied dirty `main` at `17a011695370cdf5985fbb76be725ea9d284849f`, with the latest slower-height-controls patch applied. No commit, push or deployment.
+- Promoted the owner's `FW-NAV:v3` settings to the single shared default profile: mouse move 2.35× low / 1.00× high, mouse right-rotate 1.50× / 0.75×, keyboard 5.75× / 2.25×, curve power 1.6, logarithmic altitude range 10–2,000 m. These replace the earlier trial defaults.
+- Split keyboard calibration into **KEYBOARD MOVE** (WASD pan, Q/E height translation and +/- camera travel) and **KEYBOARD PAN/ROTATE** (arrow-key rotation). Both start at the owner's previous keyboard values, then can be tuned independently at low/high altitude. The chart and effective values now draw four separate curves; the copyable `FW-NAV:v4` output names `keyboard_move_low/high`, `keyboard_pan_low/high`, `effective_keyboard_move` and `effective_keyboard_pan`.
+- Calibration is now **session-only**: adjusting sliders does not write persistent navigation settings, and reloading the page starts from the confirmed defaults regardless of any old v1/v2/v3 localStorage data. Other saved preferences (e.g., landmark orbit and navigation guide) are unaffected. Browser dimensions and live camera height in copied configurations are captured dynamically, not hard-coded from the provided example.
+- Changed `src/visualisations/fireworks-simulator/{FireworksSimulator.astro,fireworks-simulator.ts,fireworks-simulator.css,navigation-calibration.ts,navigation-calibration.test.mjs}` and updated `docs/{current-handoff.md,exec-plans/active/010-fireworks-simulator.md,ux-accessibility-features.md}`. No files removed, no city data or renderer edits.
+- Validation: 58 focused Node tests and narrowed Fireworks TypeScript compile passed; CSS syntax and ZIP structure checked. Full Astro build and real browser pointer/keyboard feel still require local testing. Next: tune separate keyboard move and rotation and copy the new `FW-NAV:v4` line for refinement.
+
+---
+
+## 2026-10-10 Fireworks direct camera-height sensitivity reduction
+
+- **Base:** supplied dirty `main` at `17a011695370cdf5985fbb76be725ea9d284849f` with the latest altitude-curve calibration ZIP applied. No commit, push or deployment.
+- User testing found camera height adjustment too fast. Reduced direct **Q/E keyboard altitude translation** approximately 8–10× and **left-mouse-button + wheel immediate altitude translation** approximately 5×. A focused `camera-height-controls.ts` helper provides bounded conversion for each. Q/E retains the existing eased input, keyboard calibration multiplier and altitude curve. Left-button + wheel keeps normalised WheelEvent units; the right-button + wheel target-selector's 1/2/5/10 m step progression, ordinary zoom, pan, rotation and 10 m floor remain unchanged. No new UI controls.
+- Files changed: `src/visualisations/fireworks-simulator/fireworks-simulator.ts`, new `camera-height-controls.ts` and `camera-height-controls.test.mjs`, plus `docs/current-handoff.md`, `docs/exec-plans/active/010-fireworks-simulator.md` and `docs/ux-accessibility-features.md`. No deletions, dataset or renderer changes.
+- Validation: 56 focused Fireworks Node tests passed including before/after height scale ratios and finite caps; scoped Fireworks TypeScript compilation passed. Full Astro build and real mouse/keyboard feel testing not run. Next: verify holding Q/E and left-button + wheel at low and high altitude, then continue navigation calibration.
+
+---
+
+## 2026-10-10 Fireworks altitude-aware navigation calibration trial
+
+- **Source:** supplied dirty `main` snapshot `17a011695370cdf5985fbb76be725ea9d284849f`, plus previously delivered Fireworks patches through the separate Move/Pan calibration controls. No commit, push or deployment.
+- Existing MOVE (left mouse), PAN/ROTATE (right mouse) and KEYBOARD speeds now each have independent LOW (10 m) and HIGH (2,000 m) multipliers, range 0.25×–10×. A shared 0.4–3.0 curve-power slider interpolates all three using log-camera-height; higher power maintains low-altitude boost longer. Values are applied at the live SKYLINE pointer and keyboard handlers; PLAN uses the high-end values because it has no physical eye altitude. Mouse wheel and touch remain unchanged.
+- The existing options disclosure shows an inline three-series SVG plot, live current-altitude markers, numerical effective multipliers and explanations. This plots the **calibration multiplier**, not physical metres per second. Version 3 local storage inherits v2/v1 speeds as HIGH and begins LOW at 1.6× HIGH (clamped), fully adjustable. The copyable `FW-NAV:v3` line includes six endpoints, curve power, altitude range, current effective multipliers and existing browser context.
+- Updated `src/visualisations/fireworks-simulator/{FireworksSimulator.astro,fireworks-simulator.ts,fireworks-simulator.css,navigation-calibration.ts,navigation-calibration.test.mjs}`, this handoff, active Fireworks plan and UX inventory. No city data, renderer, rotation formula, mouse direction, 10 m camera floor or pointer-lock changes. No deletions.
+- Validation: 53 focused Node tests, narrow Fireworks TypeScript check, and PostCSS parse passed. Full Astro build and real mouse/keyboard speed feel not tested. Next review: adjust low/high and curve in Map / View Options and send `FW-NAV:v3` calibration; verify feel at 10, 50, 150, 500 and 2,000 m before promoting defaults.
+
+---
+
+## 2026-10-10 Fireworks independent mouse calibration controls
+
+- **Source:** supplied dirty `main` snapshot at `17a011695370cdf5985fbb76be725ea9d284849f` with all previous Fireworks patches through the 10 m camera floor / reversed right-drag applied. No commit, push or deployment.
+- Replaced the shared Mouse Drag slider with independent **MOVE · LEFT BUTTON** and **PAN · RIGHT BUTTON** sliders, keeping the separate KEYBOARD slider. Both mouse modes are independently scaled at the final SKYLINE and PLAN pointer-move branches; simultaneous left+right-button dragging uses both individual multipliers. Mouse and keyboard maximums increased from 4.00× to 10.00×; minimum remains 0.25×, step 0.05×. Existing direction mapping, physical pointer lock, 10 m camera floor, wheel zoom and touch are unchanged.
+- Local calibration uses version 2 storage, with one-time read fallback from the previous version 1 `mouse` value to initialise *both* mouse sliders. Copy output is `FW-NAV:v2` and includes `mouse_move`, `mouse_pan`, `keyboard` and the existing environment context. Removed the requested explanatory paragraph below the copy button (and unused CSS rule).
+- Files: `src/visualisations/fireworks-simulator/{FireworksSimulator.astro,fireworks-simulator.ts,fireworks-simulator.css,navigation-calibration.ts,navigation-calibration.test.mjs}` and `docs/{current-handoff.md,exec-plans/active/010-fireworks-simulator.md,ux-accessibility-features.md}`; no deletions, city data, shader or renderer edits.
+- Validation: focused Fireworks Node tests, narrowed TypeScript compilation and CSS parsing; full Astro build and physical mouse calibration still require local testing. Next: user adjusts three independent sliders and shares the copied `FW-NAV:v2` line.
+
+---
+
+## 2026-10-10 Fireworks right-drag direction trial and 10 m camera floor
+
+- **Base:** latest available dirty `main` snapshot `17a011695370cdf5985fbb76be725ea9d284849f` with the prior 2026-10-10 navigation calibration/pointer-lock patch applied. No commit, push or deployment.
+- Inverted **both mouse right-drag rotation axes** in SKYLINE and the applicable yaw axis in PLAN, including Ctrl+left and dual-button drags. Mouse right-drag now produces the same visible direction as corresponding arrow keys; WASD, keyboard arrows, left-drag pan, wheel travel, sensitivity multipliers and automatic landmark orbit are unchanged.
+- Replaced the 0.25 m camera floor with **10 m** across free translation, direct height-wheel, height target, rotation, initial layout, and landmark flight/cinematic orbit. Manual map rotation now clips the orbit angle at the 10 m floor instead of switching to an in-place upward eye-tilt. This removes the old `groundPitchRad` state and its look-only rotation branch.
+- Updated the in-page camera Method description and added projection-direction/10 m floor regression tests. Changes: `src/visualisations/fireworks-simulator/{FireworksSimulator.astro,fireworks-simulator.ts,camera-map-rotation.ts,camera-map-rotation.test.mjs}`, `docs/{current-handoff.md,exec-plans/active/010-fireworks-simulator.md,ux-accessibility-features.md}`. **Deletions:** none.
+- **Validation:** 51 focused Fireworks Node tests passed; narrowed Fireworks TypeScript compile passed. Not run: full Astro build or physical Windows mouse/touch and camera QA. Local review: test right-drag both axes at multiple heights and at the 10 m floor, then tune the existing sensitivity sliders.
+
+---
+
+## 2026-10-10 Fireworks navigation calibration and unlimited mouse drag trial
+
+- **Source:** dirty `main` snapshot at `17a011695370cdf5985fbb76be725ea9d284849f` with the delivered Fireworks patches through the unified manual map-rotation fix applied. No git commit/push/deploy.
+- Added independent, persisted **Mouse Drag** (default 1.50×) and **Keyboard** (default 1.80×) multipliers in the existing Map / View Options panel, 0.25×–4.00× in 0.05 increments. They apply in the actual SKYLINE and PLAN handlers: mouse pan/rotation, keyboard WASD/arrow/Q-E/+− controls. Wheel zoom and touch gestures intentionally remain uncalibrated. Keyboard easing response increased slightly (20→28) to reduce perceived lag.
+- Added a read-only, copyable `FW-NAV:v1` calibration line with the two multipliers, viewport/screen size, browser DPR, view mode, camera height and Pointer Lock API support. **Hardware mouse DPI is not accessible to browser JavaScript**; explicitly report `mouse_dpi=unknown` rather than infer it. Store speeds locally only, not in site files.
+- Desktop mouse down in the camera viewport requests **Pointer Lock** so the camera can keep responding to movement after the pointer reaches a monitor/browser boundary. While locked, use PointerEvent `movementX/Y`; retain a clamped virtual pointer for ground-hit ray selection and custom cursor. Release on final mouse button up, blur, pagehide or Escape. Pointer capture remains the fallback when pointer lock is denied/unsupported. No lock for touch/pen or settings/UI elements. The automatic landmark orbit remains independent.
+- Files: `src/visualisations/fireworks-simulator/{FireworksSimulator.astro,fireworks-simulator.ts,fireworks-simulator.css,navigation-calibration.ts,navigation-calibration.test.mjs}`, `docs/{current-handoff.md,exec-plans/active/010-fireworks-simulator.md,ux-accessibility-features.md}`. No data/renderer changes or deletions.
+- Validation: 50 focused Node tests including multiplier range, cursor-edge fallback under pointer lock, and the copy line; scoped TypeScript compile and CSS structural check. Not run: full Astro build, physical multi-monitor mouse/OS pointer-lock browser testing. Ask for a screenshot or copied line after user tunes navigation; promote defaults only after field testing.
+
+---
+
+## 2026-10-10 Fireworks manual rotation and ground pan repair
+
+- **Base:** Latest available supplied dirty `main` snapshot at `17a011695370cdf5985fbb76be725ea9d284849f`, with previous Fireworks ZIP patches through 2026-10-10 pan sensitivity tuning applied. No commits, pushes or deployment.
+- **Root cause:** Manual right-drag was orbiting `camera.target` (which can be a *floating 1.2 km direction-only point* after landmark inspection); at the floor it switched to a separate `groundLook` path. Near/far geometry around these inconsistent pivots could appear to reverse horizontal movement as altitude or zoom changed. This was independent of the left-drag pan scale.
+- **Fix:** Single manual `rotateMap` path uses `manualMapPivot()` on the ground (short bounded reference when looking to the horizon) and `rotateManualMap()` to rotate the eye and look direction **together**. Manual right-drag, Ctrl+left-drag and keyboard arrows share the path, not the automatic cinematic landmark orbit. Floor contact preserves a smooth extra pitch/return state without switching yaw algorithms; world-up pitch remains capped before 90 degrees. Manual rotation is slower. Pointer gesture stores its map pivot until release; keyed rotation stores it while held. Selected building highlight and automatic-orbit preference are unchanged.
+- **Pan:** The previous 60 m virtual-ground minimum and 0.05 m/input-pixel floor still made street-level scenery jump. `camera-pan.ts` now uses an 8 m minimum reference and 0.005 m/input-pixel lower bound, both height-continuous; existing response gain 0.45 and mouse factor 0.78 still apply at the actual handler. Pointer-ground anchoring is rejected if it points against the ordinary pan displacement. No speed slider.
+- **Files:** `src/visualisations/fireworks-simulator/{fireworks-simulator.ts,camera-pan.ts,camera-pan.test.mjs,camera-map-rotation.ts,camera-map-rotation.test.mjs}`; `docs/{current-handoff.md,exec-plans/active/010-fireworks-simulator.md,ux-accessibility-features.md}`. No city JSON, geometry, WebGL, Astro route or design UI changed. Deletions: none.
+- **Validation:** 45 focused Fireworks Node tests pass, including projection-level right-drag direction from 0.35 m through 2,400 m, changed zoom/range and target distance, ground pitch recovery and low-ground pan bounds. Fireworks-only `tsc --noEmit --target ES2022 --lib DOM,ES2022` passes. Not run: full Astro build or Windows pointer/GPU testing. Local visual review needed at street/50 m/300 m/2,000 m, after landmark selection and wheel zoom; all geometries around a true map pivot cannot translate in the same direction because rotation is circular.
+
+---
+
+## 2026-10-10 Fireworks screen-space pan sensitivity tuning
+
+- Base: supplied dirty `main` at `17a011695370cdf5985fbb76be725ea9d284849f`, with the previously delivered screen-space pan ZIP overlaid. No commit, push or deployment.
+- Local feedback: mouse/WASD movement remained too fast near ground and in elevated views. The previous 180 m virtual depth at pavement level and 2.4x cursor-anchor tolerance could exaggerate a short drag. Reduced the internal common mouse/touch/keyboard pan response to 45%, virtual and bounded-ground minimum depth to 60 m, minimum pan metres-per-pixel to 0.05 and maximum to 6; limited anchor-speed deviation to 1.35x before blending back to normal. No new slider or gestures.
+- Changed only `src/visualisations/fireworks-simulator/{camera-pan.ts,camera-pan.test.mjs}` plus this handoff, the Fireworks plan and UX inventory. The scene controller, navigation direction mappings, landmark orbit, PLAN mode, zoom and data are unchanged; no deletions.
+- Validation: 33 focused Fireworks tests pass, including new street-level, elevated and angle/anchor caps; scoped TypeScript compilation passes. Full Astro build and real-device feel require local review. Check mouse and WASD at 2, 50, 300 and 2,000 m, particularly after selecting a landmark and zooming.
+
+---
+
+## 2026-10-10 Fireworks projection-aware city pan trial
+
+- Base: supplied dirty `main` snapshot `17a011695370cdf5985fbb76be725ea9d284849f` with approved Fireworks patches through shared side-tab bounds applied. No commit, push or deployment.
+- Replaced SKYLINE pan's old `cameraDistance() * .00075` with a screen-space metre scale derived from the camera's **physical height**, screen projection and visible ground direction. It no longer changes merely because key-building focus adjusts `camera.target`. Mouse, touch, multi-touch movement and WASD share the model; keyboard retains existing acceleration and input directions.
+- Pointer drags use actual ray/ground intersections when stable, with a bounded interpolated screen-space fallback for street-level, horizon and upward-looking views. Altitude stays unchanged during pan. PLAN, right-drag rotation, ordinary zoom, target-height wheel and landmark flight/orbit are not changed; no speed slider or new controls.
+- Files: `src/visualisations/fireworks-simulator/{fireworks-simulator.ts,camera-pan.ts,camera-pan.test.mjs}`, this handoff, active Fireworks plan and UX inventory. No city data, GPU renderer or other projects changed; no deletions.
+- Validation: 30 focused Fireworks Node tests passed, scoped TypeScript compilation passed. Full Astro build and local live mouse/keyboard/touch interaction have not run. Next: assess pan feel at 1 m, 50 m, 300 m and 2,000 m, especially close to horizon and after landmark selection + zoom; refine constants only if evidenced by user tests.
+
+---
+
+## 2026-10-10 Fireworks side tab vertical limit correction
+
+- Base: supplied dirty `main` snapshot at `17a011695370cdf5985fbb76be725ea9d284849f` with the reviewed shared-drawer patch applied. No commits, pushes or deployment.
+- Fixed the shared side drawer clamp. The previous collapsed-state limit used the 60 px **tab height** even though the tab remained centred on the full-height hidden panel, letting the Fireworks and Key Buildings tabs disappear below the browser edge. Open and collapsed states now use the **drawer panel height**, keeping symmetric top/bottom limits with the tab at the panel midpoint.
+- Both drawers recompute limits when the panel or viewport changes size. For very short browser windows, the limit uses the visible viewport height rather than relying solely on the simulator's 480 px minimum height.
+- Changed `src/visualisations/fireworks-simulator/edge-drawer.ts`, added `edge-drawer.test.mjs`, and updated this handoff and active Fireworks plan. No changes to other drawer UI, camera, city data or renderer. No deletions.
+- Validation: four boundary tests (top, bottom, same limits open/collapsed, resize) and scoped TypeScript compile. Full Astro build and browser mouse/touch drag QA not run; confirm visually at small and normal viewport heights.
+
+---
+
+## 2026-10-10 Fireworks landmark orbit, sorting and shared edge drawers
+
+- Base: supplied dirty `main` at `17a011695370cdf5985fbb76be725ea9d284849f`; layered the delivered 2026-10-09 blank-city-startup and expanded-Sydney-landmarks ZIPs onto that snapshot. No commits, pushes or deployments.
+- Key-building selection in SKYLINE flies to the chosen building, then starts a slow automatic camera orbit around the landmark at about 0.065 rad/s (approximately 3.7 degrees/s). This is a deliberate cinematic *camera* orbit only during automatic inspection. The first direct viewport input (mouse/touch press, wheel or mapped keyboard navigation) cancels flight/orbit and changes the camera's rotation reference to a forward point at least 1,200 m away, maintaining the exact viewing bearing/pitch but removing close-up orbit scaling. Existing manual right-drag map rotation, movement and normal zoom paths remain intact; unrelated UI interactions do not stop the orbit. Reset and PLAN stop it; reduced motion disables the continuous orbit. An on/off switch under the key-building highlight in Map/View Options persists via localStorage.
+- Key Buildings now sorts ABC or height (descending), with an independent TYPE on/off switch: on groups the current ICONS/TOWERS/HISTORY/CULTURE/SPORT categories, off sorts all names together. Each row displays height right-aligned in smaller grey text; unverified, estimated or fallback heights are prefixed `~`. These list modes do not alter the source dataset, label identities or selected building.
+- Fireworks left drawer and Key Buildings right drawer now use one `setupEdgeDrawer()` module and matching 32×60 px tabs. Click/keyboard toggles; drag up/down with mouse, pen or touch repositions either edge tab, without accidentally toggling after a vertical drag. Collapsed contents stay inert. The current top position remains session-only. Both use the same CSS and reduced-motion transition handling.
+- Included files: `src/visualisations/fireworks-simulator/{FireworksSimulator.astro,fireworks-simulator.ts,fireworks-simulator.css,edge-drawer.ts,camera-landmark-orbit.ts,camera-landmark-orbit.test.mjs,landmark-list.ts,landmark-list.test.mjs}`, this handoff, the active Fireworks plan and the UX inventory. No public Sydney JSON, site navigation, data acquisition or WebGL renderer changes. No deletions.
+- Focused validation: 17 Node tests passed (including camera direction preservation, orbit path, sorting and estimated height labels), scoped TypeScript compile and CSS parser passed. Full Astro build and physical mouse/touch browser QA were not run. Review automatic rotation comfort, release on mousewheel/key, narrow-screen drawer dragging and height-list sorting locally.
+
+---
+
+## 2026-10-09 Fireworks wider Sydney landmarks and persistent selection
+
+- Base: dirty `main` at `17a011695370cdf5985fbb76be725ea9d284849f`, using the user-supplied 21:40 snapshot and restored missing height-helper export. No commit/push/deploy.
+- Sydney landmark registry is now curated by icons/towers/history/culture/sport, with no numeric count cap. The current east-coast JSON yields **65** features: four icons (including a source-matched Crown Sydney), 31 towers, 17 historic places, 12 cultural places, and an SCG group derived only from seven named Overture stands. Only matched source footprints are shown; no artificial building geometry was added.
+- The 27 landmarks with explicit Overture numeric heights or authored structure heights participate in height comparison. All silhouettes retain their full relative metre height; inactive figures fade but no longer shrink. The atlas spans the screen with buildings available to the right of the centre ruler and soft fades at each side. Features with fallback/floor-derived heights remain selectable on the map, but are withheld from height ranking.
+- Clicking a label/list entry frames the selected landmark, opens the key-building drawer and scrolls its list to the entry. Selected gold styling persists through pan/zoom/reset/view switching; hover over another landmark remains independent. A separate keyboard-accessible X next to the selected map flag clears selection; its outlines fade by the existing GPU transition. SCG highlight expands to its source stand IDs.
+- Changed Fireworks registry, controller, height helper, CSS and three focused tests; added `city-landmarks.test.mjs`. Updated this handoff, plan, UX inventory and Sydney source note. No city dataset, public API, camera controls or renderer buffers modified. No deletions.
+- Validation: 14 focused tests, scoped TypeScript compile, CSS parser and source-backed 65-landmark audit. Not run: Astro build or full Windows/WebGL visual/gesture QA. Check Crown/SCG framing, scroll-to-selection, selected X and 100% height comparison.
+
+---
+
+## 2026-10-09 Fireworks clickable landmark labels and selection highlights
+
+- Source: supplied dirty `main` snapshot at `17a011695370cdf5985fbb76be725ea9d284849f`, plus successive reviewed Fireworks patches through the relative-height correction. No commit, push or deployment.
+- Visible key-building flags are native buttons, reachable by click, Enter or Space, with pointer cursors and focus styles. Flags and the existing key-building drawer call the same `focusLandmark()` camera function.
+- Hover highlights the label and its WebGL outline in pale yellow; selection uses a subdued darker gold and persists while other landmarks are hovered. Both colours transition smoothly; reduced-motion mode switches immediately. Selecting another landmark replaces the old selection. Manual scene pointer, wheel, keyboard, reset or view-mode interaction clears selection; the automatic focus-flight does not.
+- Individual named Overture buildings and the three authored Harbour Bridge, Opera House and Sydney Tower models get tiny extra line buffers for hover/selected colour, reusing the existing depth-tested skyline pass. The large city meshes and source datasets stay untouched. Stable selections do not force continuous GPU redraws. In PLAN/Canvas fallback, the label/drawer state remains interactive, but selected edge colour is a SKYLINE WebGL enhancement.
+- Changed the Fireworks Astro, controller, CSS, WebGL renderer, added a small landmark-highlight helper and test, and updated current handoff, active plan and UX inventory. No deletions, source acquisition or city regeneration.
+- Validation: 10 focused Node tests, scoped Fireworks TypeScript compile and CSS parser check. Full Astro/browser interaction and GPU visuals remain for local review. Next: click a floating label, hover another, then pan to verify selection fades; repeat using the drawer, and inspect Opera House and Bridge depth behaviour.
+
+---
+
+## 2026-10-09 Fireworks inactive atlas height correction
+
+- Base: supplied dirty `main` at `17a011695370cdf5985fbb76be725ea9d284849f`, with the latest weighted-scroll / morph patch applied. No commit, push or deployment.
+- Corrected the landmark height-atlas rule so **inactive buildings shrink to 50% of their own scaled height**, not to a shared capped height based on the current active building. This preserves relative height differences across all inactive landmarks while keeping the active landmark at full scaled height.
+- Touched `src/visualisations/fireworks-simulator/{fireworks-simulator.ts,height-comparison.ts,height-comparison.test.mjs}` and updated Fireworks handoff/plan/UX notes. No CSS, renderer, city data, routes or public URLs changed. No deletions.
+- Validation: focused Node tests, including a new inactive-height proportionality check, plus narrowed Fireworks TypeScript compile. Not run: full Astro build or local end-to-end browser QA.
+
+---
+
+## 2026-10-09 Fireworks height atlas row morphing and weighted wheel trial
+
+- Base: supplied dirty `main` at `17a011695370cdf5985fbb76be725ea9d284849f`, with the previously delivered 1 m height-target patch applied. No commit, push or deployment.
+- Right mouse + wheel height selection now uses a **weighted streak**: the first 10 accepted wheel steps move 1 m each, the next 10 move 2 m each, the next 10 move 5 m each and later continuous steps move 10 m each. A pause of roughly half a second, cancelling selection or releasing the button resets the streak to 1 m steps. Wheel/trackpad accumulation threshold, target limits, release-to-travel and ordinary zoom remain unchanged.
+- The height-atlas row no longer narrows inactive buildings. The active landmark remains at full scaled height; inactive neighbours morph down to about half the active landmark height while keeping their width and becoming more transparent. When the active building changes, the previous active shrinks down and the next grows up. The active outline still turns gold but does not thicken or widen.
+- The atlas keeps more buildings visible to the right of the active landmark, with stronger fade-out towards the far right and softer fade on the far left. The row mask was widened to support this without overflowing the comparison lane.
+- Changed `src/visualisations/fireworks-simulator/{fireworks-simulator.ts,fireworks-simulator.css,height-comparison.ts,height-comparison.test.mjs}` and Fireworks handoff/plan/UX notes. No city data, renderer geometry, Astro routes or public URLs changed. No deletions.
+- Validation: five focused Node tests (step sizing, weighted streak thresholds, bounds, scale reset, active-index recovery) and a narrowed Fireworks-only TypeScript compile. Not run: full Astro build or live Windows wheel/trackpad feel. Next: local check that inactive landmarks keep width, re-grow correctly, and that sustained scrolling feels better than the 1 m flat behaviour.
+
+---
+
+## 2026-10-09 Fireworks target height: 1 m wheel increments trial
+
+- Base: supplied dirty `main` at `17a011695370cdf5985fbb76be725ea9d284849f`, using the latest delivered 5 m height-target patch as the starting state. No commit, push or deployment.
+- Changed right mouse + wheel height selection from **5 m to 1 m per accepted wheel step**. The initial eye-height snap uses the same shared 1 m constant. Existing wheel/trackpad accumulation threshold (65 normalised units), movement direction, one-step-per-event cap, target limits, release-to-travel, ordinary zoom and left-wheel height movement remain unchanged.
+- Updated height-step regression tests and Fireworks plan/UX feature documentation. No CSS, city data, renderer or other camera-control changes. No deletions.
+- Validation: focused Node height tests and TypeScript compile (see delivery report). Actual Windows wheel and high-resolution trackpad feel still require a local trial before settling the speed.
+
+---
+
+## 2026-10-09 Fireworks height target fine control and return-scale fix
+
+- Base: supplied dirty `main` at `17a011695370cdf5985fbb76be725ea9d284849f`, with all previously delivered Fireworks patches through the landmark height atlas applied. No commits, pushes or deployment.
+- Right mouse + wheel now selects target altitude in exact **5 m steps**. Normalised wheel events accumulate small trackpad deltas and cap large spikes at one step per event; left-button height movement, plain wheel dolly and keyboard camera movement are untouched.
+- The height ruler and comparison profiles now recalculate their upper scale from the **selected target** while comparing, rather than retaining the maximum altitude previously visited or using a much higher current camera elevation. Silhouettes grow back when descending from 5,000 m; outside comparison, the ruler still follows camera height.
+- A numeric gold target-height badge follows the existing arrow/level cue. A non-interactive black viewport scrim dims the city and regular UI **only while** the height atlas is visible; the ruler, arrows, target badge and silhouettes remain above it. Transition respects reduced motion.
+- Changed `src/visualisations/fireworks-simulator/{FireworksSimulator.astro,fireworks-simulator.ts,fireworks-simulator.css,height-comparison.ts,height-comparison.test.mjs}` and `docs/{current-handoff.md,exec-plans/active/010-fireworks-simulator.md,ux-accessibility-features.md}`. No city data, renderer, camera paths or public URLs changed. No deletions.
+- Verified: focused TypeScript check, four Node regression tests (5 m step/direction, boundaries, scale down from max, landmark reactivation), CSS parser and isolated Chromium overlay layout at 1500 px / 390 px. Not run: full Astro build or actual right-click wheel in loaded Sydney scene. Next: local check at 100, 134, 309, 5000 and back to 100 m, including release-to-travel and PLAN.
+
+---
+
+## 2026-10-09 Fireworks target-height landmark comparison prototype
+
+- Base: supplied dirty `main` at `17a011695370cdf5985fbb76be725ea9d284849f`, with the reviewed coastline, map/view, landmark-depth and adaptive-navigation patches layered in order. No commits, pushes or deployments.
+- In SKYLINE, right mouse + wheel moves the existing height ruler towards the screen centre, places the up/level/down cue beside the marker, and reveals a left-side source-backed height atlas. The visual stays during eased camera travel and retracts when selection/travel ends. No other input or renderer behaviour changes.
+- Height atlas derives profiles from `cityLandmarks()` once on city load, sorts by `heightM`, shows the active roof height with a gold fill/scan line at real ruler metres, and slides shorter/taller neighbours horizontally. At or above the tallest landmark all figures are neutral while the selected-height line continues upward. 2D silhouettes are explicitly schematic, not surveyed facade geometry; missing city landmarks remain absent. Default Sydney archived data has 19 matching key buildings.
+- Touches only Fireworks Astro, TypeScript, CSS, new `height-comparison.ts`, this handoff, the Fireworks execution plan and UX feature log. No GPU changes, data exports or deletions.
+- Validation: focused TypeScript compile, 19-source-landmark ordering/threshold tests, CSS parser and isolated desktop Chromium layout screenshot. Full Astro build, actual right-button/wheel input, mobile layout and full-scene visuals remain local review. Next: extract after the adaptive-navigation patch, run local server and test right+wheel at 0/65/134/309/5000 m, release to travel, reset and PLAN.
+
+---
+
+## 2026-10-09 Fireworks adaptive navigation guide and movement fade
+
+- Base: user-supplied dirty `main` snapshot `17a011695370cdf5985fbb76be725ea9d284849f`, with the delivered Sydney coastline, map/view options and landmark navigation patches layered in order. No commit/push/deploy.
+- During pointer, keyboard, touch, smoothed wheel or landmark camera travel, scene interface overlays (including map options, landmark drawer, controls and labels) fade to 23% opacity and recover after movement settles. The WebGL/Canvas scene, vertical height ruler and height-target cues stay at full opacity; underlying renderer/geometry is unchanged.
+- A bottom-right, dual-card camera guide favours the last camera input: mouse/touch instructions expand after pointer use, keyboard instructions after navigation keys. Grid width morphing respects reduced motion, while mobile stacks active content above the compact alternative. The old centre-screen navigation hint becomes screen-reader-only, not a second visible guide.
+- The guide defaults visible, can be hidden from its own native button or turned on/off via a native switch in Map / View Options. The two controls stay synchronised; visibility persists in `localStorage` when storage is available. Keyboard focus/form typing does not spuriously change the active device. PLAN-specific rows exclude unsupported SKYLINE height shortcuts.
+- Changed files: `src/visualisations/fireworks-simulator/{FireworksSimulator.astro,fireworks-simulator.ts,fireworks-simulator.css}`, `docs/{current-handoff.md,exec-plans/active/010-fireworks-simulator.md,ux-accessibility-features.md}`. No datasets, WebGL renderer, city geometry or source acquisition changes; no deletions.
+- Validation: focused TypeScript and static UI/CSS checks (see patch delivery). Full Astro build, real device gestures, responsive overlap and browser animations need local review. No data regeneration needed.
+
+---
+
+## 2026-10-09 Fireworks landmark navigation and shared skyline depth
+
+- Base input: supplied dirty `main` snapshot `17a011695370cdf5985fbb76be725ea9d284849f`, with reviewed coastal-water-fix and map-view-controls patch sources layered. No repository commit/push/deploy.
+- Root visual issue: Harbour Bridge and Opera House were drawn as a foreground Canvas overlay after WebGL buildings, so they appeared through foreground towers and near-camera shells produced moving horizon triangles. The skyline now renders authored bridge/Opera shell meshes into the existing WebGL depth buffer (Sydney Tower already used it), with proper GPU homogeneous near clipping. WebGL draws once only; Canvas keeps those authored forms for PLAN/fallback.
+- Runtime-only source duplicate suppression hides Overture features directly overlapping authored Opera House schematic geometry and redundant Harbour Bridge pylons, preserving the original city JSON and provenance. Key building registry matches exact available Overture source names: 19 landmarks found in archived older Sydney bundle, including three authored structures and 16 named real footprints. Absent names are skipped.
+- The SKYLINE WebGL city canvas is composited in front of the firework Canvas, so fireworks do not paint over city buildings. This is layer occlusion, not exact per-particle depth: land/roads are also in that upper city canvas. No second building Canvas render or GPU buffer duplication.
+- Right-side collapsible key-building list uses source-backed names, clickable focus, fit based on landmark metres, and 12 camera angle candidates scored for obstruction by buildings. The closest clear sightline is chosen; user gestures and reset remain usable. On-screen name poles are decluttered, with the currently selected label taking priority.
+- View-options disclosure arrow is now a centred SVG. New drawer controls use native buttons with focus and `inert` while collapsed; reduced motion disables camera travel and panel transitions.
+- Changed: `src/visualisations/fireworks-simulator/{FireworksSimulator.astro,fireworks-simulator.ts,fireworks-simulator.css,city-webgl.ts,city-landmarks.ts}`, `docs/{current-handoff.md,exec-plans/active/010-fireworks-simulator.md,ux-accessibility-features.md}`. No browser city dataset replacement or deletion.
+- Validation: focused TypeScript check, local city landmark discovery/overlap source audit; visual Skyline/PLAN, actual 44,489-building bundle performance, near-clipping/camera framing and Astro build require local browser review.
+- Next: extract the patch only if these Fireworks files have not changed since map-view-controls patch; test Harbour/Opera views at horizon and very close, lower/raise camera, pan past a building while fireworks fire, select different key buildings and view from Skyline and PLAN; report screenshots and FPS.
+
+---
+
+## 2026-10-09 Fireworks map/view options for Sydney scene
+
+- Base: supplied dirty `main` at `17a011695370cdf5985fbb76be725ea9d284849f`; preceding coastal-water-fix documentation was used as the input so that reviewed coastline history is not lost. No commit, push or deployment.
+- Added a native dropdown immediately below the SKYLINE / PLAN switch, with a highlight switch and four independent layer switches and transparency sliders (key buildings, buildings, roads, land/coastline). Off layers disable and dim their slider while retaining the prior transparency setting. A setting of 0% means default visible opacity, 100% means fully hidden.
+- The three authored Sydney structures are key buildings: Harbour Bridge, Opera House and Sydney Tower. Highlight mode brightens their existing outline treatment and places small animated name flags at their projected roofs. Labels respect reduced motion and follow both camera modes. They are pointer-transparent.
+- WebGL separates Sydney Tower triangles from sourced building triangles, so switching off buildings does not also remove the tower; no duplicate city draw pass is restored. Opacity applies to each GPU draw group without uploading new geometry. Canvas PLAN/fallback applies the same settings to cached city layers and authored geometry, and the existing firework Canvas is unaffected.
+- Files changed: `src/visualisations/fireworks-simulator/{FireworksSimulator.astro,fireworks-simulator.ts,city-webgl.ts,fireworks-simulator.css}`, `docs/{current-handoff.md,exec-plans/active/010-fireworks-simulator.md,ux-accessibility-features.md}`. No datasets, acquisition files or unrelated pages changed; no deletions.
+- Validation: focused TypeScript compilation passes. Astro/browser rendering, actual FPS, visual/gesture review and mobile panel verification remain local follow-ups. The local browser scene data was not regenerated by this UI patch.
+- Next: extract patch over the existing locally reviewed Fireworks files, run Astro locally, check layer visibility/transparency in SKYLINE and PLAN and confirm structure flags, then review appearance. Sydney acquisition/shoreline validation is a separate pending task.
+
+---
+
+## 2026-10-09 Fireworks coastline source correction pending local full-water test
+
+- Source snapshot: dirty `main` at `17a011695370cdf5985fbb76be725ea9d284849f`; preserve other staged changes. The active browser scene is still `inner-sydney`.
+- Root cause: the downloaded east-coast Overture mainland polygon has no Harbour holes. The coastal geometry validator correctly rejected it; the user's new matching-extent Overture `water` cache has 3,305 records from pinned release `2026-09-23.1`.
+- Focused code patch: the coastal processor subtracts mapped harbour/bay/inland water from Overture land, validates the Harbour/CBD, shoreline, mesh area and full water presence; the acquisition pipeline requires `water` alongside the four existing files, respects an explicitly pinned release, reuses checked cache metadata and leaves the previous public bundle intact on failure.
+- Modified source: `scripts/data/fireworks-simulator/{acquire_sydney.py,sydney_coastal_land.py,test_acquire_sydney_resume.py,test_sydney_coastal_land.py,README.md}`, `data/sources/fireworks-simulator-sydney-city.md`; docs: `docs/{current-handoff.md,exec-plans/active/010-fireworks-simulator.md}`. No renderer/controls or public JSON changed, no deletions, no commit/push/deploy.
+- Offline validation: 46 Python regressions passed; archived coastal source paired with the older inner-city water extract triangulated 10,368 land triangles after preparing 44,489 real buildings and 13,856 NSW roads with zero audit errors. New 3,305-feature water extract and browser/GPU not available in this snapshot, so final east-coast coverage remains unverified.
+- Next on Windows, after applying patch: `py -u scripts/data/fireworks-simulator/acquire_sydney.py --extent east-coast --transport-source nsw-only --overture-release 2026-09-23.1`. Do not use `--fresh-download` or `--reuse-local`. Provide complete output; verify browser reads `east-coast` and inspect Pacific/Harbour before any more shader changes. Multi-city architecture remains deferred.
+
+---
+
+## 2026-10-09 Fireworks stationary/drag flicker and NSW-only east-coast route
+
+- Base supplied dirty `main` at `17a011695370cdf5985fbb76be725ea9d284849f`; previous Fireworks source changes in the latest ZIP are kept. No commit, push or deployment.
+- Latest screenshots show the WebGL city gaining doubled, brighter building outlines after movement ends. `drawFireworkOccluders()` was repainting nearer buildings in a delayed Canvas layer *above* the WebGL skyline. SKYLINE/WebGL now omits that extra city pass; Canvas-only fallback retains it. Trade-off: exact firework/building occlusion in WebGL remains unresolved.
+- The browser still loads `inner-sydney` because east-coast acquisition is stuck in a recursive Overpass 504. User's `sydney.7z` includes an extent/release-valid cache: 45,055 Overture buildings, 1,103 building parts, 13,888 NSW road features at the wider east-coast bbox and Overture release `2026-09-23.1`. Offline NSW-only preparation of those raw files produced 44,489 usable buildings and 13,856 roads with zero audit errors; no coastal mesh was available to validate offline.
+- Added explicit acquisition flag `--transport-source nsw-only` to bypass optional OSM lane/traffic enrichment while retaining NSW streets and coastline acquisition. Metadata marks partial enrichment, and validated city output remains atomic. Default `nsw-osm` behaviour and resumable tile cache are preserved.
+- Files changed: `scripts/data/fireworks-simulator/{acquire_sydney.py,test_acquire_sydney_resume.py,test_prepare_sydney_city.py,README.md}`, `src/visualisations/fireworks-simulator/fireworks-simulator.ts`, `docs/{current-handoff.md,exec-plans/active/010-fireworks-simulator.md,ux-accessibility-features.md}`. No generated browser JSON, no local raw data, no deletions.
+- Validation: 42 Python focused tests passed; focused TypeScript compile passed; the real cached east-coast NSW-only city-preparation smoke test passed. Full Astro/WebGL visual and live coastal Overture-land download not run in this environment.
+- Next: apply ZIP, run `py -u scripts/data/fireworks-simulator/acquire_sydney.py --extent east-coast --transport-source nsw-only`, inspect success/error output, confirm generated JSON reports `east-coast`, then review skyline consistency and real coastline. Future Newcastle adapter should make city projection, source provider and authored landmarks configurable while retaining browser contract.
+
+---
+
+## 2026-10-09 Fireworks east-coast HTTP 504 and resumable acquisition
+
+- Base snapshot: dirty `main` at full commit `17a011695370cdf5985fbb76be725ea9d284849f`, with the preceding Pacific-coast ZIP patch layered onto it. No commit, push or deployment performed.
+- User's actual PowerShell acquisition output: Overture buildings 45,055, parts 1,103 and NSW RoadSegment 13,888 downloaded, followed by HTTP 504 at the full-area OpenStreetMap transport query. The old `inner-sydney` public bundle was correctly preserved. The previous download script deleted its incomplete temporary files, so a new run could not reuse the three successful downloads.
+- Acquisition-only fix: `acquire_sydney.py` now caches each validated source file by extent, Overture release, data type and bounding box; keeps valid cached downloads after errors; processes the complete scene from those staged files; promotes raw source files only after geometry checks pass; and retains `--reuse-local` for *completed* same-bounds acquisitions only. New `--fresh-download` deliberately resets the staging cache.
+- Transport fix: `acquire_sydney_transport.py` now requests the larger area in four sequential Overpass tiles, deduplicates features by OSM type/id, persists completed tile downloads and subdivides a tile into four smaller requests on HTTP 504 (bounded recursion). Transient 429/502/503 and connection failures are retried with delays.
+- Changed only `scripts/data/fireworks-simulator/{acquire_sydney.py,acquire_sydney_transport.py,test_acquire_sydney_resume.py,README.md}`, `docs/current-handoff.md`, `docs/exec-plans/active/010-fireworks-simulator.md`. No deletions or generated browser JSON changes.
+- Validation: 28 offline Python tests pass across acquisition resume, coastal land and existing Sydney preparation. No live Overpass/Ocean/NSW access or browser validation available here.
+- Next: apply ZIP and run `py -u scripts/data/fireworks-simulator/acquire_sydney.py --extent east-coast`, without `--reuse-local`. Check for `Wrote real Sydney browser geometry` plus a new `sceneExtent` of `east-coast`, then review shoreline and FPS. Re-running after 504 should show `Reusing cached ...` messages.
+
+---
+
+## 2026-10-09 Fireworks Pacific coast acquisition and three-sided land fade
+
+- Snapshot: dirty `main` at full base commit `17a011695370cdf5985fbb76be725ea9d284849f`, with previously approved Fireworks patch sequence layered over the source snapshot. No commit/push/deploy was performed.
+- User's latest screenshot shows a visible artificial rectangular land edge. The supplied 26,606-building/10,304-NSW-road source files cover only the prior `inner-sydney` extract ending at `151.238°E`, short of the Pacific coastline.
+- Added explicit `east-coast` source extent `[151.180, -33.903, 151.315, -33.829]` (WGS84). The one-command Sydney acquisition now downloads Overture building, building parts and coastline-derived land, NSW road segments and OSM transport for that same extent. A derived land step uses Overture `subtype=land`, `class=land` polygons; final east map limit is the actual eastmost sourced shoreline plus 300 m, while west/south/north stay at urban data bounds.
+- The script refuses to replace the public JSON on missing/truncated land, failed harbour/CBD spot tests, failed triangulation or failed existing geometry audits. A matching manifest is required for east-coast `--reuse-local`, and any previous inner-Sydney browser JSON is backed up locally before replacement.
+- The WebGL land layer now fades to zero opacity over 300 m only on the artificial west/south/north sides. The east coast remains a sourced shape against empty ocean; sourced roads/buildings keep their own geometry fade. Canvas fallback no longer fades the east via a rectangle.
+- Changed: `scripts/data/fireworks-simulator/{acquire_sydney.py,prepare_sydney_city.py,sydney_coastal_land.py,test_sydney_coastal_land.py,README.md}`, `src/visualisations/fireworks-simulator/{city-webgl.ts,fireworks-simulator.ts}`, `data/sources/fireworks-simulator-sydney-city.md`, `docs/{current-handoff.md,exec-plans/active/010-fireworks-simulator.md}`. No files to delete. No raw GIS or regenerated public JSON in patch.
+- Offline focused tests and TypeScript checks are recorded in the delivery; new coastal downloads and local GPU/FPS review remain pending. Next: apply patch, run `py scripts/data/fireworks-simulator/acquire_sydney.py --extent east-coast` on Windows with internet, inspect geometry and browser performance, then review.
+
+---
+
+## 2026-10-09 Fireworks land brightness and coastline continuity tune
+
+- Base remains the supplied dirty `main` snapshot at `17a011695370cdf5985fbb76be725ea9d284849f`, layered after the earlier Fireworks Sydney edge-fade iterations.
+- User review of the new geometry fade showed two remaining issues: the land plane now reads too bright, and the coastline appears to stop short of the eastern edge because the land mesh was being faded like the buildings/roads.
+- Renderer change only: the WebGL land fill is darker / less opaque, and the skyline edge fade no longer applies to the land mesh. Buildings and roads still fade over the final ~300 m of their sourced extent, but the coastline land remains continuous to the scene boundary so empty coast can still read correctly where there is no building data yet.
+- Canvas fallback land fill was also darkened slightly to match the toned-down WebGL look more closely.
+- Changed: `src/visualisations/fireworks-simulator/{city-webgl.ts,fireworks-simulator.ts}`, `docs/{current-handoff.md,exec-plans/active/010-fireworks-simulator.md}`. No deletions and no data regeneration required.
+- Validation completed here: focused TypeScript compile passes for the two modified Fireworks renderer files. Visual review is still required locally because no GPU-backed browser render is available in this environment.
+- Next for local review: refresh FIREWORKS and inspect whether the empty eastern coastal land now reaches the coastline cleanly, while the urban edge still fades out softly without the land dominating the scene.
+
+---
+
+## 2026-10-09 Fireworks edge fade corrected to fade geometry, not draw bands
+
+- Base: supplied dirty `main` at `17a011695370cdf5985fbb76be725ea9d284849f`, incorporating the preceding east-coast bounds / 300 m fade ZIP. Local screenshot showed a black rectangular band and square corners rather than a natural falloff.
+- Root cause: four Canvas dark-gradient polygons were painted over a separately rendered WebGL city. Those polygons could not change the opacity of the buildings, roads or land underneath them, so they made visible dark strips.
+- Fix: WebGL fragment shader now computes a smooth 300 m opacity falloff from local-metre XY, applied directly to all land, buildings, roads, street lines and transport points. The sourced city-feature bounds and extended east-coast land bounds are separate, so the city fades at the end of its *own* data while the land fades at the coastline layer's bounds. Discard fully faded fragments; no extra black geometry is drawn.
+- PLAN/Canvas fallback and authored skyline overlays now remove their own pixels near the projected boundary using Canvas `destination-out` rather than painting black. The main fireworks animation is not erased. Camera controls, data processing and city JSON are unchanged.
+- Files changed: `src/visualisations/fireworks-simulator/{city-webgl.ts,fireworks-simulator.ts}`, `docs/{current-handoff.md,exec-plans/active/010-fireworks-simulator.md,ux-accessibility-features.md}`. No deletions or generated data files.
+- Validation: focused strict TypeScript passes; a headless Chromium attempt could not initialise WebGL in this container. Check locally in SKYLINE and PLAN, especially at an oblique angle over the rectangular south/north/west edges and along the extended east side.
+
+---
+
+## 2026-10-09 Fireworks asymmetric land bounds, stronger land visibility and edge fade
+
+- Base remains the supplied dirty `main` snapshot at `17a011695370cdf5985fbb76be725ea9d284849f`, layered after the earlier Fireworks land/depth-field work.
+- User review across multiple monitors showed three remaining issues: land still read too faintly, north/south/west land still extended beyond sourced city geometry, and buildings/roads ended too abruptly at the map edge.
+- Data-side change: `acquire_sydney_coastline.py` now derives **content bounds** from the sourced buildings and roads, then uses those bounds for **west / south / north**, while preserving the existing **east** scene edge so the Pacific coastline can remain visible. The coastline pass also accepts the Overture Sydney harbour/ocean classifications actually present in the supplied export (`class=bay`, `class=water` with `subtype=water`, and `ocean`) and records the effective land bounds in profile metadata.
+- Renderer-side change: land fill is brighter in both Canvas and WebGL, the skyline ground/depth field now aligns to the actual city bounds instead of re-expanding outward, and a new dark **~300 m inner edge fade** softens the map boundary so roads/buildings fade into black rather than stopping sharply.
+- Changed: `scripts/data/fireworks-simulator/{acquire_sydney_coastline.py,test_acquire_sydney_coastline.py}`, `src/visualisations/fireworks-simulator/{city-webgl.ts,fireworks-simulator.ts}`, `docs/{current-handoff.md,exec-plans/active/010-fireworks-simulator.md}`. No deletions and no generated browser JSON is included in the patch.
+- Validation completed here: 12 Python regression tests pass, focused TypeScript compile passes for the two Fireworks renderer files, Python compile passes, and the supplied `/mnt/data/overture-water.geojson` validates successfully against the current Sydney bundle, producing bounds `minX -2769.4`, `maxX 3158.2`, `minY -5433.7`, `maxY 2864.9`, `84` accepted harbour/ocean features and `24,573` land triangles.
+- Next for local review: apply the patch, rerun `py scripts/data/fireworks-simulator/acquire_sydney_coastline.py --reuse-local`, then inspect the east coast, the clipped south/west/north edges, and whether the new edge fade feels subtle enough or should be weakened/removed.
+
+---
+
+## 2026-10-09 Fireworks OSM coastline empty-result correction
+
+- Base: supplied dirty `main` at `17a011695370cdf5985fbb76be725ea9d284849f` with prior Fireworks patches applied for review. User ran `acquire_sydney_coastline.py`; the Overpass JSON was downloaded but contained `"elements": []`. Thus no source coastline was returned and the browser city was correctly preserved. The issue is not a coordinate or clipping exception.
+- Switch the local-only land acquisition to Overture **base/water**, `subtype=ocean` polygon geometry, which Overture derives from quality-checked OSM coastlines. Derive land by subtracting the ocean from the existing city frame, triangulate with Shapely 2.1+ constrained Delaunay to keep islands/holes, and preserve the original black-water rendering and city data until validation succeeds. No renderer files or public data are changed in this ZIP.
+- Changed: `scripts/data/fireworks-simulator/{acquire_sydney_coastline.py,test_acquire_sydney_coastline.py,README.md}`, `data/sources/fireworks-simulator-sydney-city.md`, `docs/{current-handoff.md,exec-plans/active/010-fireworks-simulator.md}`. No deletions. New source/cache filenames: `overture-water.geojson` and `overture-water-meta.json` under ignored local `data/raw/`; the empty `osm-coastline.json` must not be used by `--reuse-local`.
+- Offline validation: tests cover coastal divide, island/holes, adjoining ocean tiles, other water subtypes, absent features, safe bundle update, and bbox padding. Live Overture download, local renderer/FPS and real harbour coastline visual quality remain untested here. Previous expanded building acquisition's Overture release remains unverified.
+- Next: apply patch, `py -m pip install --upgrade "shapely>=2.1" overturemaps pyproj`, then `py scripts/data/fireworks-simulator/acquire_sydney_coastline.py` without `--reuse-local`. Review the derived land/harbour edge and FPS before publication.
+
+---
+
+## 2026-10-09 Fireworks real coastline and land-only ground layer
+
+- Base is the supplied dirty `main` at `17a011695370cdf5985fbb76be725ea9d284849f`, after the previous five-polygon harbour and bridge review patch. No git commit, deployment, or local network acquisition was performed here.
+- Latest instruction supersedes the hand-authored water masks: the viewer now renders **only sourced land** above an otherwise empty black water/background layer. GPU SKYLINE draws land triangles into the existing depth buffer before roads/buildings; PLAN/Canvas fallback fills those same triangles. The ground grid is suppressed once real land data is present. Existing `water.polygons` is ignored by the renderer.
+- Added a manual `acquire_sydney_coastline.py` acquisition/processing step that queries OSM coastline, projects it to the existing local-metre CRS, creates validated land polygons with islands and holes, tessellates them for camera near-plane handling, and atomically adds the `land` mesh to the user's existing `sydney-city.json`. The underlying city has not been regenerated or replaced by a snapshot; no fabricated shoreline vertices ship in the patch. Raw response, acquisition metadata and backup stay in ignored local `data/raw/`.
+- `prepare_sydney_city.py` now produces no invented water polygons; after any future full city rebuild, rerun the coastline pass for the matching extent. Provenance/UX/readme/plan record the new OSM ODbL source.
+- Changed: `scripts/data/fireworks-simulator/{acquire_sydney_coastline.py,test_acquire_sydney_coastline.py,prepare_sydney_city.py,README.md}`, `src/visualisations/fireworks-simulator/{city-webgl.ts,fireworks-simulator.ts}`, `data/sources/fireworks-simulator-sydney-city.md`, `docs/{exec-plans/active/010-fireworks-simulator.md,ux-accessibility-features.md,current-handoff.md}`. No deletions, no bundled browser city JSON.
+- Tests: 20 local Python regression tests pass, including multi-way shoreline joining, strict focused TypeScript compile passes. Acquisition from live OSM, final geographic shoreline verification, and full Astro/browser/GPU performance tests are not available in this environment.
+- Next: apply root-ready ZIP and run `py scripts/data/fireworks-simulator/acquire_sydney_coastline.py`, then refresh locally and inspect islands, shoreline, near-bridge alignment and FPS. Check source attribution and older unverified Overture release before publication.
+
+---
+
+## 2026-10-09 Fireworks Sydney harbour mask and bridge alignment correction
+
+- Base remains supplied dirty `main` at `17a011695370cdf5985fbb76be725ea9d284849f`, now using the user's expanded `inner-sydney` browser bundle for local review. After the land/harbour shading pass, review showed the remaining issue was not fill styling alone: the city still had only one stylised harbour polygon, so several obvious water basins read as land, and the authored Sydney Harbour Bridge no longer aligned with the sourced Bradfield Highway corridor.
+- Updated the authored Sydney hydro mask from one coarse wedge to five separate harbour polygons covering the main harbour basin plus key western/eastern bays used by the current view. These remain clearly labelled original project geometry, not licensed hydrography.
+- Re-anchored the authored Sydney Harbour Bridge structure to the current road geometry: moved the bridge from the old `(0, 0)` calibration origin to `(175, 356)`, rotated it from `-7` degrees to `-25.3` degrees, and relabelled its source class as official dimensions plus road-alignment calibration. This is intended to bring the bridge arch and deck closer to the live Bradfield Highway corridor in the expanded scene.
+- Updated files: `scripts/data/fireworks-simulator/prepare_sydney_city.py`, `public/data/fireworks-simulator/sydney-city.json`, `docs/current-handoff.md`, `docs/exec-plans/active/010-fireworks-simulator.md`. No deletions.
+- Validation: logic review completed; local browser review is still required to judge harbour silhouette quality and whether the bridge now feels correctly placed and scaled from multiple camera angles.
+- Next: if the user still finds the harbour silhouette too approximate, the proper follow-up is to acquire or author a more explicit land/water polygon dataset for Sydney rather than continue stretching the single-scene heuristic.
+
+---
+
+## 2026-10-09 Fireworks Sydney land and harbour visual separation
+
+- Base remains supplied dirty `main` at `17a011695370cdf5985fbb76be725ea9d284849f`, with the reviewed Fireworks ZIPs layered on top and the user's local `inner-sydney` JSON now present for browser review. The next visual cleanup is the ground plane: land currently reads as the black page background because only harbour polygons are filled.
+- SKYLINE and PLAN now draw a projected land plane first using a light-grey fill, then paint harbour polygons back over it as near-black cut-outs with a subtle shoreline stroke. Roads, buildings, transport points and landmarks continue to render above those base fills. The existing wireframe aesthetic, city counts and data files are unchanged.
+- Files changed: `src/visualisations/fireworks-simulator/fireworks-simulator.ts`, `docs/exec-plans/active/010-fireworks-simulator.md`, `docs/current-handoff.md`. No deletions, no data regeneration.
+- Validation: focused TypeScript compilation still required in this environment after the renderer edit; local browser review should confirm that Sydney Harbour now reads clearly against the land mass from both skyline and plan views.
+- Next: user reviews the land/harbour separation locally, then decide whether coast edges, water masks and island outlines need a more accurate polygon treatment for the expanded Sydney extent.
+
+---
+
+## 2026-10-09 Fireworks wider-Sydney GIS topology correction
+
+- Base remains supplied dirty `main` at `17a011695370cdf5985fbb76be725ea9d284849f`, with reviewed Fireworks ZIPs layered on top. User's `--extent inner-sydney` download received 26,606 Overture buildings, 949 parts, 10,304 NSW roads and 36,968 OSM elements, but GEOS stopped preprocessing with `TopologyException: side location conflict` and the existing 4,690-building CBD browser JSON was preserved.
+- Remove the single city-wide road-buffer `unary_union`; index each road buffer using `STRtree` and perform local overlay per building. Repair invalid polygons for *auditing only*; retain actual Overture coordinates. Flag individual unrecoverable overlays for review/renderer exclusion and reject exports with widespread audit failures. Add `--reuse-local` so the four already-downloaded raw files can be reprocessed without redownloading; future downloads retain source release/date/bounds in an ignored local manifest. The first download has no such manifest and its exact release remains unverified.
+- Files changed: `scripts/data/fireworks-simulator/{acquire_sydney.py,prepare_sydney_city.py,test_prepare_sydney_city.py,README.md}`, `data/sources/fireworks-simulator-sydney-city.md`, `docs/exec-plans/active/010-fireworks-simulator.md`, `docs/current-handoff.md`. No deletions, no changes to `public/data/` or renderer.
+- Validation: 15 offline unit tests pass, including malformed geometry and reprocessing without network; Python compile checks pass; synthetic 4,000-building/2,000-road audit completed in about 0.6 s with no errors. Real wide-city export is still untested here because raw data lives on the user's Windows machine.
+- Next: apply ZIP, run `py scripts/data/fireworks-simulator/acquire_sydney.py --extent inner-sydney --reuse-local`, review generated feature counts/errors/size and FPS. Verify Overture release provenance before publishing or committing generated data.
+
+---
+
+## 2026-10-08 optional wider inner-Sydney Fireworks data extent
+
+- Base remains supplied dirty `main` at `17a011695370cdf5985fbb76be725ea9d284849f` with previous Fireworks reviewed ZIPs layered on top. The **current** `public/data/fireworks-simulator/sydney-city.json` remains the corrected 4690-building CBD scene; no unavailable source features have been invented or appended.
+- Opt-in `py scripts/data/fireworks-simulator/acquire_sydney.py --extent inner-sydney` now requests `[151.180,-33.903,151.238,-33.829]` to cover North Sydney and further west, south and east. `--extent cbd` remains the default. The exact chosen bounds flow through Overture buildings, building parts, NSW RoadSegment, OSM enrichment, local-metre clipping and metadata. Refreshed transport reads the scene's existing bounds, not the old CBD constant.
+- Expanded output is accepted only after network acquisitions succeed, existing count quality gates pass and real additional building coverage is present beyond **all four** old CBD edges. The existing CBD file is locally backed up to ignored raw storage before expanded replacement. SKYLINE ground grid follows the larger bounds; default camera and existing renderer modes stay as-is.
+- Source and caveat: Overture/NSW/OSM cannot be downloaded in this ZIP-generation environment. The larger JSON, loading time and FPS are **not validated** here. Water/harbour geometry is still procedural and smaller than the new bounds. Streaming/LOD is deferred until measured local performance warrants it.
+- Changed files: `scripts/data/fireworks-simulator/{acquire_sydney.py,acquire_sydney_transport.py,prepare_sydney_city.py,test_prepare_sydney_city.py,README.md}`, `src/visualisations/fireworks-simulator/fireworks-simulator.ts`, `data/sources/fireworks-simulator-sydney-city.md`, `docs/exec-plans/active/010-fireworks-simulator.md`, `docs/ux-accessibility-features.md`, `docs/current-handoff.md`. No deletions. Next: user applies ZIP, runs expanded acquisition on the connected Windows machine, and reviews coverage/performance before wider scaling.
+
+---
+
+## 2026-10-08 Sydney Tower overlap and depth correction
+
+- Base: `main` at `17a011695370cdf5985fbb76be725ea9d284849f`, supplied dirty snapshot with the previous Fireworks camera/UI review ZIPs applied in order.
+- The Overture Sydney export duplicated the authored 309 m Centrepoint tower. Two Overture building parts sit around 8 m from the source-backed tower anchor. One has an exported top of 510 m (`min_height` 240 m plus `height` 270 m). The 38.4 m `Westfield Sydney` part below the tower is separate and must remain.
+- The local-metre preprocessing pipeline now audits authored `observation-tower` landmarks for tall Overture polygons with centroids within 20 m and roof height at least 55% of the authored tower. It excludes only those overlapping tall parts, records their source IDs in the profile, and leaves retail podiums and other buildings untouched. The existing checked-in bundle is corrected using the same function (`--repair-existing`), without regenerating or replacing the sourced street/building inputs. `buildingCount` becomes 4690 from 4692. This rule is intentionally narrow to avoid suppressing other city features.
+- SKYLINE renders the procedural tower's shaft, 16-sided observation deck and spire in the **same WebGL depth buffer as Overture buildings**, rather than compositing it unconditionally over the city Canvas. PLAN and non-WebGL fallback retain the original Canvas model. Bridge/Opera House still render in the Canvas overlay and have not been given true WebGL occlusion as part of this focused fix.
+- Source height parsing for ordinary Overture parts remains unchanged. The invalid 510 m tower part is removed from this prototype export, not silently clamped or rewritten. The existing tower calibration remains 309 m at the published anchor; the two geometry-centroid offsets alone do not establish an incorrect landmark anchor.
+- Validation: data audit tests cover spatial/height thresholds, the preserved Westfield podium, distant tower retention, idempotence, and checked-in bundle counts. Strict TypeScript compilation passed. Full Astro build blocked because the provided snapshot has no `node_modules`/Astro executable; physical GPU/browser review is still required.
+- Changed paths: `scripts/data/fireworks-simulator/prepare_sydney_city.py`, `scripts/data/fireworks-simulator/test_prepare_sydney_city.py`, `scripts/data/fireworks-simulator/README.md`, `public/data/fireworks-simulator/sydney-city.json`, `src/visualisations/fireworks-simulator/city-webgl.ts`, `src/visualisations/fireworks-simulator/fireworks-simulator.ts`, `data/sources/fireworks-simulator-sydney-city.md`, `docs/exec-plans/active/010-fireworks-simulator.md`, `docs/ux-accessibility-features.md`, and `docs/current-handoff.md`.
+- Next review: rotate around Centrepoint from skyline and overhead, confirm one deck/shaft and no floating double-spire, verify Westfield remains and nearby buildings occlude the observation tower correctly in WebGL. Also confirm PLAN and WebGL-unavailable fallback remain intact.
+
+## 2026-10-08 Fireworks live height-marker tracking and lighter cursor
+
+- Base: supplied dirty `main` snapshot at `17a011695370cdf5985fbb76be725ea9d284849f`, with the reviewed camera, height-ghost and controller patches present. No Sydney geometry, firework settings, WebGL renderer or camera sensitivity changes.
+- The SKYLINE height-scale node now follows changes in the actual camera eye continuously during right-drag and dual-button drag. Both normal and ghost/target markers use short, compositor-friendly 90 ms `transform` transitions instead of updating/transitioning CSS `top`. Marker travel remains visible while the mouse buttons are still held and continues through deferred right-wheel height movement. The scale track's pixel height is cached and refreshed on viewport resize. Reduced-motion mode still disables marker transitions.
+- The custom scene crosshair now updates directly by `translate3d()` with no positional tween or per-pointer-event `getBoundingClientRect()` layout measurement. Its fade duration is reduced from 115 ms to 65 ms. Native cursors over form controls and the existing movement-triggered transparency remain unchanged.
+- Files changed: `src/visualisations/fireworks-simulator/{fireworks-simulator.ts,fireworks-simulator.css}`, `docs/{current-handoff.md,exec-plans/active/010-fireworks-simulator.md,ux-accessibility-features.md}`. Files to delete: none.
+- Validation: strict TypeScript compilation passed. Chromium runtime with the compiled Fireworks controller passed: right-drag and dual-drag marker position changes before button release, compositor cursor positioning, right-wheel target/ghost separation and settling, and responsive height-track recalculation. Full Astro build and physical high-DPI mouse QA not run.
+- Next: local review on the actual mouse/monitor for height-marker travel and cursor responsiveness while the full city is loaded.
+
+---
+
+## 2026-10-08 Fireworks camera-mode UI, ghost-height selection and retractable controller
+
+- Base: `main` at `17a011695370cdf5985fbb76be725ea9d284849f`, from the supplied dirty working snapshot with both reviewed 2026-10-08 height/camera patches included. No city geometry, dataset or WebGL renderer changes.
+- While camera input, keyboard navigation or eased height/forward movement is active, the firework settings form fades to about 3.5% opacity and quickly returns after the movement stops. The drawer handle stays available. Stage pointer feedback uses a small in-page crosshair so it can fade fully transparent during movement; native cursors cannot animate opacity. Controls outside the scene use normal OS cursors.
+- Fireworks title starts at the existing large size for every fresh page load. After five seconds or the first camera gesture it animates into a compact white heading directly under `LAB / SYDNEY SCENE PROTOTYPE`, leaving the effect name beneath.
+- Right-button height selection now shows a neutral ghost node at the actual camera position and a gold target marker. Gold marker diameter scales continuously from 1x at the ghost to 3x at 150 m separation, shrinking when it crosses the ghost and growing again farther away. After release the ghost follows the existing camera easing toward the fixed gold target; the gold marker contracts and clears when they meet. The arrow/level cue remains during active selection. Reduced-motion users retain immediate height application.
+- Right-button gestures now use tracked pointer-button state as a fallback for wheel events that report `buttons=0`. Context menus are suppressed in capture phase across the Fireworks page, including form fields, while it is mounted; other portfolio routes are unchanged. Firefox's Shift + right-click system bypass remains browser-controlled.
+- The controller slides off the left viewport edge with a 36 px tab. A native button toggles it by click or keyboard, and horizontal pulling is supported. Its form is `inert` while collapsed. Responsive layout, reduced-motion transitions and previously accepted camera gestures are retained.
+- Files changed: `src/visualisations/fireworks-simulator/{FireworksSimulator.astro,fireworks-simulator.css,fireworks-simulator.ts}`; `docs/{exec-plans/active/010-fireworks-simulator.md,ux-accessibility-features.md,current-handoff.md}`. Files to delete: none.
+- Validation: strict standalone TypeScript passed; PostCSS parsed successfully; headless Chromium desktop (1792x860) and mobile (390x844) layout passed. A real compiled-script Chromium harness passed right-button wheel selection even when the native wheel `buttons` field was zero, ghost follow-and-settle, gold marker growth/contraction, drawer click/open and inert state, and form context-menu suppression. Full Astro build and hardware-mouse QA remain unrun because Astro dependencies are absent from the supplied context archive.
+- Next local review: check the 3x growth distance, 36 px drawer tab, title animation and controller fading on the user's real mouse and monitor.
+
+---
+
+## 2026-10-08 Fireworks height cue, ground bounce and overhead camera fix
+
+- Base: `main`, commit `17a011695370cdf5985fbb76be725ea9d284849f`, from the supplied dirty context snapshot plus the preceding mouse-height patch. No city data or public assets changed.
+- Right-button + wheel now enlarges the gold height-selection node to 3x while selecting, reducing it to the normal diameter on release. A small pointer-through three-state cue alongside the scale indicates above, aligned or below current camera height; the relevant arrow turns gold and grows more opaque with distance. The middle line turns gold when within 3 m. Cue is hidden after selection or in PLAN; reduced-motion users see state changes without UI morph transitions. The selected target still animates the camera to height on release, except under reduced motion.
+- Right-drag, Ctrl+left drag, combined left+right drag and keyboard arrow tilt use a ground-aware pivot orbit. At 0.25 m eye clearance, further downward tilt keeps the eye grounded and rotates the view upward. Reversing tilt first returns the view to its pre-contact direction then resumes orbiting. Ground state survives horizontal pan and yaw, resets on vertical translation and view reset. Orbit radii that cannot reach the floor avoid false bouncing.
+- Removed the near-vertical discontinuity in both the Canvas and WebGL camera basis. Previously switching from world-up Z to Y when forward approached vertical caused the near-overhead scene flip. Both use one world-up axis and retain the safe 89-degree maximum view elevation.
+- Changed: `src/visualisations/fireworks-simulator/{FireworksSimulator.astro,fireworks-simulator.css,fireworks-simulator.ts,city-webgl.ts}`, `docs/{current-handoff.md,ux-accessibility-features.md,exec-plans/active/010-fireworks-simulator.md}`. Files to delete: none.
+- Validation: strict TypeScript passed. Focused runtime harness passed orbit-down, floor contact, upward look continuation, grounded yaw, reverse-to-orbit and near-overhead basis continuity. Full Astro build and physical mouse/browser QA not run in this snapshot environment (no installed Astro dependencies). Next: review right-wheel cue feel, ground pivot return and overhead rotation on a real mouse.
+
+---
+
+## 2026-10-08 Fireworks mouse-only combined drag and wheel-height controls
+
+- Base remains `main` at `17a011695370cdf5985fbb76be725ea9d284849f`, using the supplied dirty Fireworks snapshot as the current reviewed working tree. Sydney building/street data and WebGL geometry are unchanged.
+- Holding both mouse buttons while dragging now combines the existing left-drag pan and right-drag map-pivot rotation. It no longer controls height. PLAN receives the equivalent pan + horizontal rotation combination.
+- SKYLINE wheel routing is now button-specific: wheel alone keeps pointer-centred forward/back travel; left button + wheel changes camera height directly; right button + wheel moves a deferred height target without moving the scene. A wheel while both buttons are held is ignored so the dual-button chord remains a drag-only combination.
+- The existing right-side vertical scale now includes a persistent camera-height node. It is silver/grey during ordinary movement and gold while right-button height targeting or settling is active. The scale begins at 0-600 m and expands upward in 100 m increments when required. PLAN hides the height node and retains its 2 km scale label.
+- Releasing the right button after wheel targeting smoothly translates eye and target together to the selected eye height. Direct camera input cancels the transition. `prefers-reduced-motion` applies the selected height immediately instead of easing. The 0.25 m eye floor remains.
+- Keyboard mappings remain WASD pan, arrows rotate/tilt, Q/E height, +/- forward/back, R/Home reset. Touch controls are unchanged.
+- Files changed: `src/visualisations/fireworks-simulator/{FireworksSimulator.astro,fireworks-simulator.css,fireworks-simulator.ts}`, `src/content/projects/fireworks-simulator.md`, `docs/ux-accessibility-features.md`, `docs/exec-plans/active/010-fireworks-simulator.md`, `docs/current-handoff.md`. No deletions.
+- Validation: strict standalone TypeScript passes for the Fireworks renderer and WebGL module. Focused source assertions pass for dual-button pan+rotate, left-wheel direct height, right-wheel deferred height targeting/release, plain-wheel dolly, reduced-motion height application and height-node markup/styles. `npm run build` was attempted but cannot run in the supplied snapshot because the Astro executable is not installed (`astro: not found`). Local physical-mouse review remains required for wheel-button feel, target-node sensitivity and dual-button composition.
+
+---
+
+## 2026-10-08 Fireworks keyboard gesture-group remap
+
+- Base remains `main` at `17a011695370cdf5985fbb76be725ea9d284849f`, with the approved Fireworks patches through the keyboard-direction regression fix layered on top. This patch changes keyboard routing/speed only; mouse, touch, wheel, WebGL city rendering and Sydney data are unchanged.
+- `W/A/S/D` now exclusively mirror left-drag pan with inverse drag directions: W = drag down, S = drag up, A = drag right, D = drag left.
+- Arrow keys now exclusively mirror right-drag map-pivot rotation/tilt with inverse drag directions: Up = right-drag down, Down = right-drag up, Left = right-drag right, Right = right-drag left. Arrow Up/Down therefore add continuous keyboard vertical tilt that was missing.
+- `Q/E` now invoke the two directions of the chorded map-height control rather than rotation. `+/-` remain forward/in and backward/out, matching the mouse-wheel action family.
+- Keyboard target speeds increase to 760 px-equivalent/s pan, 560 px-equivalent/s rotation and 460 px-equivalent/s height in normal mode, with faster Shift targets; centre-ray travel scales at 0.78× camera distance/s before clamping. Frame-time easing remains.
+- Files changed: `src/visualisations/fireworks-simulator/{FireworksSimulator.astro,fireworks-simulator.ts}`, `docs/ux-accessibility-features.md`, `docs/exec-plans/active/010-fireworks-simulator.md`, `docs/current-handoff.md`. No deletions.
+- Validation: strict standalone TypeScript passes. Focused source checks confirm WASD, arrows, Q/E and +/- route to separate gesture families and preserve inverse drag semantics where requested. Full Astro/browser QA remains local review in this supplied snapshot environment.
+
+---
+
+## 2026-10-08 Fireworks keyboard direction regression fix
+
+- Corrected a regression from the input-speed tuning pass. Keyboard pan must not reuse raw mouse-drag directions because the two inputs describe different things: pointer drag grabs the map, while W/A/S/D and arrows describe the direction the viewport should move.
+- `W/Up` now matches the viewport result of dragging the mouse down; `S/Down` matches dragging up; `A/Left` matches dragging right; `D/Right` matches dragging left.
+- Existing tuned keyboard speeds remain unchanged. Q/E map-pivot rotation, +/- forward/back movement, mouse gestures, touch gestures, wheel movement and WebGL rendering are unchanged.
+- Validation: strict standalone TypeScript passes. Focused direction assertions confirm the four keyboard directions now invert the corresponding mouse-drag deltas.
+
 # Current Handoff
+
+## 2026-10-08 Fireworks input-speed calibration
+
+- Base remains `main` at `17a011695370cdf5985fbb76be725ea9d284849f`, with the approved Fireworks patches through the map-pivot rotation correction layered on top. No Sydney geometry, street data, WebGL buffers or wheel behaviour change in this patch.
+- User review accepts the current gesture model but found the rates mismatched. Mouse pan is now 22% slower than the previous pass, right/Ctrl-left map rotation uses reduced yaw and pitch sensitivity, and the dual-button height gesture is 25% slower. Touch pan keeps its previous direct scale.
+- Keyboard controls are recalibrated upward instead of slowing mouse to the old keyboard rate. `W/A/S/D` and arrows use the same mouse-pan scale but intentionally invert raw pointer-drag direction so keyboard labels match viewport movement: W/Up matches dragging down, A/Left matches dragging right, and the opposite keys mirror those pairs. `Q/E` drive the same map-pivot rotation model as right drag rather than the older fixed-eye yaw path. Shift remains the faster keyboard modifier.
+- Keyboard `+/-` keeps centre-ray forward/back movement but now scales its speed with camera distance so it better matches the accepted wheel behaviour. Mouse wheel and pointer-centred wheel-ray logic are unchanged. Frame-time easing remains in place, with a slightly faster response so held keys reach the new speeds smoothly rather than stepping.
+- Files changed: `src/visualisations/fireworks-simulator/fireworks-simulator.ts`, `docs/exec-plans/active/010-fireworks-simulator.md`, `docs/ux-accessibility-features.md`, `docs/current-handoff.md`. No deletions are required.
+- Validation: strict standalone TypeScript passes for the main renderer and WebGL module. Focused input checks confirm the new sensitivity constants, intentionally inverted keyboard-versus-pointer pan directions, Q/E routing through map-pivot rotation, and byte-level wheel movement formulas remain unchanged. At a representative 1,000 m camera distance, normal keyboard pan rises from 300 to about 406 effective pointer-equivalent px/s after the mouse-pan factor, rotation rises from about 44.7 to 68.8 degrees/s, and centre-ray travel rises from 420 to 550 m/s. Full Astro/browser QA remains local review because the supplied snapshot has no installed Astro dependencies.
+- Next review: compare ordinary/high-DPI mouse pan and rotation against held keyboard movement at the same camera distance. Wheel travel should feel exactly as before.
+
+---
+
+## 2026-10-08 Fireworks map-pivot rotation correction
+
+- Base remains `main` at `17a011695370cdf5985fbb76be725ea9d284849f`, with the approved Fireworks patches through the map-follow mouse experiment layered on top. No Sydney data, street data or WebGL city geometry changes are included.
+- User review clarified the intended right-drag mental model: it should feel like grabbing and tilting the map/model, not like turning the viewer's head. The previous fixed-eye counter-rotation still felt like first-person camera movement.
+- Right mouse drag and `Ctrl` + left drag now orbit around the **fixed current map pivot**. Dragging down reduces viewing elevation so the world stands more upright/parallel to the monitor; dragging up raises the viewpoint around the pivot so the world flattens toward a top-down presentation. Horizontal dragging turns the map in the drag direction.
+- Orbit radius is preserved. The lowest permitted orbit angle is calculated from the current pivot, radius and 0.25 m eye clearance instead of using an arbitrary fixed pitch limit, so near-ground inspection remains possible.
+- Plain left pan, both-button height adjustment, Shift + left movement, pointer-centred wheel movement, touch controls, keyboard navigation and WebGL city rendering are unchanged.
+- Files changed: `src/visualisations/fireworks-simulator/{FireworksSimulator.astro,fireworks-simulator.ts}`, `docs/exec-plans/active/010-fireworks-simulator.md`, `docs/ux-accessibility-features.md`, `docs/current-handoff.md`. No deletions are required.
+- Validation: strict TypeScript compilation passes. Focused math checks verify that drag-down decreases orbit elevation, drag-up increases it, horizontal drag follows the map direction, orbit distance remains constant, and the derived minimum orbit elevation keeps the physical eye at or above 0.25 m. Full Astro/browser QA remains local review.
+- Next review: test vertical right drag over a wide skyline and a near-ground view. The expected feel is `drag down = stand Sydney up`, `drag up = lay Sydney flatter`.
+
+---
+
+## 2026-10-08 Fireworks map-follow mouse experiment
+
+- Base remains `main` at `17a011695370cdf5985fbb76be725ea9d284849f`, with approved Fireworks patches through the pointer-anchored camera correction layered on top. Preserve the user-generated real `public/data/fireworks-simulator/sydney-city.json`; this patch does not replace city data or WebGL buffers.
+- User review distinguishes the desired interaction feel from the internal camera transform: plain left drag already feels correct because the rendered map follows the pointer. This experiment applies that same **map-follow** feel to rotation and height while keeping the current wheel movement unchanged.
+- Right mouse drag now counter-rotates the view so Sydney follows the pointer on both axes. `Ctrl` + left drag uses the same rotation path. This keeps the camera eye fixed during rotation but reverses the former first-person-look direction.
+- Holding both mouse buttons and dragging vertically now translates eye and target together, opposite the camera movement needed to make the rendered city follow the pointer. View angle is preserved, and the existing 0.25 m camera-eye ground clearance still prevents movement through the ground.
+- `Shift` + left drag is added as a pointer-anchored forward/back shortcut using the same screen ray and queued physical movement as the existing mouse wheel. Drag up moves toward the point under the pointer; drag down moves away. Mouse-wheel behaviour itself is unchanged.
+- Modifier/chorded pointer gestures suppress tap-to-launch. PLAN receives matching `Ctrl` + left rotation and `Shift` + left orthographic zoom, while the two-button height gesture remains SKYLINE-only. Touch controls and keyboard controls are otherwise unchanged.
+- Files changed: `src/visualisations/fireworks-simulator/{FireworksSimulator.astro,fireworks-simulator.ts}`, `src/content/projects/fireworks-simulator.md`, `docs/exec-plans/active/010-fireworks-simulator.md`, `docs/ux-accessibility-features.md`, `docs/current-handoff.md`. No deletions are required.
+- Validation: strict standalone TypeScript passes for the main renderer and WebGL module. Focused assertions verify right-drag/Ctrl+left routing, Shift+left routing, modifier gestures suppress tap-to-launch, positive pointer deltas move the previous map centre in the same screen direction after rotation, chorded height translates eye and target together, the 0.25 m ground clamp remains present, and the mouse-wheel handler is byte-for-byte unchanged from the accepted pointer-camera patch. `npm run build` was attempted but cannot run in this snapshot because the Astro executable is not installed (`astro: not found`). This remains an explicit review experiment and can be reverted if the map-follow rotation/height feel is worse in local use.
+- Next review: compare right drag with `Ctrl` + left drag, compare two-button vertical movement with plain left pan, and test `Shift` + left drag against the unchanged mouse-wheel movement. If accepted, return to city/skyline fidelity rather than adding more camera modes.
+
+---
+
+## 2026-10-08 Fireworks pointer-anchored camera correction
+
+- Base remains `main` at `17a011695370cdf5985fbb76be725ea9d284849f`, with the approved Fireworks patches through the WebGL performance correction layered on top. Preserve the user-generated real `public/data/fireworks-simulator/sydney-city.json`; this patch does not replace any city data.
+- Local user review confirms the GPU architecture is working as intended: the real 4,692-building / 2,737-street scene reports `WEBGL CITY + CANVAS FX` at 60 FPS. No city geometry or WebGL performance code is changed in this correction.
+- The apparent high minimum altitude came from the remaining fixed eye/target orbit model. The look target was forced above `z = 0`, so forward movement could stop when the target reached the floor even though the physical camera eye was still high. Ground collision now applies to the eye only, with the existing 0.25 m clearance. The look target may pass below ground when the user looks down.
+- Right mouse drag is now free-look yaw/pitch: it changes where the camera faces without moving the camera eye around a hidden pivot sphere. `Q/E` and two-finger twist use the corresponding in-place yaw model. This lets a near-ground camera look down without trying to move its physical position through the floor.
+- SKYLINE mouse-wheel movement now follows the perspective ray through the cursor rather than always following the centre view ray. Two-finger pinch records a world anchor from the initial two-finger midpoint and moves toward/away from that anchor. `+/-` remains centre-ray movement because keyboard input has no pointer position. PLAN keeps conventional orthographic zoom. Wheel `deltaMode` is normalised before movement.
+- Files changed: `src/visualisations/fireworks-simulator/{FireworksSimulator.astro,fireworks-simulator.ts}`, `docs/exec-plans/active/010-fireworks-simulator.md`, `docs/ux-accessibility-features.md`, `docs/current-handoff.md`. No data files are replaced and no deletions are required.
+- Validation: strict standalone TypeScript passes for the main renderer and WebGL module. Focused source/math checks verify free-look leaves eye coordinates unchanged, centre-screen ray equals camera forward, off-centre rays diverge toward the pointer, and downward translation clips at the 0.25 m eye floor without constraining the target. Headless Chromium interaction QA is unavailable in this execution environment because Chromium does not complete page startup reliably; physical touch pinch remains a local-device review item.
+- Next review: test wheel movement with the cursor over different parts of the skyline, pinch around a deliberately chosen building/street location, and near-ground right-drag pitch. If those controls feel correct, return to skyline/data fidelity rather than further camera architecture.
+
+---
+
+## 2026-10-08 Fireworks Sydney rendering-performance correction
+
+- Base remains `main` at `17a011695370cdf5985fbb76be725ea9d284849f`, with the approved Fireworks patches through the city cache fix layered on top. Preserve the user-generated real `public/data/fireworks-simulator/sydney-city.json`; this patch does not replace it.
+- The real Sydney bundle exposed the Canvas 2D renderer ceiling: 4,692 building records plus 2,737 roads can remain smooth while static because the city is cached, but arbitrary camera movement forces thousands of projections, sort operations and draw calls. A synthetic scene matching those object counts reproduced the problem in headless Chromium: the pre-fix Canvas path was about 18-20 FPS static and roughly 4-7 FPS during sustained movement.
+- SKYLINE now prefers a dedicated WebGL2 city pass. Opaque sourced building faces, roof/vertical wire edges, road carriageway quads, road edges/centre markings and transport points are uploaded to GPU buffers once when the city bundle loads. Camera movement updates shader uniforms and reuses those buffers instead of reprojecting every source polygon on the CPU. The dense sourced city therefore keeps its full feature/vertex counts. PLAN and WebGL-unavailable browsers retain the Canvas renderer.
+- WebGL building faces use a depth buffer and back-face culling. This improves true building/building and building/road occlusion, including stacked building parts, without changing the underlying Overture geometry. The procedural Bridge, Opera House and Sydney Tower remain on the small Canvas overlay for now.
+- Firework rendering stays Canvas 2D. The existing foreground architecture mask is now cached and regenerated only after camera input settles, rather than reprojecting nearer buildings on every animation frame. This preserves the current firework-behind-building approximation without duplicating the full city pass during navigation.
+- Canvas fallback also receives lower-risk optimisations: cached camera basis/focal calculations, prepared building/road bounds, screen culling, batched road strokes and depth-bucketed building surface paths. These retain visible source geometry rather than reducing building/road counts.
+- The skyline ground clearance is reduced from 2 m to 0.25 m. Camera orbit, altitude drag and dolly still cannot cross below the ground plane, but the user can inspect streets/podiums from much closer to ground level.
+- Files changed: `src/visualisations/fireworks-simulator/{FireworksSimulator.astro,fireworks-simulator.css,fireworks-simulator.ts,city-webgl.ts}`, `docs/exec-plans/active/010-fireworks-simulator.md`, `docs/ux-accessibility-features.md`, `docs/current-handoff.md`. No data files are replaced and no deletions are required.
+- Validation: strict TypeScript passes for the Canvas/WebGL modules. A synthetic 4,692-building / 2,737-road / 3,612-transport-point browser benchmark validates the Canvas fallback changes: static animation returns to 60 FPS after the cached foreground mask, while sustained Canvas-only camera movement remains the measured bottleneck, supporting the GPU decision. The execution browser does not expose WebGL2, so the new GPU path still requires local hardware validation against the user's real Sydney bundle. Full Astro build is not available in this snapshot environment.
+- Next review: apply this patch without overwriting the locally generated Sydney JSON, confirm the telemetry reads `WEBGL CITY + CANVAS FX`, then compare FPS while continuously panning/orbiting at the wide view shown in the user's screenshot. If local WebGL2 is unavailable, telemetry will show `CANVAS 2D` and the fallback remains functional.
+
+---
+
+## 2026-10-08 Fireworks Sydney city cache correction and real-data profile
+
+- Base remains `main` at `17a011695370cdf5985fbb76be725ea9d284849f`, with the approved Fireworks patches through the Sydney streets layer applied. This focused correction does **not** replace `public/data/fireworks-simulator/sydney-city.json`; preserve the locally generated real Sydney bundle.
+- Local acquisition is now confirmed working. The user generated Overture release `2026-09-23.1` on 2026-10-08: 4,567 input buildings, 528 input building parts, 4,692 browser building records, 529 building parts, 2,737 NSW/OSM-enriched road segments, 1,938 named roads, 926 roads with explicit exact lane counts, 1,409 derived junctions, 683 traffic-signal points and 1,520 crossing points. Direct building height coverage is 8.3%, floor-derived fallback 75.6%, assumed height 16.1%. The derived browser bundle is about 2.88 MB raw and 452 KB gzip.
+- The screenshot still reported `CITY 34 / STREETS 0 / CALIBRATION`, proving the browser was not reading the regenerated bundle. Root cause: the city loader used Fetch `cache: 'force-cache'`, which may return a matching cached response even when stale. The city request now uses `cache: 'no-cache'`, forcing revalidation before reuse while still allowing normal HTTP caching.
+- The full acquisition reported 559 building/ground-road conflicts. Those buildings are intentionally withheld by the existing conflict policy and need visual/data review before any automatic geometry correction is relaxed.
+- Changed files: `src/visualisations/fireworks-simulator/fireworks-simulator.ts`, `docs/exec-plans/active/010-fireworks-simulator.md`, `docs/current-handoff.md`. No deletions. Do not overwrite the user's regenerated city JSON with the older calibration fixture.
+- Validation: standalone TypeScript compile/syntax checks and focused source assertions for `no-cache`; ZIP integrity. Full Astro/browser QA is deferred to the user's current local dev server because only that environment contains the generated 2.88 MB Sydney bundle.
+
+
+## 2026-10-07 Fireworks Sydney streets and coordinate-integrity layer
+
+- Base remains clean `main` at `17a011695370cdf5985fbb76be725ea9d284849f`, with the approved Fireworks patches through the skyline camera-dolly change layered on top. This patch is limited to street/transport data, rendering and coordinate QA; the approved camera mappings and firework physics are unchanged.
+- The browser city contract is now schema `0.3.0` with optional city-agnostic `roads` and `transportPoints`. Road records retain names for later labels, local-metre centreline points, source hierarchy/on-type, separate categorical versus exact lane fields, display width with provenance, and source class. Transport points support derived junctions plus explicit traffic-signal and street-crossing nodes.
+- Sydney's primary road adapter is NSW Spatial Services `RoadSegment`. Important correction: its `lanecount` values are coded categories (`0 unknown`, `1 one lane`, `2 two or more lanes`), so code `2` is never treated as exactly two lanes. Bounded OpenStreetMap enrichment can add explicit numeric `lanes=*`, `width=*`, `highway=traffic_signals` and `highway=crossing` data when present. Overture Transportation is documented as the common segment/connector contract for future cities.
+- Roads render as dark opaque carriageway bands with restrained edges before buildings. Exact multi-lane roads can show a subtle centre marking. Signals, crossings and derived junctions render as small non-interactive ground markers; names are stored but street labels are deferred. Telemetry/status reports the sourced street count.
+- Coordinate integrity is now an explicit pipeline rule. Buildings and roads pass through the same EPSG:7856 to local-metre transform. Only ground-road corridors participate in conflicts; bridge/tunnel segments and building parts starting 4.5 m or more above ground are excluded. Procedural calibration footprints may be clipped because they are invented. Real Overture buildings are never silently altered: material ground-road conflicts are flagged and withheld from rendering for review. Conflict counts are exported in the profile.
+- `scripts/data/fireworks-simulator/acquire_sydney_transport.py` is the focused local command for acquiring/merging streets without re-downloading buildings. The full `acquire_sydney.py` now downloads buildings plus the transport sources. Raw network files remain under ignored `data/raw/fireworks-simulator/sydney/`.
+- This execution environment cannot resolve the NSW GIS/Overpass hosts, so the checked-in browser fixture deliberately contains zero sourced roads/transport points rather than invented Sydney streets. Run the acquisition command on a networked local machine to populate them.
+- Changed files: `scripts/data/fireworks-simulator/{acquire_sydney.py,acquire_sydney_transport.py,prepare_sydney_city.py,test_prepare_sydney_city.py,README.md}`, `public/data/fireworks-simulator/sydney-city.json`, `src/visualisations/fireworks-simulator/{FireworksSimulator.astro,fireworks-simulator.ts}`, `src/content/projects/fireworks-simulator.md`, `docs/{fireworks-simulator-sydney-city-research.md,ux-accessibility-features.md,current-handoff.md}`, `data/sources/fireworks-simulator-sydney-city.md`, and `docs/exec-plans/active/010-fireworks-simulator.md`. No deletions.
+- Validation: eight deterministic Python preparation tests cover building ingestion plus lane-category semantics, OSM exact-lane enrichment, signals/crossings, derived junctions and real-building road conflicts; strict standalone TypeScript passes. Real NSW/OSM acquisition, road alignment review and real-city browser performance remain local review gates.
+- Next review: run the street acquisition locally, inspect Circular Quay/Barangaroo road alignment and conflict counts, then tune street visual hierarchy before adding labels or extending the network to another city.
+
+---
+## 2026-10-07 Fireworks skyline dolly correction
+
+- Base remains clean `main` at `17a011695370cdf5985fbb76be725ea9d284849f`, with the approved Fireworks patches through the mouse rotate/height correction layered on top. This patch changes only the former SKYLINE zoom behaviour and its documentation.
+- SKYLINE no longer changes lens/projection scale. Mouse wheel, two-finger pinch and `+/-` now physically move the camera eye and target forward/backward together along the current viewing direction, preserving field of view, orientation and eye-target distance. This is a camera dolly, not optical zoom.
+- Wheel/pinch movement is queued and smoothed in the animation loop. Held `+/-` uses the existing frame-time keyboard easing. Ground constraints still apply if forward motion has a downward component.
+- PLAN remains unchanged and retains orthographic zoom for wheel, pinch and `+/-`. The SKYLINE camera readout no longer shows a zoom multiplier.
+- Changed files: `src/visualisations/fireworks-simulator/{FireworksSimulator.astro,fireworks-simulator.ts}`, `docs/ux-accessibility-features.md`, `docs/exec-plans/active/010-fireworks-simulator.md`, `docs/current-handoff.md`. No deletions.
+
+---
+
+## 2026-10-07 Fireworks mouse rotate and height correction
+
+- Base remains clean `main` at `17a011695370cdf5985fbb76be725ea9d284849f`, with the approved Fireworks patches through the keyboard-navigation correction layered on top. This patch is mouse-mapping only; Sydney geometry, streets, touch gestures and keyboard navigation are unchanged.
+- Right mouse drag now rotates/orbits the SKYLINE camera around its current pivot. In PLAN, right drag rotates the plan view.
+- Holding both primary and secondary mouse buttons and dragging vertically changes the SKYLINE camera eye height. Dragging up raises the eye; dragging down lowers it. The eye is clamped to the existing 2 m ground clearance, so the viewpoint cannot pass through the ground. This is separate from zoom: wheel, pinch and `+/-` retain lens/projection zoom. PLAN has no chorded-button height action because it has no physical eye altitude.
+- Stage accessibility text, Method copy and the compact interaction hint now describe the revised mapping.
+- Changed files: `src/visualisations/fireworks-simulator/{FireworksSimulator.astro,fireworks-simulator.ts}`, `docs/ux-accessibility-features.md`, `docs/exec-plans/active/010-fireworks-simulator.md`, `docs/current-handoff.md`. No deletions.
+- Validation: focused TypeScript/source checks and mouse-state assertions completed for right-button rotation, chorded-button altitude and the 2 m floor. Full Astro/browser QA remains outside this small correction unless otherwise noted in the delivery response.
+- Suggested next patch: streets/network schema and Sydney street rendering with lane/name/intersection metadata where supported, using one city-agnostic coordinate contract before returning to the real-building skyline/overlap pass.
+
+---
+
+## 2026-10-07 Fireworks keyboard navigation correction
+
+- Base remains clean `main` at `17a011695370cdf5985fbb76be725ea9d284849f`, with the approved Fireworks Stage 2 through Stage 5 and the approved skyline/free-camera/correction patches layered on top. The supplied context has no live `.git` history; compare overlapping local files before applying.
+- Scope is intentionally keyboard-only. Mouse and touch mappings, skyline massing, overlap cleanup and street/network data are unchanged in this patch.
+- Camera movement no longer depends on repeated `keydown` events. `keydown`/`keyup` maintain held-key state and the existing animation loop applies movement from frame elapsed time with short acceleration/deceleration easing. This removes operating-system keyboard-repeat stepping and keeps movement rate consistent across refresh rates.
+- Keyboard directions are corrected independently from pointer grab semantics: `A/Left` pans the viewport left, `D/Right` right, `W/Up` up and `S/Down` down in both SKYLINE and PLAN. Diagonal panning is normalised. `Q/E` and `+/-` are continuous while held; `R/Home` remains immediate reset; Shift accelerates held navigation.
+- Global navigation still works without clicking the viewport first and yields to text-entry/form controls. Blur or page hiding clears pressed-key state and residual keyboard velocity so navigation cannot remain stuck after focus leaves the tab.
+- Changed files: `src/visualisations/fireworks-simulator/fireworks-simulator.ts`, `docs/ux-accessibility-features.md`, `docs/exec-plans/active/010-fireworks-simulator.md`, `docs/current-handoff.md`. No deletions.
+- Validation: standalone strict TypeScript completed; compiled JavaScript syntax checked; focused source assertions confirm keydown/keyup state tracking, frame-loop movement, inverse pointer/keyboard pan semantics, diagonal normalisation and stuck-key cleanup; a deterministic frame-time simulation showed the same one-second held-key movement within about 0.5% at 60 Hz and 144 Hz. Chromium could not be used for this patch because the container GPU process fails to initialise, so browser interaction and full Astro build remain unrun in this supplied environment.
+- The requested mouse remap is completed by the newer handoff entry above. After input controls are accepted, tackle streets plus real-city skyline/overlap data as a separate patch.
+
+---
+
+## 2026-10-07 Fireworks Sydney skyline fidelity and camera correction
+
+- Base remains clean `main` at `17a011695370cdf5985fbb76be725ea9d284849f`, with the approved Fireworks Stage 2 through Stage 5, skyline-review and free-camera/import patches layered on top. No live `.git` history is present in the supplied context. Reconcile any newer overlapping local edits before applying.
+- Historical note for this correction: its right-drag zoom / both-button orbit mapping was superseded by the newer mouse-mapping entry above. Left drag and one-finger drag pan on the horizontal city plane; keyboard and touch behaviour from this correction otherwise remain the basis for the current implementation.
+- Skyline ground constraints keep the eye above the ground plane and the pivot at or above ground. Pan and zoom do not modify camera `z`.
+- Buildings and solid landmarks use opaque dark faces and painter ordering. Camera-nearer architecture is redrawn after fireworks so buildings/solid structures mask firework particles and trails. This is a Canvas painter-depth approximation, not a per-pixel z-buffer; arbitrary-view overlap with dense real geometry remains a WebGL decision gate.
+- The prior Opera House model failed for two reasons: alternating `reverse` geometry made neighbouring shells point in opposing directions, and the shell horizontal run was too long relative to height, making the replacement read as shallow canopies. The current schematic uses three conceptual shell groups containing eight nested ribbed opaque surfaces, a common longitudinal rise with modest group fanning, a mirrored transverse arch, shorter run-to-height proportions and a tapered Bennelong Point podium. This follows the official spherical-solution design principle but is still original approximation geometry, not a surveyed mesh.
+- The skyline mismatch was also data-driven. The fallback previously had 26 generic block prisms plus only five named high-rise anchors. Calibration mode now has 11 named height/coordinate anchors, including One Barangaroo/Crown Sydney, both One Sydney Harbour towers, International Towers 1 to 3, Quay Quarter Tower, Governor Phillip Tower, Salesforce Tower, Chifley Tower and Deutsche Bank Place. The generated fallback has 37 building prisms and 148 footprint vertices. Anchor footprint dimensions/rotations and all 26 generic blocks remain hypotheses. Zero real Overture features are claimed.
+- Real-data status remains open. Overture supports footprints, heights/floors and building parts, and the committed acquisition/import workflow is still the permanent path, but this execution environment cannot retrieve the Sydney extract. Do not describe the improved fallback as real Sydney geometry.
+- Validation completed: strict standalone TypeScript; four Python preparation tests including fallback tower-cluster assertions and Overture part/height/failure cases; generated calibration JSON; headless Chromium 1440x900 pointer/keyboard tests with no page errors; global navigation from Reset/Launch button focus; left-drag pan with constant `Z`; right-drag smooth lens zoom with constant eye coordinates; both-button orbit; Q/E and +/- keys; repeated low-orbit stress remaining above ground; and 390x844 CDP touch tests for one-finger pan plus two-finger pan/pinch/twist with constant camera height. The final Opera House procedural model was visually checked in the harness. Full Astro build, actual Overture acquisition/profile, physical-device touch QA and real-city depth/performance remain unrun.
+- Changed files for this correction: `src/visualisations/fireworks-simulator/{FireworksSimulator.astro,fireworks-simulator.ts}`, `src/content/projects/fireworks-simulator.md`, `scripts/data/fireworks-simulator/{prepare_sydney_city.py,test_prepare_sydney_city.py,README.md}`, `public/data/fireworks-simulator/sydney-city.json`, `docs/{fireworks-simulator-sydney-city-research.md,ux-accessibility-features.md,current-handoff.md}`, `data/sources/fireworks-simulator-sydney-city.md`, and `docs/exec-plans/active/010-fireworks-simulator.md`. No deletions.
+- Next data gate: run the existing Overture acquisition on a networked machine, profile the real `building`/`building_part` output, then review skyline composition, building height coverage, landmark relationship and occlusion before expanding city scope or show-building features.
+
+---
 
 ## 2026-09-25 Pulse temporarily unpublished for safe production build
 

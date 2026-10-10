@@ -79,6 +79,14 @@ git commit -m "Add reusable project content system"
 git push origin main
 ```
 
+## Publish helper whitespace handling
+
+`publish-project.bat` calls `scripts/publish-project.ps1`. After the safety archive and user confirmation, the helper stages the current non-ignored changes and runs `scripts/fix-staged-whitespace.mjs` before the build. The fixer reads `git diff --cached --check`, removes trailing spaces or tabs only from flagged lines, removes extra blank lines at EOF when reported, and restages those files. Git checks the result again before `npm run build` and commit.
+
+The helper does not disable Git checks or automatically alter indentation, line-ending style or unrelated lines. Unsupported Git diagnostics, unsafe file encodings, build failures and branch conflicts still stop publication without a commit or push. CRLF is explicitly recognised as a line ending in the staged whitespace check. LF/CRLF notices from Git are not whitespace-check failures.
+
+Run the focused test with `node --test scripts/fix-staged-whitespace.test.mjs`. The publisher itself requires Windows PowerShell, Git, Node.js and npm.
+
 ## Codex completion reports
 
 For each task, Codex should state:

@@ -25,6 +25,8 @@ This directory is the project knowledge base for `marklee.au`.
 - [`roadmap.md`](roadmap.md): staged development roadmap
 - [`backlog.md`](backlog.md): project ideas and possible future experiments
 - [`project-status.md`](project-status.md): current implementation status and next actions
+- [`fireworks-simulator-research.md`](fireworks-simulator-research.md): firework terminology, physical scale, empirical motion, renderer model and custom-control research
+- [`fireworks-simulator-sydney-city-research.md`](fireworks-simulator-sydney-city-research.md): Sydney building, water, elevation, landmark, licensing and shared local-metre city-model feasibility
 
 ## Decisions
 
@@ -36,6 +38,7 @@ This directory is the project knowledge base for `marklee.au`.
 - [`exec-plans/active/002-pulse-of-adelaide.md`](exec-plans/active/002-pulse-of-adelaide.md): historical Adelaide price-map prototype plan
 - [`exec-plans/active/008-sa-fuel-pricing.md`](exec-plans/active/008-sa-fuel-pricing.md): separate paused SA Government API project
 - [`exec-plans/active/009-local-admin.md`](exec-plans/active/009-local-admin.md): local admin and publishing controls, account recovery, future production backend and Formula Daily editorial stages
+- [`exec-plans/active/010-fireworks-simulator.md`](exec-plans/active/010-fireworks-simulator.md): Fireworks Simulator brief, research/data feasibility and staged visual/city implementation plan
 - [`exec-plans/active/003-data-foundation.md`](exec-plans/active/003-data-foundation.md): completed static-first data foundation and validation record
 - [`exec-plans/active/004-south-australian-name-curve.md`](exec-plans/active/004-south-australian-name-curve.md): South Australian baby-name curve LAB implementation and release plan
 - [`exec-plans/active/005-formula-daily.md`](exec-plans/active/005-formula-daily.md): Formula Daily Stage 1 brief and proposed delivery plan
@@ -48,6 +51,9 @@ This directory is the project knowledge base for `marklee.au`.
 - [`../data/sources/pulse-of-adelaide.md`](../data/sources/pulse-of-adelaide.md): historical-source validation findings and local preview contract
 - [`../data/sources/sa-fuel-pricing.md`](../data/sources/sa-fuel-pricing.md): separate paused government API source notes
 - [`../data/sources/south-australian-name-curve.md`](../data/sources/south-australian-name-curve.md): verified baby-name source, privacy threshold and transformation notes
+- [`../data/sources/fireworks-simulator.md`](../data/sources/fireworks-simulator.md): fireworks physics, terminology, scale and simulator-source provenance
+- [`../data/sources/fireworks-simulator-sky.md`](../data/sources/fireworks-simulator-sky.md): first-stage Sydney stars, solar time, Moon-phase calculations and precision/licensing limits
+- [`../data/sources/fireworks-simulator-sydney-city.md`](../data/sources/fireworks-simulator-sydney-city.md): Sydney city-source provenance, licensing decisions and Stage 5 extraction constraints
 - [`templates/dataset-metadata.template.json`](templates/dataset-metadata.template.json): drafting template for public provenance; replace placeholders before release
 - [`sa-fuel-pricing-publisher-terms.md`](sa-fuel-pricing-publisher-terms.md): separate paused SA Government API publisher conditions
 - [`pulse-of-adelaide-data-addendum.md`](pulse-of-adelaide-data-addendum.md): imported file overview; authoritative V1 contract is now in Plan 002
