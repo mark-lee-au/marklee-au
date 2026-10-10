@@ -51,6 +51,10 @@ SCENE_EXTENTS_WGS84 = {
     # Pacific-side acquisition box, deliberately beyond the coastline.
     # Actual rendered land stops at sourced shoreline + 300 local metres.
     "east-coast": [151.180, -33.903, 151.315, -33.829],
+    # Experimental 3x-area Sydney coverage: more west, north and south,
+    # with the Pacific acquisition margin extending along BOTH expanded edges.
+    # Do not replace the current browser asset without profiling.
+    "greater-sydney-test": [151.145, -33.940, 151.355, -33.795],
 }
 
 

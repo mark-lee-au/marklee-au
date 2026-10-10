@@ -1,3 +1,10 @@
+## 2026-10-11 Fireworks PLAN and Sydney coverage trial
+
+- PLAN now uses the same retained WebGL geometry as SKYLINE when WebGL2 is available, with an orthographic transform matching existing pan, rotation and zoom. The Canvas fallback remains in place; no new control or settings are required. Browser testing is needed to confirm visual parity and responsiveness.
+- Larger Sydney data is **opt-in for local testing** using a dedicated static JSON preview URL parameter. The accepted default city is preserved, so an experimental extent cannot silently change every visitor's experience. The east coastline is derived from public geographic data at the expanded north/south limits, not a fabricated rectangular outline.
+
+---
+
 ## 2026-10-10 Fireworks: Sydney sky prototype and advanced viewport disclosure
 
 - **Base:** supplied dirty `main` at full commit `17a011695370cdf5985fbb76be725ea9d284849f`, with reviewed Fireworks patches through 10 m upward tilt applied. No commit, push, release or Cloudflare changes.
@@ -608,3 +615,8 @@ The narrow shared fullscreen tab opens on hover or tap, then exposes the pin act
 
 - The custom bridge now follows the sourced north/south pylon footprint midpoint, reducing visual detachment from the Sydney city context; overlapping source-backed pylon masses are hidden only in rendering rather than deleted from the city asset.
 - The existing clickable Harbour Bridge landmark and camera navigation are preserved; no new input controls or overlays added. This scene-fidelity fix requires real-browser visual review.
+
+
+### Fireworks Greater Sydney test preview (2026-10-11)
+
+- The optional `?city=greater-sydney-test` route is explicitly labelled **GREATER SYDNEY TEST** after verifying the loaded extent, so it cannot be confused with the accepted Sydney scene. A preview-only keyboard-accessible **VIEW FULL EXTENT** control frames the dataset in GPU-assisted PLAN view, allowing users to inspect the expanded coastline and outer suburbs without manually flying the camera. The control is absent on the standard scene.

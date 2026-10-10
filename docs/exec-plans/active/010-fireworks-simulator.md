@@ -1,3 +1,28 @@
+## 2026-10-11 greater-Sydney trial: relative preview output bug
+
+The first connected local attempt retrieved 124,812 Overture buildings, 1,726 parts, 32,617 NSW roads, 29,506 Overture land records and 5,418 water records for `[151.145,-33.940,151.355,-33.795]`. OSM was intentionally skipped. The script then failed reporting a repository-relative `--output` path against its absolute repository root. Because the failure occurs after JSON output replacement, **inspect whether the preview JSON exists before attempting further processing**. The source downloads persist in the extent-specific acquisition cache, so retries should not re-download unless release/bounds metadata changes.
+
+Fix: resolve `--output` paths against `ROOT` immediately after parsing arguments; preserve absolute paths and protect the accepted browser JSON against explicitly naming it as a preview. An output other than the accepted file does not alter the raw-source manifest. Test the relative path from the documented PowerShell command and report successful JSON output path; do not invent a successful wider-city profile until local validation is received.
+
+---
+
+## 2026-10-11 Larger Sydney opt-in trial and PLAN renderer performance
+
+The current accepted `east-coast` Sydney browser asset remains unchanged. The explicit trial extent `[151.145,-33.940,151.355,-33.795]` uses the same EPSG:7856 metre origin and the Overture/NSW acquisition pipeline, including source-complete coastal land and mapped surface water. It extends west, north and south while increasing the eastern Pacific margin so the new coastline latitudes are covered. Additional coastal strip checks prevent incomplete land on either north or south edge from appearing as a straight artificial shoreline. Building counts, download/CPU cost, WebGL memory and new landmarks are unknown until a local real extract is complete.
+
+Preview acquisition command (PowerShell, repository root):
+
+```powershell
+py scripts/data/fireworks-simulator/acquire_sydney.py --extent greater-sydney-test --transport-source nsw-only --output public/data/fireworks-simulator/sydney-city-greater-sydney-test.json
+npm run dev
+```
+
+Compare `/projects/fireworks-simulator/` (accepted data) against `/projects/fireworks-simulator/?city=greater-sydney-test` (new test asset). Do not commit the test JSON, publish, or change the normal asset until source profile, load time and actual PLAN/SKYLINE visuals are reviewed. Staged downloads remain in the ignored extent cache without replacing the accepted raw-source manifest. The new preview asset is under `public/` locally, so exclude it from a production commit unless explicitly approved.
+
+PLAN was doing expensive per-gesture Canvas drawing of all visible buildings, roads and land. Instead of inventing a second simplified dataset, reuse the retained existing WebGL buffers with an orthographic uniform/projection branch matching the established PLAN pan/rotate/zoom transform and camera centre. The Canvas PLAN path is kept as a WebGL2-unavailable fallback. This is a local prototype performance change, **not an FPS benchmark or a completed fidelity review**. Inspect ground fill/shoreline edges, roofs, roads, custom bridge/opera geometry, hover highlights, wheel zoom and fallback before adopting larger datasets.
+
+---
+
 ## 2026-10-11 Harbour Bridge structural overlap correction
 
 The current 44,489-building Sydney browser bundle uses an authored open-truss Harbour Bridge over source-backed Overture buildings. Local-metre coordinates in the browser bundle revealed the authored bridge centre `(175, 356)` was about 131 m from the midpoint of four independently labelled Overture pylon parts (two south, two north) at approximately `(114, 239.5)`. The previously calibrated orientation (`-25.3°`) and 503 m arch span were consistent with the north/south pylon axis; only the centre was misplaced. Update the static browser structure and `structures()` in `prepare_sydney_city.py` so future exports agree.
@@ -1277,3 +1302,10 @@ Validation: focused Python suite (10 tests, including two new landmark regressio
 - This is an intentional prototype compromise: preserve correct overall sky orientation and the real bright-star anchors, while accepting an augmented faint background until a fuller audited catalogue (for example BSC5 or another licence-cleared source) is imported.
 
 - Added a compact skyline orientation HUD in the top-right: heading/cardinal direction, elevation angle, and a perspective compass that tilts flatter as the camera looks upward. The Moon render is deliberately enlarged from true angular size so it remains legible in the fireworks-planning viewport.
+
+
+## 2026-10-11 Greater Sydney preview discoverability review
+
+The generated local preview is present (user-reported 47.94 MB) but the user's screenshot remains centred over the same harbour area as the accepted city asset. The interface's default mode always loads the accepted JSON unless the URL contains `?city=greater-sydney-test`, and its previous labels did not distinguish the two assets. This makes testing expansion difficult even if new buildings were fetched and exported successfully. A preview-only header now labels the actual loaded dataset and offers VIEW FULL EXTENT: an explicitly fitted, north-up PLAN overview based on `city.bounds`. A guard rejects a preview URL if the JSON reports a different extent, preventing a silently misleading success. Do not change the normal Sydney URL or replace the accepted 19.56 MB asset. The 47.94 MB generated preview file is only on the user's machine and has not been inspected here.
+
+After the user checks the expanded outer edges in PLAN, collect its profile counts and compare mobile load, GPU performance and coast continuity before any decision to promote this larger bundle.

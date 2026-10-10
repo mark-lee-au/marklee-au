@@ -119,6 +119,18 @@ def land_mesh_from_overture(raw: dict, water_raw: dict, bundle: dict, *, coast_b
     coast_x = sourced.bounds[2]
     if coast_x >= acquisition_east - coast_buffer_m - 20:
         raise ValueError('Land reaches the eastern source boundary: expand the acquisition box before publishing')
+    # The east shoreline must also exist near BOTH expanded latitude limits.
+    # Otherwise a partial source download produces an artificial coastline cut
+    # that passes the single eastmost-point check above.
+    if bundle.get('city', {}).get('sceneExtent') == 'greater-sydney-test':
+        band = min(650.0, (north - south) * 0.12)
+        for label, y0, y1 in (('southern', south, south + band),
+                              ('northern', north - band, north)):
+            sample = sourced.intersection(box(west, y0, acquisition_east, y1))
+            if sample.is_empty or sample.area < band * 100:
+                raise ValueError(f'Missing {label} coastal land coverage in the expanded Sydney extent')
+            if sample.bounds[2] >= acquisition_east - coast_buffer_m - 20:
+                raise ValueError(f'Truncated {label} coastline at the eastern acquisition boundary')
     east = coast_x + coast_buffer_m
     frame_bounds = {
         'minX': round(west, 1), 'maxX': round(east, 1),
@@ -128,7 +140,7 @@ def land_mesh_from_overture(raw: dict, water_raw: dict, bundle: dict, *, coast_b
     water_polygons, water_count = _projected_polygons(water_raw, frame, water=True)
     if not water_polygons:
         raise ValueError('No Overture surface-water polygons within the coastal frame')
-    if bundle.get('city', {}).get('sceneExtent') == 'east-coast' and water_count < 50:
+    if bundle.get('city', {}).get('sceneExtent') in ('east-coast', 'greater-sydney-test') and water_count < 50:
         raise ValueError(f'Only {water_count} mapped water features across the Sydney coastal scene; check that the complete water extract was acquired')
     water_union = unary_union(water_polygons)
     if not water_union.is_valid:

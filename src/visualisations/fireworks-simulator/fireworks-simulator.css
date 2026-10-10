@@ -756,6 +756,18 @@ body:has(.fireworks-simulator) > .site-footer { display: none; }
   background: rgba(226, 231, 226, .1);
   color: rgba(245, 241, 230, .88);
 }
+.fireworks-simulator__preview-overview {
+  padding: 5px 8px;
+  border: 1px solid rgba(240, 213, 148, .35);
+  border-radius: 4px;
+  background: rgba(8, 12, 13, .8);
+  color: rgba(240, 213, 148, .92);
+  font: 650 .54rem/1 ui-monospace, SFMono-Regular, Consolas, monospace;
+  letter-spacing: .1em;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.fireworks-simulator__preview-overview:hover { background: rgba(240, 213, 148, .12); }
 
 /* A native disclosure below SKYLINE / PLAN keeps the controls out of view
    until requested. Sliders remain keyboard operable. */

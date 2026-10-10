@@ -74,6 +74,10 @@ export type WebGLViewport = {
   skylineFocalPx: number;
 };
 
+export type WebGLPlan = {
+  centreX: number; centreY: number; rotationRad: number; scale: number;
+};
+
 type DrawBuffer = {
   buffer: WebGLBuffer;
   count: number;
@@ -90,6 +94,8 @@ type ProgramInfo = {
     viewport: WebGLUniformLocation;
     screenOrigin: WebGLUniformLocation;
     focal: WebGLUniformLocation;
+    planMode: WebGLUniformLocation; planCentre: WebGLUniformLocation;
+    planRotation: WebGLUniformLocation; planScale: WebGLUniformLocation;
     near: WebGLUniformLocation;
     far: WebGLUniformLocation;
     colour: WebGLUniformLocation;
@@ -230,12 +236,31 @@ function createProgram(gl: WebGL2RenderingContext): ProgramInfo {
     uniform vec2 u_viewport;
     uniform vec2 u_screenOrigin;
     uniform float u_focal;
+    uniform float u_planMode;
+    uniform vec2 u_planCentre;
+    uniform vec2 u_planRotation;
+    uniform float u_planScale;
     uniform float u_near;
     uniform float u_far;
     uniform float u_pointSize;
     out highp vec2 v_worldXY;
     void main() {
       v_worldXY = a_position.xy;
+      if (u_planMode > 0.5) {
+        // Match PLAN's Canvas projection exactly, without CPU footprint passes.
+        vec2 offset = a_position.xy - u_planCentre;
+        vec2 rotated = vec2(
+          offset.x * u_planRotation.x - offset.y * u_planRotation.y,
+          offset.x * u_planRotation.y + offset.y * u_planRotation.x
+        ) * u_planScale;
+        vec2 screen = u_screenOrigin + vec2(rotated.x, -rotated.y);
+        // Higher roofs are closer to the top-down camera; preserve depth.
+        float depth = clamp(-a_position.z / 1000.0, -1.0, 1.0);
+        gl_Position = vec4(2.0 * screen.x / u_viewport.x - 1.0,
+          1.0 - 2.0 * screen.y / u_viewport.y, depth, 1.0);
+        gl_PointSize = u_pointSize;
+        return;
+      }
       vec3 relative = a_position - u_eye;
       float depth = dot(relative, u_forward);
       // Clip homogeneous geometry at the near plane. Sending individual
@@ -298,6 +323,8 @@ function createProgram(gl: WebGL2RenderingContext): ProgramInfo {
     uniforms: {
       eye: uniform('u_eye'), forward: uniform('u_forward'), right: uniform('u_right'), up: uniform('u_up'),
       viewport: uniform('u_viewport'), screenOrigin: uniform('u_screenOrigin'), focal: uniform('u_focal'),
+      planMode: uniform('u_planMode'), planCentre: uniform('u_planCentre'),
+      planRotation: uniform('u_planRotation'), planScale: uniform('u_planScale'),
       near: uniform('u_near'), far: uniform('u_far'), colour: uniform('u_colour'), pointSize: uniform('u_pointSize'),
       edgeBounds: uniform('u_edgeBounds'), edgeFadeMetres: uniform('u_edgeFadeMetres'), fadeEast: uniform('u_fadeEast'),
     },
@@ -337,6 +364,7 @@ export type CityWebGLRenderer = {
   setCity(city: WebGLCityBundle): void;
   resize(width: number, height: number, dpr: number): void;
   renderSkyline(camera: WebGLCamera, viewport: WebGLViewport, layers: CityRenderSettings): void;
+  renderPlan(camera: WebGLCamera, viewport: WebGLViewport, plan: WebGLPlan, layers: CityRenderSettings): void;
   dispose(): void;
 };
 
@@ -673,7 +701,7 @@ export function createCityWebGLRenderer(canvas: HTMLCanvasElement): CityWebGLRen
     gl.drawArrays(mode, 0, item.count);
   };
 
-  const renderSkyline = (camera: WebGLCamera, viewport: WebGLViewport, layers: CityRenderSettings) => {
+  const renderScene = (camera: WebGLCamera, viewport: WebGLViewport, layers: CityRenderSettings, plan?: WebGLPlan) => {
     const forward = normalise(subtract(camera.target, camera.eye));
     // Maintain the same world-up frame at every elevation. Changing the
     // reference axis near vertical used to abruptly flip the whole city.
@@ -695,6 +723,10 @@ export function createCityWebGLRenderer(canvas: HTMLCanvasElement): CityWebGLRen
     gl.uniform2f(info.uniforms.viewport, viewport.width, viewport.height);
     gl.uniform2f(info.uniforms.screenOrigin, viewport.skylineScreenX, viewport.skylineHorizonY);
     gl.uniform1f(info.uniforms.focal, viewport.skylineFocalPx);
+    gl.uniform1f(info.uniforms.planMode, plan ? 1 : 0);
+    gl.uniform2f(info.uniforms.planCentre, plan?.centreX ?? 0, plan?.centreY ?? 0);
+    gl.uniform2f(info.uniforms.planRotation, Math.cos(plan?.rotationRad ?? 0), Math.sin(plan?.rotationRad ?? 0));
+    gl.uniform1f(info.uniforms.planScale, plan?.scale ?? 1);
     gl.uniform1f(info.uniforms.near, 8);
     gl.uniform1f(info.uniforms.far, 20000);
     const setFadeBounds = (bounds: WebGLCityBundle['bounds'], fadeMetres: number, fadeEast = true) => {
@@ -762,10 +794,15 @@ export function createCityWebGLRenderer(canvas: HTMLCanvasElement): CityWebGLRen
     drawLayer(signals, gl.POINTS, SIGNAL, 'roads', 3.0 * viewport.dpr);
   };
 
+  const renderSkyline = (camera: WebGLCamera, viewport: WebGLViewport, layers: CityRenderSettings) =>
+    renderScene(camera, viewport, layers);
+  const renderPlan = (camera: WebGLCamera, viewport: WebGLViewport, plan: WebGLPlan, layers: CityRenderSettings) =>
+    renderScene(camera, viewport, layers, plan);
+
   const dispose = () => {
     clearBuffers();
     gl.deleteProgram(info.program);
   };
 
-  return { setCity, resize, renderSkyline, dispose };
+  return { setCity, resize, renderSkyline, renderPlan, dispose };
 }

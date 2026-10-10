@@ -49,6 +49,28 @@ class CoastalMeshTests(unittest.TestCase):
         self.assertEqual(coast[3], inner[3])
         self.assertGreater(coast[2], inner[2] + .06)
 
+    def test_extended_extent_reaches_northern_and_southern_coast(self):
+        wide = scene()
+        wide['city']['sceneExtent'] = 'greater-sydney-test'
+        # A complete coast has land in strips against both northern and southern bounds.
+        filled_water = water_source()
+        filled_water['features'] *= 30  # Source-completeness guard on larger extents
+        with self.project_identity(), patch('sydney_coastal_land.shapely_transform', lambda f, s: s):
+            mesh, info = land_mesh_from_overture(land_source(), filled_water, wide)
+        self.assertGreater(len(mesh['triangles']), 0)
+        self.assertAlmostEqual(info['bounds']['maxX'], 500)
+
+    def test_extended_extent_rejects_missing_northern_coastal_strip(self):
+        wide = scene()
+        wide['city']['sceneExtent'] = 'greater-sydney-test'
+        truncated = land_source()
+        truncated['features'][0]['geometry'] = mapping(box(-100, -100, 200, 0))
+        filled_water = water_source()
+        filled_water['features'] *= 30
+        with self.project_identity(), patch('sydney_coastal_land.shapely_transform', lambda f, s: s):
+            with self.assertRaisesRegex(ValueError, 'northern coastal land'):
+                land_mesh_from_overture(truncated, filled_water, wide)
+
     def test_measured_shoreline_plus_300m_and_no_painted_ocean(self):
         with self.project_identity(), patch('sydney_coastal_land.shapely_transform', lambda f, s: s):
             mesh, info = land_mesh_from_overture(land_source(), water_source(), scene())

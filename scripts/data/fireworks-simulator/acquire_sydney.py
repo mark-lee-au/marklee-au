@@ -139,10 +139,50 @@ def validate_expanded_coverage(bundle: dict) -> dict[str, int]:
     return counts
 
 
+def validate_outer_growth(bundle: dict) -> dict[str, int]:
+    """Require actual geometry beyond the CURRENT coastal scene on W/N/S.
+
+    The east edge is validated separately against Overture coastal land,
+    including northern and southern source strips.
+    """
+    old = scene_bbox('east-coast')
+    x_coords = [local_xy(lon, lat)[0] for lon in (old[0], old[2]) for lat in (old[1], old[3])]
+    y_coords = [local_xy(lon, lat)[1] for lon in (old[0], old[2]) for lat in (old[1], old[3])]
+    counts = {"west": 0, "north": 0, "south": 0}
+    for building in bundle['buildings']:
+        footprint = building.get('footprint') or []
+        if not footprint:
+            continue
+        x = sum(vertex[0] for vertex in footprint) / len(footprint)
+        y = sum(vertex[1] for vertex in footprint) / len(footprint)
+        counts['west'] += x < min(x_coords) - 25
+        counts['north'] += y > max(y_coords) + 25
+        counts['south'] += y < min(y_coords) - 25
+    if not all(counts.values()):
+        raise RuntimeError(f'Greater Sydney acquisition lacks new W/N/S buildings: {counts}')
+    return counts
+
+
+def resolve_output_path(requested: Path | None) -> Path:
+    """Resolve --output relative to the repository, not the process cwd.
+
+    Normalize before writing or reporting so Path.relative_to(ROOT) works on
+    Windows too. Explicit preview output must not point at the accepted asset.
+    """
+    if requested is None:
+        return DEFAULT_OUTPUT.resolve()
+    path = requested.expanduser()
+    resolved = (path if path.is_absolute() else ROOT / path).resolve()
+    if resolved == DEFAULT_OUTPUT.resolve():
+        raise ValueError("--output must differ from the accepted sydney-city.json; omit --output for an intentional replacement")
+    return resolved
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Acquire a Sydney city bundle from public Overture/NSW/OSM sources")
     parser.add_argument("--extent", choices=SCENE_EXTENTS_WGS84, default="cbd",
-                        help="Opt into inner-Sydney or the Pacific-side east-coast scene")
+                        help="Opt into wider Sydney scenes including the coast-preserving greater-Sydney test")
+    parser.add_argument("--output", type=Path, help="Write a review-only browser JSON file instead of replacing the accepted Sydney city asset")
     parser.add_argument("--reuse-local", action="store_true",
                         help="Reprocess already-downloaded raw source files without another network download")
     parser.add_argument("--overture-release", help="Exact Overture release, if known, for older local downloads without a manifest")
@@ -151,6 +191,8 @@ def main() -> None:
     parser.add_argument("--transport-source", choices=("nsw-osm", "nsw-only"), default="nsw-osm",
                         help="Use reliable NSW road geometry without Overpass enrichment, or include OSM lane/control details")
     args = parser.parse_args()
+    # Validate the destination before any potentially expensive downloads.
+    output = resolve_output_path(args.output)
     use_osm = args.transport_source == "nsw-osm"
     bbox = scene_bbox(args.extent)
     RAW.mkdir(parents=True, exist_ok=True)
@@ -160,7 +202,7 @@ def main() -> None:
     osm_transport = RAW / "osm-transport.json"
     cache = RAW / f"acquisition-cache-{args.extent}"
     manifest = RAW / "sydney-source-acquisition.json"
-    coastal = args.extent == "east-coast"
+    coastal = args.extent in ("east-coast", "greater-sydney-test")
     land = RAW / "overture-land.geojson"
     water = RAW / "overture-water.geojson"
     staged: dict[str, Path] = {}
@@ -253,11 +295,12 @@ def main() -> None:
         road_count = bundle["profile"].get("roadCount", 0)
         if road_count < 20:
             raise RuntimeError(f"Only {road_count} usable road segments. Refusing to replace city without review")
-        if args.extent in ("inner-sydney", "east-coast"):
+        if args.extent in ("inner-sydney", "east-coast", "greater-sydney-test"):
             directional_counts = validate_expanded_coverage(bundle)
             bundle["profile"]["expandedBeyondCbdByDirection"] = directional_counts
+        if args.extent == "greater-sydney-test":
+            bundle["profile"]["expandedBeyondEastCoastByDirection"] = validate_outer_growth(bundle)
         bundle["profile"]["overtureReleaseVerified"] = bool(release)
-        output = DEFAULT_OUTPUT
         output.parent.mkdir(parents=True, exist_ok=True)
         bundle["profile"]["outputByteSize"] = 0
         for _ in range(10):
@@ -268,20 +311,22 @@ def main() -> None:
             bundle["profile"]["outputByteSize"] = measured
         # Keep the last CBD scene locally if the expanded scene replaces it.
         # This file is inside ignored raw data, never included in the patch.
-        if args.extent in ("inner-sydney", "east-coast") and output.exists():
+        if output == DEFAULT_OUTPUT and args.extent in ("inner-sydney", "east-coast", "greater-sydney-test") and output.exists():
             previous = json.loads(output.read_text(encoding="utf-8"))
             backup = RAW / "sydney-city-cbd-backup.json"
             if previous.get("city", {}).get("sceneBboxWgs84") == SCENE_BBOX_WGS84 and not backup.exists():
                 backup.write_bytes(output.read_bytes())
                 print(f"Previous CBD data backed up at {backup.relative_to(ROOT)}")
-        if coastal and output.exists():
+        if output == DEFAULT_OUTPUT and coastal and output.exists():
             previous = json.loads(output.read_text(encoding="utf-8"))
             if previous.get("city", {}).get("sceneExtent") == "inner-sydney":
                 backup = RAW / "sydney-city-inner-sydney-backup.json"
                 if not backup.exists():
                     backup.write_bytes(output.read_bytes())
                     print(f"Previous inner-Sydney city backed up at {backup.relative_to(ROOT)}")
-        if staged:
+        # Preview downloads stay in their extent-specific cache; do not mutate
+        # the accepted raw-source manifest while testing a larger city.
+        if staged and args.output is None:
             targets = {
                 "building": buildings, "building_part": parts, "nsw-roads": roads,
                 "osm-transport": osm_transport, "land": land, "water": water,

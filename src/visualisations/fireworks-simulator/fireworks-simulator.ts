@@ -145,7 +145,7 @@ type CityBundle = {
     country: string;
     geometryMode: string;
     sourceNote: string;
-    sceneExtent?: 'cbd' | 'inner-sydney' | 'east-coast';
+    sceneExtent?: 'cbd' | 'inner-sydney' | 'east-coast' | 'greater-sydney-test';
   };
   bounds: { minX: number; maxX: number; minY: number; maxY: number; maxZ: number };
   water: { sourceClass: string; polygons: Point2[][] };
@@ -353,6 +353,7 @@ function initialise(root: HTMLElement) {
   const cityLabel = root.querySelector<HTMLElement>('[data-city-telemetry]');
   const rendererLabel = root.querySelector<HTMLElement>('[data-city-renderer]');
   const cityModeLabel = root.querySelector<HTMLElement>('[data-city-mode]');
+  const previewOverviewButton = root.querySelector<HTMLButtonElement>('[data-city-preview-overview]');
   const customState = root.querySelector<HTMLElement>('[data-custom-state]');
   const status = root.querySelector<HTMLElement>('[data-fireworks-status]');
   const readoutCalibre = root.querySelector<HTMLElement>('[data-readout-calibre]');
@@ -540,6 +541,7 @@ function initialise(root: HTMLElement) {
   };
 
   let city: CityBundle | null = null;
+  let activeCityPreview = false;
   let preparedBuildings: PreparedBuilding[] = [];
   let preparedRoadSegments: PreparedRoadSegment[] = [];
   const keyLabelNodes = new Map<string, HTMLElement>();
@@ -1951,20 +1953,20 @@ function initialise(root: HTMLElement) {
       .forEach(item=>item.render());
   };
 
-  const drawCity = (gpuSkyline = false) => {
+  const drawCity = (gpuCity = false) => {
     if (!city) return;
-    if (!gpuSkyline) drawLand();
+    if (!gpuCity) drawLand();
     // Empty harbour stays empty; the former grid crossed both land and water.
-    if (layerVisible('land') && !city.land?.triangles?.length) {
+    if (!gpuCity && layerVisible('land') && !city.land?.triangles?.length) {
       context.save();
       context.globalAlpha *= layers.opacity.land;
       if (viewMode === 'plan') drawPlanGrid();
       else drawSkylineGrid();
       context.restore();
     }
-    if (gpuSkyline && viewMode === 'skyline') {
-      // All structures now live in WebGL with the same depth and clipping.
-      // Never repaint bridge or Opera shells as a 2D skyline overlay.
+    if (gpuCity) {
+      // WebGL paints the city in either perspective SKYLINE or orthographic PLAN.
+      // Avoid duplicate Canvas building paths and structure silhouettes.
     } else {
       drawRoads();
       drawTransportPoints();
@@ -1975,7 +1977,7 @@ function initialise(root: HTMLElement) {
       firstCityRenderMs = performance.now() - cityReadyAt;
       cityModeLabel.textContent = city.city.geometryMode === 'procedural-calibration'
         ? `SYDNEY / CALIBRATION · ${city.profile.roadCount ?? 0} STREETS`
-        : `SYDNEY / OVERTURE ${city.profile.buildingCount} BUILDINGS · ${city.profile.roadCount ?? 0} STREETS`;
+        : `${activeCityPreview ? 'GREATER SYDNEY TEST' : 'SYDNEY'} / OVERTURE ${city.profile.buildingCount} BUILDINGS · ${city.profile.roadCount ?? 0} STREETS`;
     }
   };
 
@@ -2505,10 +2507,11 @@ function initialise(root: HTMLElement) {
     drawNightSky(now);
     context = mainContext;
     context.clearRect(0, 0, viewport.width, viewport.height);
-    const gpuSkyline = Boolean(webglCity && cityWebglCanvas && viewMode === 'skyline');
+    const gpuCity = Boolean(webglCity && cityWebglCanvas);
+    const gpuSkyline = gpuCity && viewMode === 'skyline';
     if (city && cityContext) {
       if (cityDirty) {
-        if (cityWebglCanvas) cityWebglCanvas.style.display = gpuSkyline ? 'block' : 'none';
+        if (cityWebglCanvas) cityWebglCanvas.style.display = gpuCity ? 'block' : 'none';
         if (gpuSkyline && webglCity) {
           webglCity.renderSkyline(camera, {
             width: viewport.width,
@@ -2518,19 +2521,37 @@ function initialise(root: HTMLElement) {
             skylineScreenX: viewport.skylineScreenX,
             skylineFocalPx,
           }, layers);
+        } else if (gpuCity && webglCity && viewMode === 'plan') {
+          webglCity.renderPlan(camera, {
+            width: viewport.width, height: viewport.height, dpr: viewport.dpr,
+            skylineScreenX: viewport.planScreenX, skylineHorizonY: viewport.planScreenY,
+            skylineFocalPx,
+          }, {
+            centreX: viewport.planCentreX + plan.x,
+            centreY: viewport.planCentreY + plan.y,
+            rotationRad: plan.rotationRad,
+            scale: viewport.planScale * plan.zoom,
+          }, layers);
         }
-        cityCanvas.width = canvas.width;
-        cityCanvas.height = canvas.height;
-        cityContext.setTransform(viewport.dpr, 0, 0, viewport.dpr, 0, 0);
-        context = cityContext;
-        context.clearRect(0, 0, viewport.width, viewport.height);
-        drawCity(gpuSkyline);
-        if (!gpuSkyline) drawCityEdgeFade();
+        if (gpuCity) {
+          // GPU buffers are retained across gestures; avoid reallocating a
+          // device-pixel-ratio-sized Canvas backing store every pan frame.
+          context = cityContext;
+          drawCity(true);
+        } else {
+          cityCanvas.width = canvas.width;
+          cityCanvas.height = canvas.height;
+          cityContext.setTransform(viewport.dpr, 0, 0, viewport.dpr, 0, 0);
+          context = cityContext;
+          context.clearRect(0, 0, viewport.width, viewport.height);
+          drawCity(false);
+          drawCityEdgeFade();
+        }
         context = mainContext;
         cityDirty = false;
         occlusionDirty = true;
       }
-      if (!gpuSkyline) context.drawImage(cityCanvas, 0, 0, viewport.width, viewport.height);
+      if (!gpuCity) context.drawImage(cityCanvas, 0, 0, viewport.width, viewport.height);
     } else drawCity();
     drawLaunchMarker();
     updateKeyLabels();
@@ -2557,7 +2578,7 @@ function initialise(root: HTMLElement) {
     // behind structures without another building pass. This is layer-based
     // occlusion, not exact per-particle 3D depth. The no-WebGL fallback keeps
     // its lightweight approximate foreground Canvas pass.
-    if (city && occlusionContext && !gpuSkyline) {
+    if (city && occlusionContext && !gpuCity) {
       if (occlusionDirty && now >= occlusionDeferUntil) {
         occlusionCanvas.width = canvas.width;
         occlusionCanvas.height = canvas.height;
@@ -3129,11 +3150,24 @@ function initialise(root: HTMLElement) {
   const loadCity = async () => {
     const started = performance.now();
     try {
-      const response = await fetch(config.cityUrl, { cache: 'no-cache' });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      // Opt-in local review uses a separate generated static asset. Normal
+      // users retain the accepted Sydney bundle, even after a test acquisition.
+      const requestedPreview = new URLSearchParams(window.location.search).get('city') !== 'original-sydney';
+      const cityUrl = requestedPreview
+        ? '/data/fireworks-simulator/sydney-city-greater-sydney-test.json'
+        : config.cityUrl;
+      const response = await fetch(cityUrl, { cache: 'no-cache' });
+      if (!response.ok) throw new Error(`HTTP ${response.status} loading ${cityUrl}`);
       const loaded = await response.json() as CityBundle;
       if (!loaded?.city || !Array.isArray(loaded.buildings)) throw new Error('invalid city bundle');
+      // Do not silently label a copied or stale standard Sydney file as the
+      // greater-Sydney test. The preview route must load the matching extent.
+      if (requestedPreview && loaded.city.sceneExtent !== 'greater-sydney-test') {
+        throw new Error(`preview file is not the greater-sydney-test extent (${loaded.city.sceneExtent ?? 'unknown'})`);
+      }
       city = loaded;
+      activeCityPreview = requestedPreview;
+      if (previewOverviewButton) previewOverviewButton.hidden = !activeCityPreview;
       landmarks = cityLandmarks(loaded.city.id, loaded.buildings, loaded.structures ?? []);
       buildHeightComparison();
       landmarkIds.clear();
@@ -3191,13 +3225,17 @@ function initialise(root: HTMLElement) {
       cityReadyAt = performance.now();
       const roadCount = loaded.profile.roadCount ?? loaded.roads?.length ?? 0;
       cityLabel.textContent = `CITY ${loaded.profile.buildingCount + loaded.profile.structureCount}  STREETS ${roadCount}`;
-      cityModeLabel.textContent = `SYDNEY / LOADING VIEW`;
+      cityModeLabel.textContent = activeCityPreview ? 'GREATER SYDNEY TEST / LOADING VIEW' : 'SYDNEY / LOADING VIEW';
       updateViewport();
       replay(false);
       status.textContent = loaded.city.geometryMode === 'procedural-calibration'
         ? `Sydney calibration buildings loaded.${roadCount ? ` ${roadCount} sourced street segments are active.` : ' Run the Sydney transport acquisition command to add sourced streets.'}`
-        : `Sydney city data loaded with ${roadCount} street segments.`;
+        : activeCityPreview
+          ? `Greater Sydney preview loaded: ${loaded.profile.buildingCount} buildings, ${roadCount} streets. Use View Full Extent to see the expanded coverage.`
+          : `Sydney city data loaded with ${roadCount} street segments.`;
     } catch (error) {
+      activeCityPreview = false;
+      if (previewOverviewButton) previewOverviewButton.hidden = true;
       cityLabel.textContent = 'CITY ERR';
       cityModeLabel.textContent = 'SYDNEY / CITY DATA UNAVAILABLE';
       status.textContent = `Sydney city data could not be loaded: ${error instanceof Error ? error.message : 'unknown error'}. Firework controls remain available.`;
@@ -3611,6 +3649,18 @@ function initialise(root: HTMLElement) {
       event.preventDefault();
       replay();
     }
+  });
+
+  previewOverviewButton?.addEventListener('click', () => {
+    if (!activeCityPreview || !city) return;
+    // PLAN already computes its fit scale from the loaded city bounds.
+    // Reset the planar offset/zoom so the *whole* expanded extent is visible.
+    if (viewMode !== 'plan') viewButtons.find(button => button.dataset.viewMode === 'plan')?.click();
+    plan = { x: 0, y: 0, rotationRad: 0, zoom: 1 };
+    planZoomTarget = 1;
+    syncView();
+    status.textContent = 'Greater Sydney test: full source extent shown in PLAN. Switch to SKYLINE to explore individual areas.';
+    replay(false);
   });
 
   viewButtons.forEach((button) => {

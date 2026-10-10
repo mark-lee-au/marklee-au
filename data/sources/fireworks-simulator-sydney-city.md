@@ -1,3 +1,11 @@
+## 2026-10-11 proposed greater-Sydney coverage trial (not yet acquired)
+
+The optional `greater-sydney-test` Overture/NSW **acquisition box**, WGS84 `[151.145,-33.940,151.355,-33.795]`, is approximately three times the area of the current `east-coast` extract. This is a bounding box for a **proposed source extraction**, not evidence that new geography exists in the browser-ready asset. It extends further west, north and south, with the Pacific-side source region pushed farther east to cover the northern and southern coast. The final rendered east bound still comes from the **sourced** land polygon, not the acquisition rectangle; harbour/bay water is subtracted using Overture surface-water polygons.
+
+New source completeness checks require sourced coastal land near both the northern and southern frame edges, a shoreline inside the eastern acquisition boundary, adequate mapped water, and building centroids west/north/south of the previously accepted `east-coast` bounds. The opt-in output flag writes a separate public preview JSON and preserves the currently accepted source manifest and browser city asset. No new Overture, water, building or NSW road data has been retrieved in the delivered ZIP. Source release, counts, heights, licence metadata and performance must be audited after local acquisition before publication.
+
+---
+
 ## 2026-10-11 Sydney Harbour Bridge placement audit
 
 - **Source:** current `sydney-city.json` Overture building and building-part footprints in EPSG:7856-derived local metres, verified against the existing Heritage NSW-centred origin. No additional external acquisition.

@@ -15,7 +15,7 @@ from prepare_sydney_city import (
     apply_road_clearance, build_bundle, calibration_buildings, features_from_geojson, transport_network,
     remove_duplicate_observation_towers, repair_landmark_overlaps, structures, scene_bbox, SCENE_BBOX_WGS84,
 )
-from acquire_sydney import validate_expanded_coverage
+from acquire_sydney import validate_expanded_coverage, validate_outer_growth
 
 
 def footprint(lon):
@@ -31,6 +31,12 @@ class CityPreparationTests(unittest.TestCase):
         self.assertLess(scene_bbox("inner-sydney")[1], SCENE_BBOX_WGS84[1])
         self.assertGreater(scene_bbox("inner-sydney")[2], SCENE_BBOX_WGS84[2])
         self.assertGreater(scene_bbox("inner-sydney")[3], SCENE_BBOX_WGS84[3])
+        greater = scene_bbox("greater-sydney-test")
+        coast = scene_bbox("east-coast")
+        self.assertLess(greater[0], coast[0])  # west
+        self.assertLess(greater[1], coast[1])  # south
+        self.assertGreater(greater[2], coast[2])  # east, beyond coastline at new latitudes
+        self.assertGreater(greater[3], coast[3])  # north
         with self.assertRaises(ValueError):
             scene_bbox("unbounded")
 
@@ -62,6 +68,20 @@ class CityPreparationTests(unittest.TestCase):
                              {"north": 1, "south": 1, "west": 1, "east": 1})
             with self.assertRaises(RuntimeError):
                 validate_expanded_coverage(core)
+
+    def test_greater_sydney_requires_real_geometry_beyond_old_west_north_south(self):
+        from prepare_sydney_city import local_xy
+        west = local_xy(151.130, -33.86)
+        north = local_xy(151.20, -33.780)
+        south = local_xy(151.20, -33.960)
+        inside = local_xy(151.21, -33.858)
+        def building(point):
+            x, y = point
+            return {'footprint': [[x-2, y-2], [x+2, y-2], [x+2, y+2], [x-2, y+2]]}
+        full = {'buildings': [building(point) for point in (inside, west, north, south)]}
+        self.assertEqual(validate_outer_growth(full), {'west': 1, 'north': 1, 'south': 1})
+        with self.assertRaisesRegex(RuntimeError, 'lacks new W/N/S'):
+            validate_outer_growth({'buildings': [building(inside)]})
 
     def test_calibration_fallback_contains_harbour_front_tower_cluster(self):
         buildings = {building["id"]: building for building in calibration_buildings()}
@@ -310,6 +330,50 @@ class CityPreparationTests(unittest.TestCase):
             self.assertTrue(output.is_file())
             self.assertFalse(json.loads(output.read_text())["profile"]["overtureReleaseVerified"])
             self.assertIsNone(build.call_args.kwargs["overture_release"])
+
+    def test_preview_output_preserves_accepted_browser_asset(self):
+        with tempfile.TemporaryDirectory() as folder:
+            raw = Path(folder) / 'raw'
+            raw.mkdir()
+            for name in ('overture-buildings.geojson', 'overture-building-parts.geojson',
+                         'nsw-road-segments.geojson'):
+                (raw / name).write_text('{}', encoding='utf-8')
+            accepted = Path(folder) / 'sydney-city.json'
+            accepted.write_text('accepted city remains unchanged', encoding='utf-8')
+            preview_relative = Path('public/data/fireworks-simulator/sydney-city-greater-sydney-test.json')
+            preview = Path(folder) / preview_relative
+            fixture = {
+                'profile': {'buildingCount': 20, 'roadCount': 20,
+                            'directHeightCount': 10, 'floorFallbackCount': 0,
+                            'defaultHeightCount': 10, 'roadAuditErrorCount': 0},
+                'city': {'sceneBboxWgs84': SCENE_BBOX_WGS84},
+                'buildings': [{'id': f'b{i}'} for i in range(20)],
+            }
+            with (patch.object(acquire_sydney, 'RAW', raw),
+                  patch.object(acquire_sydney, 'ROOT', Path(folder)),
+                  patch.object(acquire_sydney, 'DEFAULT_OUTPUT', accepted),
+                  patch.object(acquire_sydney, 'build_bundle', return_value=fixture),
+                  patch.object(sys, 'argv', ['acquire_sydney.py', '--reuse-local',
+                                            '--transport-source', 'nsw-only',
+                                            '--output', str(preview_relative)])):
+                output_log = io.StringIO()
+                with redirect_stdout(output_log):
+                    acquire_sydney.main()
+            self.assertTrue(preview.exists())
+            self.assertIn(str(preview_relative), output_log.getvalue())
+            self.assertEqual(accepted.read_text(), 'accepted city remains unchanged')
+
+    def test_output_resolution_keeps_absolute_preview_and_rejects_accepted_target(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            accepted = root / 'public/data/fireworks-simulator/sydney-city.json'
+            preview = root / 'public/data/fireworks-simulator/sydney-city-greater-sydney-test.json'
+            with patch.object(acquire_sydney, 'ROOT', root), patch.object(acquire_sydney, 'DEFAULT_OUTPUT', accepted):
+                self.assertEqual(acquire_sydney.resolve_output_path(None), accepted)
+                self.assertEqual(acquire_sydney.resolve_output_path(preview), preview)
+                self.assertEqual(acquire_sydney.resolve_output_path(preview.relative_to(root)), preview)
+                with self.assertRaisesRegex(ValueError, 'must differ'):
+                    acquire_sydney.resolve_output_path(accepted.relative_to(root))
 
     def test_reuse_local_rejects_mismatching_bounds(self):
         with tempfile.TemporaryDirectory() as folder:
