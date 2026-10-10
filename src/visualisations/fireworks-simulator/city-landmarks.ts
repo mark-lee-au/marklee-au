@@ -8,6 +8,7 @@ export type LandmarkBuilding = {
   minHeightM?: number;
   roadConflict?: boolean;
   heightSource?: string;
+  geometrySource?: string;
 };
 export type LandmarkStructure = {
   id: string;
@@ -21,6 +22,7 @@ export type LandmarkStructure = {
   widthM?: number;
   depthM?: number;
   rotationDeg?: number;
+  pylonHeightM?: number;
 };
 export type Landmark = {
   id: string;
@@ -83,8 +85,16 @@ export function footprintCentre(footprint: Point2[]) {
 }
 
 // Overture's detailed Opera House roof parts and Harbour Bridge pylons overlap
-// the schematic authored models. Suppress those duplicate *rendered features*
-// in both renderers; keep all source data intact in the published bundle.
+// the schematic authored models. Suppress only verified duplicate *rendered
+// features* in both renderers; keep all source data intact in the bundle.
+// Two unnamed Overture bridge-pylon envelopes have 89 m roofs and sit directly
+// over the south/north authored pylons. Their IDs were checked against the
+// current 44,489-building Sydney browser asset. Require location and height as
+// safeguards; do not remove other buildings near the bridge or nearby podiums.
+const SYDNEY_BRIDGE_PYLON_ENVELOPES = new Set([
+  '88d86b8e-0235-39e7-b118-6f71cb92961b', // south, ~[-13, -12]
+  '2eeda083-a182-336a-a922-d99f7cac767f', // north, ~[241, 493]
+]);
 export function overlapsAuthoredLandmark(building: LandmarkBuilding, structures: LandmarkStructure[]): boolean {
   if (building.footprint.length < 3) return false;
   const centre = footprintCentre(building.footprint);
@@ -98,8 +108,20 @@ export function overlapsAuthoredLandmark(building: LandmarkBuilding, structures:
     }
     if (structure.type === 'arch-bridge') {
       const name = building.name ?? '';
-      // The Overture pylons are explicit duplicates of the authored pylons.
+      // Explicit named parts duplicate the authored bridge pylons.
       if (/^Sydney Harbour Bridge - .*Pylon$/i.test(name)) return true;
+      if (SYDNEY_BRIDGE_PYLON_ENVELOPES.has(building.id) &&
+          building.geometrySource?.startsWith('overture-') &&
+          Math.abs(building.heightM - (structure.pylonHeightM ?? 89)) <= 3) {
+        const angle = (structure.rotationDeg ?? 0) * Math.PI / 180;
+        const halfPylonRun = (structure.spanM ?? 503) * .5 * 1.14;
+        for (const end of [-1, 1]) {
+          const y = end * halfPylonRun;
+          const pylonX = structure.x - y * Math.sin(angle);
+          const pylonY = structure.y + y * Math.cos(angle);
+          if (Math.hypot(centre.x - pylonX, centre.y - pylonY) < 45) return true;
+        }
+      }
     }
   }
   return false;

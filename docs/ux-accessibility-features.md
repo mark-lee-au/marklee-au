@@ -603,3 +603,8 @@ The narrow shared fullscreen tab opens on hover or tap, then exposes the pin act
 - Reduced-motion users still get a static star field; only subtle twinkle is suppressed.
 
 - Skyline mode now includes a compact heading/elevation readout and a small perspective compass in the top-right. It is informational only, does not intercept input, and fades with the other overlays during active camera motion.
+
+### Fireworks Sydney Harbour Bridge scene fidelity (2026-10-11)
+
+- The custom bridge now follows the sourced north/south pylon footprint midpoint, reducing visual detachment from the Sydney city context; overlapping source-backed pylon masses are hidden only in rendering rather than deleted from the city asset.
+- The existing clickable Harbour Bridge landmark and camera navigation are preserved; no new input controls or overlays added. This scene-fidelity fix requires real-browser visual review.

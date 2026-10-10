@@ -160,8 +160,12 @@ def structures() -> list[dict[str, Any]]:
             "id": "sydney-harbour-bridge",
             "type": "arch-bridge",
             "name": "Sydney Harbour Bridge",
-            "x": 175.0,
-            "y": 356.0,
+            # Re-centred using the four sourced Overture pylon footprints
+            # (south pair near [-12, -14], north pair near [241, 493]).
+            # Keep the road-aligned schematic span and arch; this is not a
+            # surveyed engineering mesh.
+            "x": 114.0,
+            "y": 239.5,
             "z": 0,
             "rotationDeg": -25.3,
             "spanM": 503,

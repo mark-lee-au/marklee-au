@@ -1,3 +1,11 @@
+## 2026-10-11 Harbour Bridge structural overlap correction
+
+The current 44,489-building Sydney browser bundle uses an authored open-truss Harbour Bridge over source-backed Overture buildings. Local-metre coordinates in the browser bundle revealed the authored bridge centre `(175, 356)` was about 131 m from the midpoint of four independently labelled Overture pylon parts (two south, two north) at approximately `(114, 239.5)`. The previously calibrated orientation (`-25.3°`) and 503 m arch span were consistent with the north/south pylon axis; only the centre was misplaced. Update the static browser structure and `structures()` in `prepare_sydney_city.py` so future exports agree.
+
+Two further Overture *unnamed* part footprints are precisely colocated with the pylon ends (south ID `88d86b8e-0235-39e7-b118-6f71cb92961b`; north ID `2eeda083-a182-336a-a922-d99f7cac767f`, both direct-height 89 m). The existing visual exclusion caught the four *named* pylon parts but missed the unnamed geometry, leaving block-like duplicates. Update the shared landmark-exclusion function used by Canvas and WebGL to hide only the two audited IDs, with independent name/source/height/position safeguards; retain the records, raw Overture identity and building count in the bundle. Avoid blanket suppression of structures near the bridge.
+
+The authored arch/deck/pylons remain schematic calibration geometry, not a detailed 3D model or a surveyed reconstruction. The downstream road deck remains approximated (flat 49 m) and may not match all observed bridge elements. Next visual gate: local SKYLINE from each side plus PLAN/Canvas fallback; do not expand to city-wide overlap repair based on this one landmark.
+
 ## 2026-10-10 Fireworks: Sydney sky prototype and advanced viewport disclosure
 
 - **Base:** supplied dirty `main` at full commit `17a011695370cdf5985fbb76be725ea9d284849f`, with reviewed Fireworks patches through 10 m upward tilt applied. No commit, push, release or Cloudflare changes.

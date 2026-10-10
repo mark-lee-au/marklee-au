@@ -1,3 +1,13 @@
+## 2026-10-11 Fireworks: Sydney Harbour Bridge placement and duplicate-massing correction
+
+- **Base:** main @ 4ebfcb2548bd02714355191ed7733b210c01e12b (clean supplied snapshot). No commits, pushes, deploys or regeneration of raw Sydney acquisition data.
+- **Root cause confirmed in the checked-in Sydney scene:** authored Harbour Bridge centre `(175.0, 356.0)` disagreed with the midpoint of the four real Overture pylon footprints near `(114.0, 239.5)` in the EPSG:7856-derived local-metre coordinate system. The existing bridge angle `-25.3°`, 503 m arch span and schematic truss are retained. The authored bridge centre is now `(114.0, 239.5)` in both the static browser JSON and the reproducible preparation script.
+- Two **unnamed Overture building-part volumes** with 89 m heights duplicated the authored bridge pylon masses: `88d86b8e-0235-39e7-b118-6f71cb92961b` (south) and `2eeda083-a182-336a-a922-d99f7cac767f` (north). They are still present in the source-backed bundle but no longer rendered. Shared `overlapsAuthoredLandmark()` now filters those exact IDs **only when** sourced geometry, 89 m height and proximity to the authored pylon position all agree. The four explicitly named pylon parts were already filtered. Other Overture buildings and city structures are not changed.
+- **Files:** `public/data/fireworks-simulator/sydney-city.json`, `scripts/data/fireworks-simulator/{prepare_sydney_city.py,test_prepare_sydney_city.py}`, `src/visualisations/fireworks-simulator/{city-landmarks.ts,city-landmarks.test.mjs}`, `data/sources/fireworks-simulator-sydney-city.md`, this handoff, `docs/exec-plans/active/010-fireworks-simulator.md`, `docs/ux-accessibility-features.md`. **Deletions: none.**
+- **Validation:** 75 Fireworks Node tests, 15 Sydney preparation Python tests and focused TypeScript compilation passed; projected pylon endpoints are within 9 m of the verified sourced centroids; root-ready ZIP integrity to be verified before delivery. **Not run:** full Astro build or actual browser/WebGL visual check. Next: inspect Harbour Bridge from north and south and verify no extra high blocks at its ends, including PLAN and WebGL fallback.
+
+---
+
 ## 2026-10-11 Publish helper: safe whitespace repair
 
 - **Base:** user-supplied dirty `main` snapshot at `17a011695370cdf5985fbb76be725ea9d284849f`. This patch changes only publishing support, tests and documentation. The current Fireworks working tree is not rewritten by applying the patch; no commit, push or Cloudflare changes.

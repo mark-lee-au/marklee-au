@@ -1,3 +1,11 @@
+## 2026-10-11 Sydney Harbour Bridge placement audit
+
+- **Source:** current `sydney-city.json` Overture building and building-part footprints in EPSG:7856-derived local metres, verified against the existing Heritage NSW-centred origin. No additional external acquisition.
+- **Four explicitly named Overture pylon parts** define south pair near `(-12, -14)` and north pair near `(241, 493)`. Their overall midpoint is approximately `(114, 239.5)`; the older procedural arch used `(175, 356)` and was displaced about 131 m.
+- **Correction:** set the *schematic* bridge centre to `(114, 239.5)` in both the bundled structure and preparation script; retain `rotationDeg: -25.3`, `spanM: 503`, and the existing schematic arch/truss dimensions. This aligns custom pylon ends within 9 m of the sourced pylon-centroid locations. It is not a surveyed shape.
+- **Duplicate Overture masses:** unnamed part IDs `88d86b8e-0235-39e7-b118-6f71cb92961b` (south) and `2eeda083-a182-336a-a922-d99f7cac767f` (north) both have direct `overture-height` 89 m and sit over the custom pylons. The Canvas/WebGL *rendering filter* suppresses these two alongside the four already filtered named pylon parts, with identity, provenance, roof-height and spatial checks. All source records are retained in the public city JSON for audit; this is not a new dataset or a record-removal operation.
+- **Unresolved:** deck width/rail alignment and truss shape remain artistic approximations. Browser visual QA should confirm improvement from multiple viewpoints.
+
 ## 2026-10-09 Sydney key-building curation and source matching
 
 Landmark selection is curated by historical/cultural/sporting value and tall/iconic skyline relevance rather than a fixed number of the highest buildings. A place is only selectable when named Overture building footprints or already-authored structures exist. The current processed east-coast JSON provides 65 qualifying landmarks in five categories. Height-atlas membership is more restrictive: 27 landmarks with an explicit Overture height value or an authored structure value. The generic 18 m and floors × 3.2 m approximations must not be presented as accurately ranked roof heights.

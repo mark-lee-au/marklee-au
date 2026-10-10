@@ -142,7 +142,9 @@ class CityPreparationTests(unittest.TestCase):
         self.assertEqual(city["profile"]["buildingCount"], len(city["buildings"]))
         self.assertGreater(city["profile"]["buildingCount"], 4000)
         self.assertEqual(next(s for s in city["structures"] if s["id"] == "sydney-tower")["heightM"], 309)
-        self.assertEqual(next(s for s in city["structures"] if s["id"] == "sydney-harbour-bridge")["rotationDeg"], -25.3)
+        bridge = next(s for s in city["structures"] if s["id"] == "sydney-harbour-bridge")
+        self.assertEqual(bridge["rotationDeg"], -25.3)
+        self.assertEqual((bridge["x"], bridge["y"]), (114.0, 239.5))
         # The authored five-polygon harbour approximation was superseded by
         # sourced land triangulation. Keep this regression check aligned with
         # the actual checked-in browser contract.
